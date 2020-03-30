@@ -1,5 +1,5 @@
-#ifndef COOL_CORE_STATUS_OR_H
-#define COOL_CORE_STATUS_OR_H
+#ifndef COOL_CORE_STATUS_H
+#define COOL_CORE_STATUS_H
 
 #include <cstdlib>
 #include <string>

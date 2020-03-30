@@ -20,15 +20,15 @@ public:
   ~ExprNode() override = 0;
 
   /// Return the expression type
-  ExprT type() const { return type_; }
+  ExprType type() const { return type_; }
 
   /// Set the expression type to the specified type
   ///
   /// \param[in] type expression type
-  void setType(const ExprT &type) { type_ = type; }
+  void setType(const ExprType &type) { type_ = type; }
 
 private:
-  ExprT type_;
+  ExprType type_;
 };
 
 /// Base class for a terminal node in the AST representing a literal
@@ -329,11 +329,12 @@ public:
   /// \param[in] lloc line location
   /// \param[in] cloc character location
   /// \return a pointer to the new block expression node
-  static NewExprNode *MakeNewExprNode(const ExprT &exprType,
+  static NewExprNode *MakeNewExprNode(const ExprType &exprType,
                                       const uint32_t lloc, const uint32_t cloc);
 
 private:
-  NewExprNode(const ExprT &exprType, const uint32_t lloc, const uint32_t cloc);
+  NewExprNode(const ExprType &exprType, const uint32_t lloc,
+              const uint32_t cloc);
 };
 
 /// Class for a node representing an identifier declaration
@@ -352,7 +353,7 @@ public:
   /// \param[in] cloc character location
   /// \return a pointer to the new block expression node
   static NewIdExprNode *MakeNewIdExprNode(IdExprNode *id, ExprNode *expr,
-                                          const ExprT &idType,
+                                          const ExprType &idType,
                                           const uint32_t lloc,
                                           const uint32_t cloc);
 
@@ -363,15 +364,15 @@ public:
   std::shared_ptr<ExprNode> expr() const { return expr_; }
 
   /// Return the static type of the identifier
-  const ExprT &idType() const { return idType_; }
+  const ExprType &idType() const { return idType_; }
 
 private:
-  NewIdExprNode(IdExprNode *id, ExprNode *expr, const ExprT &idType,
+  NewIdExprNode(IdExprNode *id, ExprNode *expr, const ExprType &idType,
                 const uint32_t lloc, const uint32_t cloc);
 
   std::shared_ptr<IdExprNode> id_;
   std::shared_ptr<ExprNode> expr_;
-  const ExprT idType_;
+  const ExprType idType_;
 };
 
 /// Class for a node representing a let expression

@@ -7,10 +7,6 @@
 
 namespace cool {
 
-/// Forward declarations
-class Context;
-class Pass;
-
 /// Base class for a node in the abstract syntax tree
 class Node {
 

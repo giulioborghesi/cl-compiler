@@ -11,6 +11,11 @@ namespace cool {
 
 namespace {
 
+/// Helper method to create a shared pointer to a class node
+///
+/// \param[in] className class name
+/// \param[in] parentClassName parent class name
+/// \return a shared pointer to a class node for the specified class
 std::shared_ptr<ClassNode> CreateClassNode(const std::string &className,
                                            const std::string &parentClassName) {
   std::vector<std::shared_ptr<AttributeNode>> attributes;
@@ -35,23 +40,102 @@ TEST(ClassRegistry, DuplicatedClassInRegistry) {
   auto statusB1 = registry.addClass(classB1);
   ASSERT_TRUE(statusB1.isOk());
 
+  /// Attempting to add a class that is already in the registry
   auto statusA2 = registry.addClass(classA2);
   ASSERT_FALSE(statusA2.isOk());
 }
 
 TEST(ClassRegistry, NonExistentParentClass) {
-  auto classA = CreateClassNode("A", "B");
+  auto classA = CreateClassNode("A", "");
 
   ClassRegistry registry{};
 
-  auto statusAddClass = registry.addClass(classA);
-  ASSERT_TRUE(statusAddClass.isOk());
+  auto statusAddClassA = registry.addClass(classA);
+  ASSERT_TRUE(statusAddClassA.isOk());
+
+  /// Inheritance tree is well formed
+  {
+    auto statusCheckInheritance = registry.checkInheritanceTree();
+    ASSERT_TRUE(statusCheckInheritance.isOk());
+  }
+
+  /// Add node with non-existing parent class
+  auto classB = CreateClassNode("B", "C");
+  auto statusAddClassB = registry.addClass(classB);
+  ASSERT_TRUE(statusAddClassB.isOk());
+
+  /// Inheritance tree is now ill formed
+  {
+    auto statusCheckInheritance = registry.checkInheritanceTree();
+    ASSERT_FALSE(statusCheckInheritance.isOk());
+    ASSERT_EQ(statusCheckInheritance.getErrorMessage(),
+              "Error: parent class is not defined");
+  }
+}
+
+TEST(ClassRegistry, CyclicDependencyInClassInheritanceTree) {
+  auto classA = CreateClassNode("A", "C");
+  auto classB = CreateClassNode("B", "A");
+  auto classC = CreateClassNode("C", "B");
+
+  ClassRegistry registry{};
+
+  auto statusAddClassA = registry.addClass(classA);
+  ASSERT_TRUE(statusAddClassA.isOk());
+
+  auto statusAddClassB = registry.addClass(classB);
+  ASSERT_TRUE(statusAddClassB.isOk());
+
+  auto statusAddClassC = registry.addClass(classC);
+  ASSERT_TRUE(statusAddClassC.isOk());
 
   auto statusCheckInheritance = registry.checkInheritanceTree();
   ASSERT_FALSE(statusCheckInheritance.isOk());
 
   ASSERT_EQ(statusCheckInheritance.getErrorMessage(),
-            "Error: parent class is not defined");
+            "Error: cyclic class dependency detected");
+}
+
+TEST(ClassRegistry, TypeRelationships) {
+  auto classA = CreateClassNode("A", "");
+  auto classB = CreateClassNode("B", "A");
+  auto classC = CreateClassNode("C", "B");
+  auto classD = CreateClassNode("D", "A");
+
+  ClassRegistry registry{};
+  auto statusA = registry.addClass(classA);
+  ASSERT_TRUE(statusA.isOk());
+
+  auto statusB = registry.addClass(classB);
+  ASSERT_TRUE(statusB.isOk());
+
+  auto statusC = registry.addClass(classC);
+  ASSERT_TRUE(statusC.isOk());
+
+  auto statusD = registry.addClass(classD);
+  ASSERT_TRUE(statusC.isOk());
+
+  /// Define types
+  ExprType typeA{.typeID = registry.typeID("A"), .isSelf = false};
+  ExprType typeB{.typeID = registry.typeID("B"), .isSelf = false};
+  ExprType typeC{.typeID = registry.typeID("C"), .isSelf = false};
+  ExprType typeD{.typeID = registry.typeID("D"), .isSelf = false};
+  ExprType typeO{.typeID = registry.typeID("Object"), .isSelf = false};
+
+  /// C is a descendant of A
+  ASSERT_TRUE(registry.isAncestorOf(typeC, typeA));
+
+  /// A is a descendant of Object
+  ASSERT_TRUE(registry.isAncestorOf(typeA, typeO));
+
+  /// A is not a descendant of B
+  ASSERT_FALSE(registry.isAncestorOf(typeA, typeB));
+
+  /// Least common ancestor of B and D is A
+  ASSERT_EQ(typeA.typeID, registry.leastCommonAncestor(typeB, typeD).typeID);
+
+  /// Least common ancestor of C and A is A
+  ASSERT_EQ(typeA.typeID, registry.leastCommonAncestor(typeA, typeC).typeID);
 }
 
 } // namespace cool
