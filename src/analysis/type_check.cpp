@@ -1,58 +1,105 @@
-#include <cool/passes/type_check.h>
+#include <cool/analysis/type_check.h>
+#include <cool/core/context.h>
+#include <cool/ir/expr.h>
 
 #include <iostream>
 
 namespace cool {
 
-bool TypeCheckVisitor::visit(Context *context, BlockExprNode *node) const {
-  /// Typecheck expressions in block
-  bool successBlock = true;
-  for (auto expr : node->exprs()) {
-    const bool successExpr = expr->get()->visit(context, expr->get());
-    successBlock = successBlock && successExpr;
+Status TypeCheckPass::visit(Context *context, BinaryExprNode *node) {
+  const auto *registry = context->classRegistry();
+  const auto intTypeID = registry->typeID("Int");
+
+  if (intTypeID == -1) {
+    return GenericError("Error: Int type is not defined");
   }
 
-  /// Assign type to block expression if no error occurred in nested expressions
-  if (successBlock) {
-    node->type() = node->exprs().back()->type();
+  /// Type-check left subexpression
+  auto statusLhs = node->lhs()->visitNode(context, this);
+  if (!statusLhs.isOk()) {
+    return statusLhs;
   }
 
-  return successBlock;
+  /// Type-check right subexpression
+  auto statusRhs = node->rhs()->visitNode(context, this);
+  if (!statusRhs.isOk()) {
+    return statusRhs;
+  }
+
+  /// Type-check binary expression
+  const auto lhsTypeID = node->lhs()->type().typeID;
+  const auto rhsTypeID = node->rhs()->type().typeID;
+  if (lhsTypeID != intTypeID || rhsTypeID != intTypeID) {
+    return GenericError("Error: operand is not an integer");
+  }
+
+  /// Set expression type and return
+  node->setType(ExprType{.typeID = intTypeID, .isSelf = false});
+  return Status::Ok();
 }
 
-bool TypeCheckVisitor::visit(Context *context, IdExprNode *node) const {
-  /// Identifier must be in scope
-  if (context->symbolTable().find(node->id()) == 0) {
-    std::cerr << "Error: identifier " << node->id() << " is not in scope"
-              << std::endl;
-    return false;
-  }
+Status TypeCheckPass::visit(Context *context, BooleanExprNode *node) {
+  const auto *registry = context->classRegistry();
+  const auto boolTypeID = registry->typeID("Bool");
 
-  /// Assign type to expression and return
-  node->type() = context->symbolTable()[node->id()];
-  return true;
+  node->setType(ExprType{.typeID = boolTypeID, .isSelf = false});
+  return Status::Ok();
 }
 
-bool TypeCheckVisitor::visit(Context *context, AssignmentExprNode *node) const {
-  /// Traverse the children nodes
-  const bool successI = node->id()->visit(context, this);
-  const bool successV = node->value()->visit(context, this);
-  bool success = successI && successV;
+Status TypeCheckPass::visit(Context *context, IfExprNode *node) {
+  const auto *registry = context->classRegistry();
+  const auto boolTypeID = registry->typeID("Bool");
 
-  /// Assign type to expression if possible
-  if (success) {
-    if (!context->isChildOf(node->value()->type(), node->id()->type())) {
-      std::cerr << "Error: type " << node->value()->type()
-                << " is not a subtype of " << node->id()->type() << std::endl;
-      success = false;
-    } else {
-      node->setType(node->value()->type());
-    }
+  if (boolTypeID == -1) {
+    return GenericError("Error: Bool type is not defined");
   }
 
-  return success;
+  /// Type-check if-expression
+  auto statusIfExpr = node->ifExpr()->visitNode(context, this);
+  if (!statusIfExpr.isOk()) {
+    return statusIfExpr;
+  }
+
+  /// Type-check then-expression
+  auto statusThenExpr = node->thenExpr()->visitNode(context, this);
+  if (!statusThenExpr.isOk()) {
+    return statusThenExpr;
+  }
+
+  /// Type-check else-expression
+  auto statusElseExpr = node->elseExpr()->visitNode(context, this);
+  if (!statusElseExpr.isOk()) {
+    return statusElseExpr;
+  }
+
+  /// If-expression type must be Bool
+  if (node->ifExpr()->type().typeID != boolTypeID) {
+    return GenericError("Error: if-expression type is not Bool");
+  }
+
+  /// Compute expression type and return
+  const auto thenType = node->thenExpr()->type();
+  const auto elseType = node->elseExpr()->type();
+  node->setType(registry->leastCommonAncestor(thenType, elseType));
+  return Status::Ok();
 }
 
-} // namespace cool
+Status TypeCheckPass::visit(Context *context, NewExprNode *node) {
+  const auto *registry = context->classRegistry();
+
+  /// SELF_TYPE needs a special treatment
+  if (node->typeName() == "SELF_TYPE") {
+    const auto typeID = registry->typeID(context->currentClassName());
+    node->setType(ExprType{.typeID = typeID, .isSelf = true});
+    return Status::Ok();
+  }
+
+  const auto typeID = registry->typeID(node->typeName());
+  if (typeID == -1) {
+    return GenericError("Error: undefined type in new expression");
+  }
+  node->setType(ExprType{.typeID = typeID, .isSelf = false});
+  return Status::Ok();
+}
 
 } // namespace cool
