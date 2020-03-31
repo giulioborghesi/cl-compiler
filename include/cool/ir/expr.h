@@ -12,7 +12,7 @@
 namespace cool {
 
 /// Base class for a node representing an expression in the AST
-class ExprNode : public Node {
+class ExprNode : public Node, public Visitable<ExprNode> {
 
 public:
   ExprNode() = delete;
@@ -20,7 +20,7 @@ public:
   ~ExprNode() override = 0;
 
   /// Return the expression type
-  ExprType type() const { return type_; }
+  const ExprType &type() const { return type_; }
 
   /// Set the expression type to the specified type
   ///
@@ -68,14 +68,23 @@ public:
 
   /// Factory method to create a node for a boolean expression node
   ///
+  /// \param[in] value value of boolean expression
   /// \param[in] lloc line location
   /// \param[in] cloc character location
   /// \return a pointer to the new literal expression node
-  static BooleanExprNode *MakeBooleanExprNode(const uint32_t lloc,
+  static BooleanExprNode *MakeBooleanExprNode(const bool value,
+                                              const uint32_t lloc,
                                               const uint32_t cloc);
 
+  /// Get the value of the boolean expression
+  ///
+  /// \return the value of the boolean expression
+  bool value() const { return value_; }
+
 private:
-  BooleanExprNode(const uint32_t lloc, const uint32_t cloc);
+  BooleanExprNode(const bool value, const uint32_t lloc, const uint32_t cloc);
+
+  const bool value_;
 };
 
 /// Base class for a terminal node in the AST representing an identifier
@@ -325,16 +334,23 @@ public:
 
   /// Factory method to create a node for a new expression
   ///
-  /// \param[in] exprType type of new object
+  /// \param[in] typeName type of new object
   /// \param[in] lloc line location
   /// \param[in] cloc character location
   /// \return a pointer to the new block expression node
-  static NewExprNode *MakeNewExprNode(const ExprType &exprType,
+  static NewExprNode *MakeNewExprNode(const std::string &typeName,
                                       const uint32_t lloc, const uint32_t cloc);
 
+  /// Get the type name of the new object
+  ///
+  /// \return the type name of the new object
+  const std::string &typeName() const { return typeName_; }
+
 private:
-  NewExprNode(const ExprType &exprType, const uint32_t lloc,
+  NewExprNode(const std::string &typeName, const uint32_t lloc,
               const uint32_t cloc);
+
+  std::string typeName_;
 };
 
 /// Class for a node representing an identifier declaration

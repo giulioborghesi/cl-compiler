@@ -16,6 +16,17 @@ LiteralExprNode<T>::MakeLiteralExprNode(const T &value, const uint32_t lloc,
   return new LiteralExprNode<T>(value, lloc, cloc);
 }
 
+/// BooleanExprNode
+BooleanExprNode::BooleanExprNode(const bool value, const uint32_t lloc,
+                                 const uint32_t cloc)
+    : ExprNode(lloc, cloc), value_(value) {}
+
+BooleanExprNode *BooleanExprNode::MakeBooleanExprNode(const bool value,
+                                                      const uint32_t lloc,
+                                                      const uint32_t cloc) {
+  return new BooleanExprNode(value, lloc, cloc);
+}
+
 /// IdExprNode
 IdExprNode::IdExprNode(const std::string &id, const uint32_t lloc,
                        const uint32_t cloc)
@@ -92,6 +103,16 @@ BlockExprNode *
 BlockExprNode::MakeBlockExprNode(std::vector<std::shared_ptr<ExprNode>> *exprs,
                                  const uint32_t lloc, const uint32_t cloc) {
   return new BlockExprNode(exprs, lloc, cloc);
+}
+
+NewExprNode::NewExprNode(const std::string &typeName, const uint32_t lloc,
+                         const uint32_t cloc)
+    : ExprNode(lloc, cloc), typeName_(typeName) {}
+
+NewExprNode *NewExprNode::MakeNewExprNode(const std::string &typeName,
+                                          const uint32_t lloc,
+                                          const uint32_t cloc) {
+  return new NewExprNode(typeName, lloc, cloc);
 }
 
 /// CaseExpr
