@@ -12,4 +12,5 @@ macro(package_add_test_with_libraries TESTNAME FILES LIBRARIES TEST_WORKING_DIRE
 endmacro()
 
 package_add_test_with_libraries(test_expr ./ir/test_expr.cpp lib_ir "${PROJECT_DIR}")
+package_add_test_with_libraries(test_type_check ./analysis/test_type_check.cpp "lib_analysis;lib_core;lib_ir" "${PROJECT_DIR}")
 package_add_test_with_libraries(test_class_registry ./core/test_class_Registry.cpp "lib_ir;lib_core" "${PROJECT_DIR}")

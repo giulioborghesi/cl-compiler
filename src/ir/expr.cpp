@@ -46,14 +46,14 @@ IdExprNode *IdExprNode::MakeIdExprNode(const std::string &id,
 }
 
 /// UnaryExprNode
-UnaryExprNode::UnaryExprNode(ExprNode *expr, const uint32_t lloc,
-                             const uint32_t cloc)
-    : ParentNode(lloc, cloc), expr_(expr) {}
+UnaryExprNode::UnaryExprNode(ExprNode *expr, UnaryOpID opID,
+                             const uint32_t lloc, const uint32_t cloc)
+    : ParentNode(lloc, cloc), opID_(opID), expr_(expr) {}
 
-UnaryExprNode *UnaryExprNode::MakeUnaryExprNode(ExprNode *expr,
+UnaryExprNode *UnaryExprNode::MakeUnaryExprNode(ExprNode *expr, UnaryOpID opID,
                                                 const uint32_t lloc,
                                                 const uint32_t cloc) {
-  return new UnaryExprNode(expr, lloc, cloc);
+  return new UnaryExprNode(expr, opID, lloc, cloc);
 }
 
 /// BinaryExprNode

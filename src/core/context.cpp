@@ -3,6 +3,7 @@
 
 namespace cool {
 
-Context::Context() { classRegistry_ = std::make_unique<ClassRegistry>(); }
+Context::Context(ClassRegistry *classRegistry)
+    : classRegistry_(classRegistry) {}
 
 } // namespace cool

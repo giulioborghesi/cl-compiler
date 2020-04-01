@@ -14,6 +14,9 @@ struct ExprType {
   bool isSelf = false;
 };
 
+/// Unary operations identifiers
+enum class UnaryOpID : uint8_t { IsVoid, Not, Complement, Parenthesis };
+
 } // namespace cool
 
 #endif

@@ -75,9 +75,12 @@ int32_t leastCommonAncestorImpl(
 } // namespace
 
 ClassRegistry::ClassRegistry() {
-  /// Register abstract base class Object
-  classNamesToClassIDs_["Object"] = classNamesToClassIDs_.size();
-  classRegistry_[classNamesToClassIDs_["Object"]] = nullptr;
+  /// Register built-in classes
+  std::vector<std::string> names = {"Object", "Int", "Bool"};
+  for (auto &name : names) {
+    classNamesToClassIDs_[name] = classNamesToClassIDs_.size();
+    classRegistry_[classNamesToClassIDs_[name]] = nullptr;
+  }
 }
 
 Status ClassRegistry::addClass(std::shared_ptr<ClassNode> node) {

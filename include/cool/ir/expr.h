@@ -1,6 +1,7 @@
 #ifndef COOL_IR_EXPR_H
 #define COOL_IR_EXPR_H
 
+#include <cool/ir/common.h>
 #include <cool/ir/node.h>
 #include <cool/ir/visitable.h>
 
@@ -129,10 +130,12 @@ public:
   /// Factory method to create a node representing a unary expression
   ///
   /// \param[in] expr operand of unary operator
+  /// \param[in] opID unary operation identifier
   /// \param[in] lloc line location
   /// \param[in] cloc character location
   /// \return a pointer to the new unary expression node
-  static UnaryExprNode *MakeUnaryExprNode(ExprNode *expr, const uint32_t lloc,
+  static UnaryExprNode *MakeUnaryExprNode(ExprNode *expr, UnaryOpID opID,
+                                          const uint32_t lloc,
                                           const uint32_t cloc);
 
   /// Get the node of the subexpression representing the operand
@@ -140,9 +143,16 @@ public:
   /// \return a shared pointer to the subexpression node
   std::shared_ptr<ExprNode> expr() const { return expr_; }
 
-private:
-  UnaryExprNode(ExprNode *expr, const uint32_t lloc, const uint32_t cloc);
+  /// Get the operation ID
+  ///
+  /// \return the operation ID
+  UnaryOpID opID() const { return opID_; }
 
+private:
+  UnaryExprNode(ExprNode *expr, UnaryOpID opID, const uint32_t lloc,
+                const uint32_t cloc);
+
+  UnaryOpID opID_;
   const std::shared_ptr<ExprNode> expr_;
 };
 
@@ -330,7 +340,7 @@ public:
                     const uint32_t lloc, const uint32_t cloc);
 
   /// Get the nodes of the subexpressions in the block
-  const std::vector<std::shared_ptr<ExprNode>> &exprs() const;
+  const std::vector<std::shared_ptr<ExprNode>> &exprs() const { return exprs_; }
 
 private:
   BlockExprNode(std::vector<std::shared_ptr<ExprNode>> *exprs,

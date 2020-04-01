@@ -3,18 +3,16 @@
 
 #include <cool/core/class_registry.h>
 
-//#include <memory>
+#include <memory>
 
 namespace cool {
-
-/// Forward declaration
-class ClassRegistry;
 
 /// Class that represents the context of a compiler pass / analysis
 class Context {
 
 public:
-  Context();
+  Context() = delete;
+  Context(ClassRegistry *classRegistry);
 
   /// Get the class registry
   ///
