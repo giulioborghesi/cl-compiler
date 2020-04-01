@@ -12,12 +12,12 @@
 namespace cool {
 
 /// Base class for a node representing an expression in the AST
-class ExprNode : public Node, public Visitable<ExprNode> {
+class ExprNode : public Node {
 
 public:
   ExprNode() = delete;
   ExprNode(const uint32_t lloc, const uint32_t cloc);
-  ~ExprNode() override = 0;
+  ~ExprNode() override = default;
 
   /// Return the expression type
   const ExprType &type() const { return type_; }
@@ -33,7 +33,9 @@ private:
 
 /// Base class for a terminal node in the AST representing a literal
 template <typename T>
-class LiteralExprNode : public ExprNode, public Visitable<LiteralExprNode<T>> {
+class LiteralExprNode : public Visitable<ExprNode, LiteralExprNode<T>> {
+
+  using ParentNode = Visitable<ExprNode, LiteralExprNode<T>>;
 
 public:
   LiteralExprNode() = delete;
@@ -56,11 +58,10 @@ private:
   const T value_;
 };
 
-using IntExprNode = LiteralExprNode<int32_t>;
-using StringExprNode = LiteralExprNode<std::string>;
-
 /// Base class for a terminal node in the AST representing a boolean
-class BooleanExprNode : public ExprNode, public Visitable<BooleanExprNode> {
+class BooleanExprNode : public Visitable<ExprNode, BooleanExprNode> {
+
+  using ParentNode = Visitable<ExprNode, BooleanExprNode>;
 
 public:
   BooleanExprNode() = delete;
@@ -88,7 +89,9 @@ private:
 };
 
 /// Base class for a terminal node in the AST representing an identifier
-class IdExprNode : public ExprNode, public Visitable<IdExprNode> {
+class IdExprNode : public Visitable<ExprNode, IdExprNode> {
+
+  using ParentNode = Visitable<ExprNode, IdExprNode>;
 
 public:
   IdExprNode() = delete;
@@ -115,7 +118,9 @@ private:
 };
 
 /// Base class for a node representing a unary expression in the AST
-class UnaryExprNode : public ExprNode, public Visitable<UnaryExprNode> {
+class UnaryExprNode : public Visitable<ExprNode, UnaryExprNode> {
+
+  using ParentNode = Visitable<ExprNode, UnaryExprNode>;
 
 public:
   UnaryExprNode() = delete;
@@ -142,7 +147,9 @@ private:
 };
 
 /// Base class for a node representing a binary expression in the AST
-class BinaryExprNode : public ExprNode, public Visitable<BinaryExprNode> {
+class BinaryExprNode : public Visitable<ExprNode, BinaryExprNode> {
+
+  using ParentNode = Visitable<ExprNode, BinaryExprNode>;
 
 public:
   BinaryExprNode() = delete;
@@ -178,7 +185,9 @@ private:
 };
 
 /// Class for a node representing an if expression
-class IfExprNode : public ExprNode, public Visitable<IfExprNode> {
+class IfExprNode : public Visitable<ExprNode, IfExprNode> {
+
+  using ParentNode = Visitable<ExprNode, IfExprNode>;
 
 public:
   IfExprNode() = delete;
@@ -221,7 +230,9 @@ private:
 };
 
 /// Class for a node representing a while expression
-class WhileExprNode : public ExprNode, public Visitable<WhileExprNode> {
+class WhileExprNode : public Visitable<ExprNode, WhileExprNode> {
+
+  using ParentNode = Visitable<ExprNode, WhileExprNode>;
 
 public:
   WhileExprNode() = delete;
@@ -258,8 +269,9 @@ private:
 };
 
 /// Class for a node representing an assignment expression
-class AssignmentExprNode : public ExprNode,
-                           public Visitable<AssignmentExprNode> {
+class AssignmentExprNode : public Visitable<ExprNode, AssignmentExprNode> {
+
+  using ParentNode = Visitable<ExprNode, AssignmentExprNode>;
 
 public:
   AssignmentExprNode() = delete;
@@ -299,7 +311,9 @@ private:
 };
 
 /// Class for a node representing a block expression
-class BlockExprNode : public ExprNode, public Visitable<BlockExprNode> {
+class BlockExprNode : public Visitable<ExprNode, BlockExprNode> {
+
+  using ParentNode = Visitable<ExprNode, BlockExprNode>;
 
 public:
   BlockExprNode() = delete;
@@ -326,7 +340,9 @@ private:
 };
 
 /// Class for a node representing a new expression
-class NewExprNode : public ExprNode, public Visitable<NewExprNode> {
+class NewExprNode : public Visitable<ExprNode, NewExprNode> {
+
+  using ParentNode = Visitable<ExprNode, NewExprNode>;
 
 public:
   NewExprNode() = delete;
@@ -354,7 +370,9 @@ private:
 };
 
 /// Class for a node representing an identifier declaration
-class NewIdExprNode : public ExprNode, public Visitable<NewIdExprNode> {
+class NewIdExprNode : public Visitable<ExprNode, NewIdExprNode> {
+
+  using ParentNode = Visitable<ExprNode, NewIdExprNode>;
 
 public:
   NewIdExprNode() = delete;
@@ -392,7 +410,9 @@ private:
 };
 
 /// Class for a node representing a let expression
-class LetExprNode : public ExprNode, public Visitable<LetExprNode> {
+class LetExprNode : public Visitable<ExprNode, LetExprNode> {
+
+  using ParentNode = Visitable<ExprNode, LetExprNode>;
 
 public:
   LetExprNode() = delete;

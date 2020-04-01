@@ -3,11 +3,15 @@
 
 namespace cool {
 
+/// ExprNode
+ExprNode::ExprNode(const uint32_t lloc, const uint32_t cloc)
+    : Node(lloc, cloc) {}
+
 /// LiteralExprNode
 template <typename T>
 LiteralExprNode<T>::LiteralExprNode(const T &value, const uint32_t lloc,
                                     const uint32_t cloc)
-    : ExprNode(lloc, cloc), value_(value) {}
+    : ParentNode(lloc, cloc), value_(value) {}
 
 template <typename T>
 LiteralExprNode<T> *
@@ -16,10 +20,13 @@ LiteralExprNode<T>::MakeLiteralExprNode(const T &value, const uint32_t lloc,
   return new LiteralExprNode<T>(value, lloc, cloc);
 }
 
+template class LiteralExprNode<int32_t>;
+template class LiteralExprNode<std::string>;
+
 /// BooleanExprNode
 BooleanExprNode::BooleanExprNode(const bool value, const uint32_t lloc,
                                  const uint32_t cloc)
-    : ExprNode(lloc, cloc), value_(value) {}
+    : ParentNode(lloc, cloc), value_(value) {}
 
 BooleanExprNode *BooleanExprNode::MakeBooleanExprNode(const bool value,
                                                       const uint32_t lloc,
@@ -30,7 +37,7 @@ BooleanExprNode *BooleanExprNode::MakeBooleanExprNode(const bool value,
 /// IdExprNode
 IdExprNode::IdExprNode(const std::string &id, const uint32_t lloc,
                        const uint32_t cloc)
-    : ExprNode(lloc, cloc), id_(id) {}
+    : ParentNode(lloc, cloc), id_(id) {}
 
 IdExprNode *IdExprNode::MakeIdExprNode(const std::string &id,
                                        const uint32_t lloc,
@@ -41,7 +48,7 @@ IdExprNode *IdExprNode::MakeIdExprNode(const std::string &id,
 /// UnaryExprNode
 UnaryExprNode::UnaryExprNode(ExprNode *expr, const uint32_t lloc,
                              const uint32_t cloc)
-    : ExprNode(lloc, cloc), expr_(expr) {}
+    : ParentNode(lloc, cloc), expr_(expr) {}
 
 UnaryExprNode *UnaryExprNode::MakeUnaryExprNode(ExprNode *expr,
                                                 const uint32_t lloc,
@@ -52,7 +59,7 @@ UnaryExprNode *UnaryExprNode::MakeUnaryExprNode(ExprNode *expr,
 /// BinaryExprNode
 BinaryExprNode::BinaryExprNode(ExprNode *lhs, ExprNode *rhs,
                                const uint32_t lloc, const uint32_t cloc)
-    : ExprNode(lloc, cloc), lhs_(lhs), rhs_(rhs) {}
+    : ParentNode(lloc, cloc), lhs_(lhs), rhs_(rhs) {}
 
 BinaryExprNode *BinaryExprNode::MakeBinaryExprNode(ExprNode *lhs, ExprNode *rhs,
                                                    const uint32_t lloc,
@@ -63,7 +70,7 @@ BinaryExprNode *BinaryExprNode::MakeBinaryExprNode(ExprNode *lhs, ExprNode *rhs,
 /// IfExprNode
 IfExprNode::IfExprNode(ExprNode *ifExpr, ExprNode *thenExpr, ExprNode *elseExpr,
                        const uint32_t lloc, const uint32_t cloc)
-    : ExprNode(lloc, cloc), ifExpr_(ifExpr), thenExpr_(thenExpr),
+    : ParentNode(lloc, cloc), ifExpr_(ifExpr), thenExpr_(thenExpr),
       elseExpr_(elseExpr) {}
 
 IfExprNode *IfExprNode::MakeIfExprNode(ExprNode *ifExpr, ExprNode *thenExpr,
@@ -75,7 +82,7 @@ IfExprNode *IfExprNode::MakeIfExprNode(ExprNode *ifExpr, ExprNode *thenExpr,
 /// WhileExprNode
 WhileExprNode::WhileExprNode(ExprNode *loopCond, ExprNode *loopBody,
                              const uint32_t lloc, const uint32_t cloc)
-    : ExprNode(lloc, cloc), loopCond_(loopCond), loopBody_(loopBody) {}
+    : ParentNode(lloc, cloc), loopCond_(loopCond), loopBody_(loopBody) {}
 
 WhileExprNode *WhileExprNode::MakeWhileExprNode(ExprNode *loopCond,
                                                 ExprNode *loopBody,
@@ -87,7 +94,7 @@ WhileExprNode *WhileExprNode::MakeWhileExprNode(ExprNode *loopCond,
 /// AssignmentExprNode
 AssignmentExprNode::AssignmentExprNode(IdExprNode *id, ExprNode *value,
                                        const uint32_t lloc, const uint32_t cloc)
-    : ExprNode(lloc, cloc), id_(id), value_(value) {}
+    : ParentNode(lloc, cloc), id_(id), value_(value) {}
 
 AssignmentExprNode *AssignmentExprNode::MakeAssignmentExprNode(
     IdExprNode *id, ExprNode *value, const uint32_t lloc, const uint32_t cloc) {
@@ -97,7 +104,7 @@ AssignmentExprNode *AssignmentExprNode::MakeAssignmentExprNode(
 /// BlockExprNode
 BlockExprNode::BlockExprNode(std::vector<std::shared_ptr<ExprNode>> *exprs,
                              const uint32_t lloc, const uint32_t cloc)
-    : ExprNode(lloc, cloc), exprs_(std::move(*exprs)) {}
+    : ParentNode(lloc, cloc), exprs_(std::move(*exprs)) {}
 
 BlockExprNode *
 BlockExprNode::MakeBlockExprNode(std::vector<std::shared_ptr<ExprNode>> *exprs,
@@ -107,7 +114,7 @@ BlockExprNode::MakeBlockExprNode(std::vector<std::shared_ptr<ExprNode>> *exprs,
 
 NewExprNode::NewExprNode(const std::string &typeName, const uint32_t lloc,
                          const uint32_t cloc)
-    : ExprNode(lloc, cloc), typeName_(typeName) {}
+    : ParentNode(lloc, cloc), typeName_(typeName) {}
 
 NewExprNode *NewExprNode::MakeNewExprNode(const std::string &typeName,
                                           const uint32_t lloc,

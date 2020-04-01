@@ -16,7 +16,7 @@ ClassNode::ClassNode(const std::string &className,
                      std::vector<std::shared_ptr<AttributeNode>> *attributes,
                      std::vector<std::shared_ptr<MethodNode>> *methods,
                      const uint32_t lloc, const uint32_t cloc)
-    : Node(lloc, cloc), className_(className),
+    : ParentNode(lloc, cloc), className_(className),
       parentClassName_(parentClassName), attributes_(std::move(*attributes)),
       methods_(std::move(*methods)) {}
 

@@ -17,7 +17,7 @@ class AttributeNode {};
 class MethodNode {};
 
 /// Class for a node representing a COOL program
-class ProgramNode : public Visitable<ProgramNode> {
+class ProgramNode {
 
 public:
   ProgramNode() = delete;
@@ -41,7 +41,9 @@ private:
   const std::vector<std::shared_ptr<ClassNode>> classes_;
 };
 
-class ClassNode : public Node, public Visitable<ClassNode> {
+class ClassNode : public Visitable<Node, ClassNode> {
+
+  using ParentNode = Visitable<Node, ClassNode>;
 
 public:
   ClassNode() = delete;
