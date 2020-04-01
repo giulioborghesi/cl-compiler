@@ -2,6 +2,8 @@
 #define COOL_CORE_CONTEXT_H
 
 #include <cool/core/class_registry.h>
+#include <cool/core/symbol_table.h>
+#include <cool/ir/common.h>
 
 #include <memory>
 
@@ -9,6 +11,10 @@ namespace cool {
 
 /// Class that represents the context of a compiler pass / analysis
 class Context {
+
+  using KeyT = std::string;
+  using ValueT = ExprType;
+  using SymbolTableT = SymbolTable<KeyT, ValueT>;
 
 public:
   Context() = delete;
@@ -31,9 +37,15 @@ public:
     currentClassName_ = currentClassName;
   }
 
+  /// Get the symbol table for the class being processed
+  ///
+  /// \return the symbol table for the class being processed
+  SymbolTableT &symbolTable() { return symbolTables_[currentClassName_]; }
+
 private:
   std::string currentClassName_;
   std::unique_ptr<ClassRegistry> classRegistry_;
+  std::unordered_map<std::string, SymbolTableT> symbolTables_;
 };
 
 } // namespace cool

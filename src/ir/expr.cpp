@@ -35,14 +35,14 @@ BooleanExprNode *BooleanExprNode::MakeBooleanExprNode(const bool value,
 }
 
 /// IdExprNode
-IdExprNode::IdExprNode(const std::string &id, const uint32_t lloc,
+IdExprNode::IdExprNode(const std::string &idName, const uint32_t lloc,
                        const uint32_t cloc)
-    : ParentNode(lloc, cloc), id_(id) {}
+    : ParentNode(lloc, cloc), idName_(idName) {}
 
-IdExprNode *IdExprNode::MakeIdExprNode(const std::string &id,
+IdExprNode *IdExprNode::MakeIdExprNode(const std::string &idName,
                                        const uint32_t lloc,
                                        const uint32_t cloc) {
-  return new IdExprNode(id, lloc, cloc);
+  return new IdExprNode(idName, lloc, cloc);
 }
 
 /// UnaryExprNode

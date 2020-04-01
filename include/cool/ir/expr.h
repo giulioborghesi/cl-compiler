@@ -100,22 +100,23 @@ public:
 
   /// Factory method to create a node for an id expression
   ///
-  /// \param[in] id identifier name
+  /// \param[in] idName identifier name
   /// \param[in] lloc line location
   /// \param[in] cloc character location
   /// \return a pointer to the new id expression node
-  static IdExprNode *MakeIdExprNode(const std::string &id, const uint32_t lloc,
-                                    const uint32_t cloc);
+  static IdExprNode *MakeIdExprNode(const std::string &idName,
+                                    const uint32_t lloc, const uint32_t cloc);
 
-  /// Get the identifier id
+  /// Get the identifier name
   ///
-  /// \return the identifier id
-  const std::string &id() const { return id_; }
+  /// \return the identifier name
+  const std::string &idName() const { return idName_; }
 
 private:
-  IdExprNode(const std::string &id, const uint32_t lloc, const uint32_t cloc);
+  IdExprNode(const std::string &idName, const uint32_t lloc,
+             const uint32_t cloc);
 
-  const std::string id_;
+  const std::string idName_;
 };
 
 /// Base class for a node representing a unary expression in the AST
