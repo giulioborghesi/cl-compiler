@@ -40,12 +40,18 @@ public:
   /// Get the symbol table for the class being processed
   ///
   /// \return the symbol table for the class being processed
-  SymbolTableT &symbolTable() { return symbolTables_[currentClassName_]; }
+  SymbolTableT *symbolTable() {
+    if (!symbolTables_.count(currentClassName_)) {
+      symbolTables_.insert(
+          {currentClassName_, std::make_unique<SymbolTableT>()});
+    }
+    return symbolTables_.find(currentClassName_)->second.get();
+  }
 
 private:
   std::string currentClassName_;
   std::unique_ptr<ClassRegistry> classRegistry_;
-  std::unordered_map<std::string, SymbolTableT> symbolTables_;
+  std::unordered_map<std::string, std::unique_ptr<SymbolTableT>> symbolTables_;
 };
 
 } // namespace cool

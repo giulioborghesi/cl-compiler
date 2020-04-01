@@ -6,6 +6,28 @@
 
 namespace cool {
 
+Status TypeCheckPass::visit(Context *context, AssignmentExprNode *node) {
+  /// Type-check lhs of assignment expression
+  auto statusId = node->id()->visitNode(context, this);
+  if (!statusId.isOk()) {
+    return statusId;
+  }
+
+  /// Type-check rhs of assignment expression
+  auto statusValue = node->value()->visitNode(context, this);
+  if (!statusValue.isOk()) {
+    return statusValue;
+  }
+
+  /// Value type must be a subtype of id type
+  const auto *registry = context->classRegistry();
+  if (!registry->isAncestorOf(node->value()->type(), node->id()->type())) {
+    return GenericError("Error: value type is not a subtype of id type");
+  }
+  node->setType(node->value()->type());
+  return Status::Ok();
+}
+
 Status TypeCheckPass::visit(Context *context, BinaryExprNode *node) {
   const auto *registry = context->classRegistry();
   const auto intTypeID = registry->typeID("Int");
@@ -52,6 +74,15 @@ Status TypeCheckPass::visit(Context *context, BooleanExprNode *node) {
   const auto boolTypeID = registry->typeID("Bool");
 
   node->setType(ExprType{.typeID = boolTypeID, .isSelf = false});
+  return Status::Ok();
+}
+
+Status TypeCheckPass::visit(Context *context, IdExprNode *node) {
+  auto *symbolTable = context->symbolTable();
+  if (!symbolTable->findKeyInTable(node->idName())) {
+    return GenericError("Error: identifier is undefined");
+  }
+  node->setType(symbolTable->get(node->idName()));
   return Status::Ok();
 }
 

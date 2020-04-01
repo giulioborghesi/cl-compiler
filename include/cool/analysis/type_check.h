@@ -21,11 +21,15 @@ public:
   TypeCheckPass() = default;
   ~TypeCheckPass() final override = default;
 
+  Status visit(Context *context, AssignmentExprNode *node) final override;
+
   Status visit(Context *context, BinaryExprNode *node) final override;
 
   Status visit(Context *context, BlockExprNode *node) final override;
 
   Status visit(Context *context, BooleanExprNode *node) final override;
+
+  Status visit(Context *context, IdExprNode *node) final override;
 
   Status visit(Context *context, IfExprNode *node) final override;
 
