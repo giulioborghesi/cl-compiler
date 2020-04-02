@@ -28,7 +28,8 @@ Status TypeCheckPass::visit(Context *context, AssignmentExprNode *node) {
   return Status::Ok();
 }
 
-Status TypeCheckPass::visit(Context *context, BinaryExprNode *node) {
+Status TypeCheckPass::visit(Context *context,
+                            BinaryExprNode<ArithmeticOpID> *node) {
   const auto *registry = context->classRegistry();
   const auto intTypeID = registry->typeID("Int");
 
@@ -120,7 +121,7 @@ Status TypeCheckPass::visit(Context *context, IfExprNode *node) {
   return Status::Ok();
 }
 
-Status TypeCheckPass::visit(Context *context, LetBindingExprNode *node) {
+Status TypeCheckPass::visit(Context *context, LetBindingNode *node) {
   auto *registry = context->classRegistry();
   auto *symbolTable = context->symbolTable();
 

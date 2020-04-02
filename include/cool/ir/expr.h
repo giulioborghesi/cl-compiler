@@ -158,9 +158,10 @@ private:
 };
 
 /// Base class for a node representing a binary expression in the AST
-class BinaryExprNode : public Visitable<ExprNode, BinaryExprNode> {
+template <typename OperatorT>
+class BinaryExprNode : public Visitable<ExprNode, BinaryExprNode<OperatorT>> {
 
-  using ParentNode = Visitable<ExprNode, BinaryExprNode>;
+  using ParentNode = Visitable<ExprNode, BinaryExprNode<OperatorT>>;
 
 public:
   BinaryExprNode() = delete;
@@ -170,10 +171,12 @@ public:
   ///
   /// \param[in] lhs left operand of binary operator
   /// \param[in] rhs right operand of binary operator
+  /// \param[in] opID operator ID
   /// \param[in] lloc line location
   /// \param[in] cloc character location
   /// \return a pointer to the new binary expression node
   static BinaryExprNode *MakeBinaryExprNode(ExprNode *lhs, ExprNode *rhs,
+                                            const OperatorT opID,
                                             const uint32_t lloc,
                                             const uint32_t cloc);
 
@@ -182,15 +185,21 @@ public:
   /// \return a shared pointer to the left subexpression node
   std::shared_ptr<ExprNode> lhs() const { return lhs_; }
 
+  /// Get the operator ID
+  ///
+  /// \return the operator ID
+  OperatorT opID() const { return opID_; }
+
   /// Get the node of the subexpression representing the right operand
   ///
   /// \return a shared pointer to the right subexpression node
   std::shared_ptr<ExprNode> rhs() const { return rhs_; }
 
 private:
-  BinaryExprNode(ExprNode *lhs, ExprNode *rhs, const uint32_t lloc,
-                 const uint32_t cloc);
+  BinaryExprNode(ExprNode *lhs, ExprNode *rhs, const OperatorT opID,
+                 const uint32_t lloc, const uint32_t cloc);
 
+  const OperatorT opID_;
   const std::shared_ptr<ExprNode> lhs_;
   const std::shared_ptr<ExprNode> rhs_;
 };
@@ -306,8 +315,8 @@ public:
   /// expression
   std::shared_ptr<IdExprNode> id() const { return id_; }
 
-  /// Get the node of the subexpression representing the expression on the right
-  /// hand side of the assignment expression
+  /// Get the node of the subexpression representing the expression on the
+  /// right hand side of the assignment expression
   ///
   /// \return a shared pointer to the node representing the expression on the
   /// right hand side of the assignment expression

@@ -23,7 +23,8 @@ public:
 
   Status visit(Context *context, AssignmentExprNode *node) final override;
 
-  Status visit(Context *context, BinaryExprNode *node) final override;
+  Status visit(Context *context,
+               BinaryExprNode<ArithmeticOpID> *node) final override;
 
   Status visit(Context *context, BlockExprNode *node) final override;
 
@@ -33,7 +34,7 @@ public:
 
   Status visit(Context *context, IfExprNode *node) final override;
 
-  Status visit(Context *context, LetBindingExprNode *node) final override;
+  Status visit(Context *context, LetBindingNode *node) final override;
 
   Status visit(Context *context, LetExprNode *node) final override;
 

@@ -2,6 +2,7 @@
 #define COOL_ANALYSIS_PASS_H
 
 #include <cool/core/status.h>
+#include <cool/ir/common.h>
 #include <cool/ir/fwd.h>
 
 #include <cstdlib>
@@ -50,7 +51,7 @@ public:
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, BinaryExprNode *node) {
+  virtual Status visit(Context *context, BinaryExprNode<ArithmeticOpID> *node) {
     return Status::Ok();
   }
 

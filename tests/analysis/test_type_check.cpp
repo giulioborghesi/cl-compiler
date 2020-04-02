@@ -21,8 +21,9 @@ TEST(TypeCheckTests, AddExpressionTypeCheck) {
   // Create binary expression
   auto *lhs = LiteralExprNode<int32_t>::MakeLiteralExprNode(0, 0, 0);
   auto *rhs = LiteralExprNode<int32_t>::MakeLiteralExprNode(0, 0, 0);
-  std::unique_ptr<BinaryExprNode> node(
-      BinaryExprNode::MakeBinaryExprNode(lhs, rhs, 0, 0));
+  std::unique_ptr<BinaryExprNode<ArithmeticOpID>> node(
+      BinaryExprNode<ArithmeticOpID>::MakeBinaryExprNode(
+          lhs, rhs, ArithmeticOpID::Plus, 0, 0));
 
   auto context = MakeContext();
   std::unique_ptr<TypeCheckPass> pass(new TypeCheckPass{});

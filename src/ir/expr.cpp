@@ -57,15 +57,20 @@ UnaryExprNode *UnaryExprNode::MakeUnaryExprNode(ExprNode *expr, UnaryOpID opID,
 }
 
 /// BinaryExprNode
-BinaryExprNode::BinaryExprNode(ExprNode *lhs, ExprNode *rhs,
-                               const uint32_t lloc, const uint32_t cloc)
-    : ParentNode(lloc, cloc), lhs_(lhs), rhs_(rhs) {}
+template <typename OperatorT>
+BinaryExprNode<OperatorT>::BinaryExprNode(ExprNode *lhs, ExprNode *rhs,
+                                          OperatorT opID, const uint32_t lloc,
+                                          const uint32_t cloc)
+    : ParentNode(lloc, cloc), opID_(opID), lhs_(lhs), rhs_(rhs) {}
 
-BinaryExprNode *BinaryExprNode::MakeBinaryExprNode(ExprNode *lhs, ExprNode *rhs,
-                                                   const uint32_t lloc,
-                                                   const uint32_t cloc) {
-  return new BinaryExprNode(lhs, rhs, lloc, cloc);
+template <typename OperatorT>
+BinaryExprNode<OperatorT> *BinaryExprNode<OperatorT>::MakeBinaryExprNode(
+    ExprNode *lhs, ExprNode *rhs, OperatorT opID, const uint32_t lloc,
+    const uint32_t cloc) {
+  return new BinaryExprNode(lhs, rhs, opID, lloc, cloc);
 }
+
+template class BinaryExprNode<ArithmeticOpID>;
 
 /// IfExprNode
 IfExprNode::IfExprNode(ExprNode *ifExpr, ExprNode *thenExpr, ExprNode *elseExpr,

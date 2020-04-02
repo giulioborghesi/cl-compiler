@@ -14,7 +14,7 @@ class ProgramNode;
 
 /// Expressions node
 class AssignmentExprNode;
-class BinaryExprNode;
+template <typename T> class BinaryExprNode;
 class BlockExprNode;
 class BooleanExprNode;
 class ExprNode;
