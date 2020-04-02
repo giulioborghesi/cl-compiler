@@ -33,6 +33,10 @@ public:
 
   Status visit(Context *context, IfExprNode *node) final override;
 
+  Status visit(Context *context, LetBindingExprNode *node) final override;
+
+  Status visit(Context *context, LetExprNode *node) final override;
+
   Status visit(Context *context, LiteralExprNode<int32_t> *node) final override;
 
   Status visit(Context *context,

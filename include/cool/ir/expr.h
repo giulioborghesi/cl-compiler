@@ -380,14 +380,14 @@ private:
   std::string typeName_;
 };
 
-/// Class for a node representing an identifier declaration
-class NewIdExprNode : public Visitable<ExprNode, NewIdExprNode> {
+/// Class for a node representing a let binding
+class LetBindingExprNode : public Visitable<ExprNode, LetBindingExprNode> {
 
-  using ParentNode = Visitable<ExprNode, NewIdExprNode>;
+  using ParentNode = Visitable<ExprNode, LetBindingExprNode>;
 
 public:
-  NewIdExprNode() = delete;
-  ~NewIdExprNode() final override = default;
+  LetBindingExprNode() = delete;
+  ~LetBindingExprNode() final override = default;
 
   /// Factory method to create a node for a new identifier declaration node
   ///
@@ -397,23 +397,29 @@ public:
   /// \param[in] lloc line location
   /// \param[in] cloc character location
   /// \return a pointer to the new block expression node
-  static NewIdExprNode *MakeNewIdExprNode(IdExprNode *id, ExprNode *expr,
-                                          const ExprType &idType,
-                                          const uint32_t lloc,
-                                          const uint32_t cloc);
+  static LetBindingExprNode *
+  MakeLetBindingExprNode(IdExprNode *id, ExprNode *expr, const ExprType &idType,
+                         const uint32_t lloc, const uint32_t cloc);
+
+  /// Return whether the identifier has an initialization expression
+  bool hasExpr() const { return expr_ != nullptr; }
 
   /// Return a pointer to the id expression
+  ///
+  /// \return a pointer to the id expression
   std::shared_ptr<IdExprNode> id() const { return id_; }
 
-  /// Return a pointer to the expression used to initialize the id value
+  /// Return a pointer to the identifier initialization expression
+  ///
+  /// \return a pointer to the identifier initialization expression
   std::shared_ptr<ExprNode> expr() const { return expr_; }
 
   /// Return the static type of the identifier
   const ExprType &idType() const { return idType_; }
 
 private:
-  NewIdExprNode(IdExprNode *id, ExprNode *expr, const ExprType &idType,
-                const uint32_t lloc, const uint32_t cloc);
+  LetBindingExprNode(IdExprNode *id, ExprNode *expr, const ExprType &idType,
+                     const uint32_t lloc, const uint32_t cloc);
 
   std::shared_ptr<IdExprNode> id_;
   std::shared_ptr<ExprNode> expr_;
@@ -431,20 +437,20 @@ public:
 
   /// Factory method to create a node for a let expression node
   ///
-  /// \param[in] newIds new identifier expressions
-  /// \param[in] expr let expression
+  /// \param[in] bindings list of pointers to the let bindings
+  /// \param[in] expr pointer to let expression
   /// \param[in] lloc line location
   /// \param[in] cloc character location
   /// \return a pointer to the new block expression node
   static LetExprNode *
-  MakeLetExprNode(std::vector<std::shared_ptr<NewIdExprNode>> *newIds,
+  MakeLetExprNode(std::vector<std::shared_ptr<LetBindingExprNode>> *bindings,
                   ExprNode *expr, const uint32_t lloc, const uint32_t cloc);
 
-  /// Return the pointers to the new Id expressions
+  /// Return a list of pointers to the let bindings
   ///
   /// \return a vector of shared pointers to the let bindings nodes
-  const std::vector<std::shared_ptr<NewIdExprNode>> &newIds() const {
-    return newIds_;
+  const std::vector<std::shared_ptr<LetBindingExprNode>> &bindings() const {
+    return bindings_;
   }
 
   /// Return a pointer to the expression in the let construct
@@ -454,10 +460,10 @@ public:
   std::shared_ptr<ExprNode> expr() const { return expr_; }
 
 private:
-  LetExprNode(std::vector<std::shared_ptr<NewIdExprNode>> *newIds,
+  LetExprNode(std::vector<std::shared_ptr<LetBindingExprNode>> *bindings,
               ExprNode *expr, const uint32_t lloc, const uint32_t cloc);
 
-  std::vector<std::shared_ptr<NewIdExprNode>> newIds_;
+  std::vector<std::shared_ptr<LetBindingExprNode>> bindings_;
   std::shared_ptr<ExprNode> expr_;
 };
 

@@ -122,6 +122,30 @@ NewExprNode *NewExprNode::MakeNewExprNode(const std::string &typeName,
   return new NewExprNode(typeName, lloc, cloc);
 }
 
+/// LetBindingExprNode
+LetBindingExprNode::LetBindingExprNode(IdExprNode *id, ExprNode *expr,
+                                       const ExprType &idType,
+                                       const uint32_t lloc, const uint32_t cloc)
+    : ParentNode(lloc, cloc), id_(id), expr_(expr), idType_(idType) {}
+
+LetBindingExprNode *LetBindingExprNode::MakeLetBindingExprNode(
+    IdExprNode *id, ExprNode *expr, const ExprType &idType, const uint32_t lloc,
+    const uint32_t cloc) {
+  return new LetBindingExprNode(id, expr, idType, lloc, cloc);
+}
+
+/// LetExprNode
+LetExprNode::LetExprNode(
+    std::vector<std::shared_ptr<LetBindingExprNode>> *bindings, ExprNode *expr,
+    const uint32_t lloc, const uint32_t cloc)
+    : ParentNode(lloc, cloc), bindings_(std::move(*bindings)), expr_(expr) {}
+
+LetExprNode *LetExprNode::MakeLetExprNode(
+    std::vector<std::shared_ptr<LetBindingExprNode>> *bindings, ExprNode *expr,
+    const uint32_t lloc, const uint32_t cloc) {
+  return new LetExprNode(bindings, expr, lloc, cloc);
+}
+
 /// CaseExpr
 /*CaseExpr::CaseExpr(Expr *expr, std::vector<std::shared_ptr<Expr>> *ids,
                    std::vector<std::shared_ptr<Expr>> *cases)

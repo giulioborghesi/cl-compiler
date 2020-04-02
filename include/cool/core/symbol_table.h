@@ -1,6 +1,7 @@
 #ifndef COOL_CORE_SYMBOL_TABLE_H
 #define COOL_CORE_SYMBOL_TABLE_H
 
+#include <cool/core/status.h>
 #include <cool/ir/common.h>
 
 #include <string>
@@ -20,11 +21,13 @@ template <typename KeyT, typename ValueT> class SymbolTable {
 public:
   SymbolTable();
 
-  /// Add symbol to current scope
+  /// Add symbol to current scope. Insertion will fail if the symbol is already
+  /// in the current scope
   ///
   /// \param[in] key: key of the element to add
   /// \param[in] value: value of the element to add
-  void addElement(const KeyT &key, const ValueT &value);
+  /// \return Status::Ok() on success
+  Status addElement(const KeyT &key, const ValueT &value);
 
   /// Enter a new nested scope
   void enterScope();

@@ -120,6 +120,61 @@ Status TypeCheckPass::visit(Context *context, IfExprNode *node) {
   return Status::Ok();
 }
 
+Status TypeCheckPass::visit(Context *context, LetBindingExprNode *node) {
+  auto *registry = context->classRegistry();
+  auto *symbolTable = context->symbolTable();
+
+  if (node->hasExpr()) {
+    /// Type-check rhs
+    auto statusExpr = node->expr()->visitNode(context, this);
+    if (!statusExpr.isOk()) {
+      return statusExpr;
+    }
+
+    /// Type of rhs expression must be a subtype of formal id type
+    if (!registry->isAncestorOf(node->expr()->type(), node->idType())) {
+      return GenericError("Error: expr type is not a subtype of id type");
+    }
+  }
+
+  /// Type of subexpression can be left to default type
+  return symbolTable->addElement(node->id()->idName(), node->idType());
+}
+
+Status TypeCheckPass::visit(Context *context, LetExprNode *node) {
+  auto *symbolTable = context->symbolTable();
+
+  auto unwindSymbolTable = [symbolTable](const uint32_t nCount) {
+    for (uint32_t i = 0; i < nCount; ++i) {
+      symbolTable->exitScope();
+    }
+    return;
+  };
+
+  /// Process bindings first
+  uint32_t unwindCount = 0;
+  for (auto &bindingNode : node->bindings()) {
+    ++unwindCount;
+    symbolTable->enterScope();
+    auto statusBinding = bindingNode->visitNode(context, this);
+    if (!statusBinding.isOk()) {
+      unwindSymbolTable(unwindCount);
+      return statusBinding;
+    }
+  }
+
+  /// Type-check let body and unwind symbol table
+  auto statusExpr = node->expr()->visitNode(context, this);
+  unwindSymbolTable(unwindCount);
+
+  /// Check for errors, assign type to let expression and return
+  if (!statusExpr.isOk()) {
+    return statusExpr;
+  }
+  node->setType(node->expr()->type());
+  return Status::Ok();
+}
+
 Status TypeCheckPass::visit(Context *context, LiteralExprNode<int32_t> *node) {
   const auto *registry = context->classRegistry();
   const auto intTypeID = registry->typeID("Int");

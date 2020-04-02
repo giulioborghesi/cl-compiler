@@ -6,6 +6,16 @@ SymbolTable<KeyT, ValueT>::SymbolTable() : parentTable_(nullptr) {
 }
 
 template <typename KeyT, typename ValueT>
+Status SymbolTable<KeyT, ValueT>::addElement(const KeyT &key,
+                                             const ValueT &value) {
+  if (this->findKeyInScope(key)) {
+    return GenericError("Error: identifier already defined in current scope");
+  }
+  nestedTables_.back()[key] = value;
+  return Status::Ok();
+}
+
+template <typename KeyT, typename ValueT>
 void SymbolTable<KeyT, ValueT>::enterScope() {
   nestedTables_.emplace_back();
 }

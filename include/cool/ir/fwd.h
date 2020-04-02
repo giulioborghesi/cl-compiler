@@ -20,10 +20,10 @@ class BooleanExprNode;
 class ExprNode;
 class IdExprNode;
 class IfExprNode;
+class LetBindingExprNode;
 class LetExprNode;
 template <typename T> class LiteralExprNode;
 class NewExprNode;
-class NewIdExprNode;
 class UnaryExprNode;
 class WhileExprNode;
 

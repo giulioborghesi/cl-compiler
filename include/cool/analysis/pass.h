@@ -74,7 +74,7 @@ public:
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, NewIdExprNode *node) {
+  virtual Status visit(Context *context, LetBindingExprNode *node) {
     return Status::Ok();
   }
 
