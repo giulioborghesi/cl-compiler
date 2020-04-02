@@ -390,13 +390,13 @@ private:
 };
 
 /// Class for a node representing a let binding
-class LetBindingExprNode : public Visitable<ExprNode, LetBindingExprNode> {
+class LetBindingNode : public Visitable<Node, LetBindingNode> {
 
-  using ParentNode = Visitable<ExprNode, LetBindingExprNode>;
+  using ParentNode = Visitable<Node, LetBindingNode>;
 
 public:
-  LetBindingExprNode() = delete;
-  ~LetBindingExprNode() final override = default;
+  LetBindingNode() = delete;
+  ~LetBindingNode() final override = default;
 
   /// Factory method to create a node for a new identifier declaration node
   ///
@@ -406,9 +406,10 @@ public:
   /// \param[in] lloc line location
   /// \param[in] cloc character location
   /// \return a pointer to the new block expression node
-  static LetBindingExprNode *
-  MakeLetBindingExprNode(IdExprNode *id, ExprNode *expr, const ExprType &idType,
-                         const uint32_t lloc, const uint32_t cloc);
+  static LetBindingNode *MakeLetBindingNode(IdExprNode *id, ExprNode *expr,
+                                            const ExprType &idType,
+                                            const uint32_t lloc,
+                                            const uint32_t cloc);
 
   /// Return whether the identifier has an initialization expression
   bool hasExpr() const { return expr_ != nullptr; }
@@ -427,11 +428,11 @@ public:
   const ExprType &idType() const { return idType_; }
 
 private:
-  LetBindingExprNode(IdExprNode *id, ExprNode *expr, const ExprType &idType,
-                     const uint32_t lloc, const uint32_t cloc);
+  LetBindingNode(IdExprNode *id, ExprNode *expr, const ExprType &idType,
+                 const uint32_t lloc, const uint32_t cloc);
 
-  std::shared_ptr<IdExprNode> id_;
-  std::shared_ptr<ExprNode> expr_;
+  const std::shared_ptr<IdExprNode> id_;
+  const std::shared_ptr<ExprNode> expr_;
   const ExprType idType_;
 };
 
@@ -450,15 +451,15 @@ public:
   /// \param[in] expr pointer to let expression
   /// \param[in] lloc line location
   /// \param[in] cloc character location
-  /// \return a pointer to the new block expression node
+  /// \return a pointer to the new let expression node
   static LetExprNode *
-  MakeLetExprNode(std::vector<std::shared_ptr<LetBindingExprNode>> *bindings,
+  MakeLetExprNode(std::vector<std::shared_ptr<LetBindingNode>> *bindings,
                   ExprNode *expr, const uint32_t lloc, const uint32_t cloc);
 
   /// Return a list of pointers to the let bindings
   ///
   /// \return a vector of shared pointers to the let bindings nodes
-  const std::vector<std::shared_ptr<LetBindingExprNode>> &bindings() const {
+  const std::vector<std::shared_ptr<LetBindingNode>> &bindings() const {
     return bindings_;
   }
 
@@ -469,11 +470,91 @@ public:
   std::shared_ptr<ExprNode> expr() const { return expr_; }
 
 private:
-  LetExprNode(std::vector<std::shared_ptr<LetBindingExprNode>> *bindings,
+  LetExprNode(std::vector<std::shared_ptr<LetBindingNode>> *bindings,
               ExprNode *expr, const uint32_t lloc, const uint32_t cloc);
 
-  std::vector<std::shared_ptr<LetBindingExprNode>> bindings_;
-  std::shared_ptr<ExprNode> expr_;
+  const std::vector<std::shared_ptr<LetBindingNode>> bindings_;
+  const std::shared_ptr<ExprNode> expr_;
+};
+
+/// Class for a node representing a case in a case expression
+class CaseNode : public Visitable<Node, CaseNode> {
+
+  using ParentNode = Visitable<Node, CaseNode>;
+
+public:
+  CaseNode() = delete;
+  ~CaseNode() final override = default;
+
+  /// Factory method to create a node for a case node
+  ///
+  /// \param[in] id pointer to identifier
+  /// \param[in] expr pointer to expression
+  /// \param[in] idType identifier type
+  /// \param[in] lloc line location
+  /// \param[in] cloc character location
+  /// \return a pointer to the new case node
+  static CaseNode *MakeCaseNode(IdExprNode *id, ExprNode *expr, ExprType idType,
+                                const uint32_t lloc, const uint32_t cloc);
+
+  /// Return a pointer to the identifier node
+  ///
+  /// \return a shared pointer to the identifier node
+  std::shared_ptr<IdExprNode> id() const { return id_; }
+
+  /// Return the formal identifier type
+  ///
+  /// \return the identifier type
+  ExprType idType() const { return idType_; }
+
+  /// Return a pointer to the expression node
+  ///
+  /// \return a shared pointer to the expression node
+  std::shared_ptr<ExprNode> expr() const { return expr_; }
+
+private:
+  CaseNode(IdExprNode *id, ExprNode *expr, ExprType idType, const uint32_t lloc,
+           const uint32_t cloc);
+
+  const std::shared_ptr<IdExprNode> id_;
+  const std::shared_ptr<ExprNode> expr_;
+  const ExprType idType_;
+};
+
+/// Class for a node representing a case expression
+class CaseExprNode : public Visitable<ExprNode, CaseExprNode> {
+
+  using ParentNode = Visitable<ExprNode, CaseExprNode>;
+
+public:
+  CaseExprNode() = delete;
+  ~CaseExprNode() final override = default;
+
+  /// Factory method to create a node for a case expression node
+  ///
+  /// \param[in] cases cases in case expression
+  /// \param[in] expr pointer to case expression
+  /// \param[in] lloc line location
+  /// \param[in] cloc character location
+  /// \return a pointer to the new case expression node
+  static CaseExprNode *
+  MakeCaseExprNode(std::vector<std::shared_ptr<CaseNode>> *cases,
+                   ExprNode *expr, const uint32_t lloc, const uint32_t cloc);
+
+  /// Return a list of pointers to the case nodes
+  ///
+  /// \return a vector of shared pointers to the case nodes
+  const std::vector<std::shared_ptr<CaseNode>> &cases() const { return cases_; }
+
+  /// Return a pointer to the expression in the case statement
+  std::shared_ptr<ExprNode> expr() const { return expr_; }
+
+private:
+  CaseExprNode(std::vector<std::shared_ptr<CaseNode>> *cases, ExprNode *expr,
+               const uint32_t lloc, const uint32_t cloc);
+
+  const std::vector<std::shared_ptr<CaseNode>> cases_;
+  const std::shared_ptr<ExprNode> expr_;
 };
 
 } // namespace cool

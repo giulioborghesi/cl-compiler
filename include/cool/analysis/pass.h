@@ -75,11 +75,19 @@ public:
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, LetBindingExprNode *node) {
+  virtual Status visit(Context *context, LetBindingNode *node) {
     return Status::Ok();
   }
 
   virtual Status visit(Context *context, LetExprNode *node) {
+    return Status::Ok();
+  }
+
+  virtual Status visit(Context *context, CaseNode *node) {
+    return Status::Ok();
+  }
+
+  virtual Status visit(Context *context, CaseExprNode *node) {
     return Status::Ok();
   }
 };

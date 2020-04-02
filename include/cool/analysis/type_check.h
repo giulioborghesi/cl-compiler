@@ -30,6 +30,10 @@ public:
 
   Status visit(Context *context, BooleanExprNode *node) final override;
 
+  Status visit(Context *context, CaseNode *node) final override;
+
+  Status visit(Context *context, CaseExprNode *node) final override;
+
   Status visit(Context *context, IdExprNode *node) final override;
 
   Status visit(Context *context, IfExprNode *node) final override;

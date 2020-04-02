@@ -78,6 +78,45 @@ Status TypeCheckPass::visit(Context *context, BooleanExprNode *node) {
   return Status::Ok();
 }
 
+Status TypeCheckPass::visit(Context *context, CaseNode *node) {
+  auto *symbolTable = context->symbolTable();
+  symbolTable->enterScope();
+
+  /// Type-check expression after having modified locally the symbol table
+  symbolTable->addElement(node->id()->idName(), node->idType());
+  auto statusExpr = node->expr()->visitNode(context, this);
+
+  symbolTable->exitScope();
+
+  return statusExpr;
+}
+
+Status TypeCheckPass::visit(Context *context, CaseExprNode *node) {
+  const auto &cases = node->cases();
+
+  /// Process the first case and initialize the return type
+  auto statusFirstExpr = cases[0]->visitNode(context, this);
+  if (!statusFirstExpr.isOk()) {
+    return statusFirstExpr;
+  }
+  ExprType exprType = cases[0]->expr()->type();
+
+  /// Process the remaining cases
+  const auto *registry = context->classRegistry();
+  for (uint32_t i = 1; i < cases.size(); ++i) {
+    auto statusCurrExpr = cases[i]->visitNode(context, this);
+    if (!statusCurrExpr.isOk()) {
+      return statusCurrExpr;
+    }
+    exprType =
+        registry->leastCommonAncestor(exprType, cases[i]->expr()->type());
+  }
+
+  /// No error encountered, set type of expression and return
+  node->setType(exprType);
+  return Status::Ok();
+}
+
 Status TypeCheckPass::visit(Context *context, IdExprNode *node) {
   auto *symbolTable = context->symbolTable();
   if (!symbolTable->findKeyInTable(node->idName())) {

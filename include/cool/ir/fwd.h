@@ -12,20 +12,24 @@ class ClassNode;
 class MethodNode;
 class ProgramNode;
 
-/// Expressions node
+/// Expressions nodes
 class AssignmentExprNode;
 template <typename T> class BinaryExprNode;
 class BlockExprNode;
 class BooleanExprNode;
+class CaseExprNode;
 class ExprNode;
 class IdExprNode;
 class IfExprNode;
-class LetBindingExprNode;
 class LetExprNode;
 template <typename T> class LiteralExprNode;
 class NewExprNode;
 class UnaryExprNode;
 class WhileExprNode;
+
+/// Untyped expression components nodes
+class CaseNode;
+class LetBindingNode;
 
 } // namespace cool
 
