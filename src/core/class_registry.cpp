@@ -148,23 +148,23 @@ ClassRegistry::findOrCreateClassID(const std::string &className) {
   return classNamesToClassIDs_[className];
 }
 
-bool ClassRegistry::isAncestorOf(const ExprType &descendantType,
-                                 const ExprType &ancestorType) const {
-  auto descendant = descendantType.typeID;
-  auto ancestor = ancestorType.typeID;
+bool ClassRegistry::conformTo(const ExprType &childType,
+                              const ExprType &parentType) const {
+  auto child = childType.typeID;
+  auto parent = parentType.typeID;
 
-  /// Nothing to do if ancestor class does not have descendants
-  if (classTree_.count(ancestor) == 0) {
+  /// Nothing to do if parent type does not have descendants
+  if (classTree_.count(parent) == 0) {
     return false;
   }
 
   /// Examine the subtree rooted at ancestor, searching for descendant
-  auto frontier = classTree_.find(ancestor)->second;
+  auto frontier = classTree_.find(parent)->second;
   while (frontier.size()) {
     auto root = frontier.back();
     frontier.pop_back();
 
-    if (root == descendant) {
+    if (root == child) {
       return true;
     }
 
@@ -173,8 +173,8 @@ bool ClassRegistry::isAncestorOf(const ExprType &descendantType,
       continue;
     }
 
-    for (auto child : kvIterator->second) {
-      frontier.push_back(child);
+    for (auto newChild : kvIterator->second) {
+      frontier.push_back(newChild);
     }
   }
 

@@ -90,6 +90,14 @@ public:
   virtual Status visit(Context *context, CaseExprNode *node) {
     return Status::Ok();
   }
+
+  virtual Status visit(Context *context, DispatchExprNode *node) {
+    return Status::Ok();
+  }
+
+  virtual Status visit(Context *context, StaticDispatchExprNode *node) {
+    return Status::Ok();
+  }
 };
 
 } // namespace cool

@@ -123,13 +123,13 @@ TEST(ClassRegistry, TypeRelationships) {
   ExprType typeO{.typeID = registry.typeID("Object"), .isSelf = false};
 
   /// C is a descendant of A
-  ASSERT_TRUE(registry.isAncestorOf(typeC, typeA));
+  ASSERT_TRUE(registry.conformTo(typeC, typeA));
 
   /// A is a descendant of Object
-  ASSERT_TRUE(registry.isAncestorOf(typeA, typeO));
+  ASSERT_TRUE(registry.conformTo(typeA, typeO));
 
   /// A is not a descendant of B
-  ASSERT_FALSE(registry.isAncestorOf(typeA, typeB));
+  ASSERT_FALSE(registry.conformTo(typeA, typeB));
 
   /// Least common ancestor of B and D is A
   ASSERT_EQ(typeA.typeID, registry.leastCommonAncestor(typeB, typeD).typeID);

@@ -21,7 +21,7 @@ Status TypeCheckPass::visit(Context *context, AssignmentExprNode *node) {
 
   /// Value type must be a subtype of id type
   const auto *registry = context->classRegistry();
-  if (!registry->isAncestorOf(node->value()->type(), node->id()->type())) {
+  if (!registry->conformTo(node->value()->type(), node->id()->type())) {
     return GenericError("Error: value type is not a subtype of id type");
   }
   node->setType(node->value()->type());
@@ -116,6 +116,22 @@ Status TypeCheckPass::visit(Context *context, CaseExprNode *node) {
   node->setType(exprType);
   return Status::Ok();
 }
+/*
+Status TypeCheckPass::visit(Context *context, DispatchExprNode *node) {
+  /// Type-check expression if it exists
+  if (node->hasExpr()) {
+    auto statusExpr = node->expr()->visitNode(context, this);
+    if (!statusExpr.isOk()) {
+      return statusExpr;
+    }
+  }
+
+  /// Get type ID of expression (self included) and complete type-check
+  const auto typeID =
+      node->hasExpr() ? node->expr()->type().typeID : context->currentClassID();
+  return visitDispatchExpr(context, node, typeID);
+}
+*/
 
 Status TypeCheckPass::visit(Context *context, IdExprNode *node) {
   auto *symbolTable = context->symbolTable();
@@ -172,7 +188,7 @@ Status TypeCheckPass::visit(Context *context, LetBindingNode *node) {
     }
 
     /// Type of rhs expression must be a subtype of formal id type
-    if (!registry->isAncestorOf(node->expr()->type(), node->idType())) {
+    if (!registry->conformTo(node->expr()->type(), node->idType())) {
       return GenericError("Error: expr type is not a subtype of id type");
     }
   }
@@ -322,5 +338,44 @@ Status TypeCheckPass::visitUnaryOpNotComp(Context *context, UnaryExprNode *node,
   node->setType(ExprType{.typeID = expectedTypeID, .isSelf = false});
   return Status::Ok();
 }
+/*
+template <typename DispatchExprT>
+Status TypeCheckPass::visitDispatchExpr(Context *context, DispatchExprT *node,
+                                        const ExprType exprType) {
+  /// Method must have been defined
+  const auto *methodTable = context->methodTable(typeID);
+  if (!methodTable.findKeyInTable(node->funcName())) {
+    return GenericError("Error: method not found");
+  }
+
+  /// Number of arguments must match
+  const auto *method = methodTable->get(node->funcName());
+  if (method->argSize() != node->argSize()) {
+    return GenericError("Error: invalid number of arguments");
+  }
+
+  /// Type-check each argument
+  const auto *registry = context->classRegistry();
+  for (uint32_t i = 0; i < node->argSize(); ++i) {
+    auto statusExpr = node->exprs()[i]->visitNode(context, this);
+    if (!statusExpr.isOk()) {
+      return statusExpr;
+    }
+
+    if (!registry->conformTo(node->exprs()[i]->type(),
+                             method->exprs()[i]->type())) {
+      return GenericError("Error: invalid argument type");
+    }
+  }
+
+  /// Set expression type and return
+  if (method->returnType().isSelf) {
+    node->setType(exprType);
+  } else {
+    node->setType(method->returnType()) l
+  }
+  return Status::Ok();
+}
+*/
 
 } // namespace cool

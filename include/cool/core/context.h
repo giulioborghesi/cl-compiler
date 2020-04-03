@@ -30,6 +30,13 @@ public:
   /// \return the name of the current class being processed
   const std::string &currentClassName() const { return currentClassName_; }
 
+  /// Get the id of the current class being processed
+  ///
+  /// \return the ID of the current class being processed
+  const IdentifierType currentClassID() const {
+    return classRegistry_->typeID(currentClassName_);
+  }
+
   /// Set the name of the current class being processed
   ///
   /// \param[in] currentClassName name of the current class being processed

@@ -18,12 +18,14 @@ template <typename T> class BinaryExprNode;
 class BlockExprNode;
 class BooleanExprNode;
 class CaseExprNode;
+class DispatchExprNode;
 class ExprNode;
 class IdExprNode;
 class IfExprNode;
 class LetExprNode;
 template <typename T> class LiteralExprNode;
 class NewExprNode;
+class StaticDispatchExprNode;
 class UnaryExprNode;
 class WhileExprNode;
 

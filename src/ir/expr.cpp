@@ -177,4 +177,34 @@ CaseExprNode::MakeCaseExprNode(std::vector<std::shared_ptr<CaseNode>> *cases,
   return new CaseExprNode(cases, expr, lloc, cloc);
 }
 
+/// DispatchExprNode
+DispatchExprNode::DispatchExprNode(const std::string &funcName, ExprNode *expr,
+                                   std::vector<std::shared_ptr<ExprNode>> *args,
+                                   const uint32_t lloc, const uint32_t cloc)
+    : ParentNode(lloc, cloc), funcName_(funcName), expr_(expr),
+      args_(std::move(*args)) {}
+
+DispatchExprNode *DispatchExprNode::MakeDispatchExprNode(
+    const std::string &funcName, ExprNode *expr,
+    std::vector<std::shared_ptr<ExprNode>> *args, const uint32_t lloc,
+    const uint32_t cloc) {
+  return new DispatchExprNode(funcName, expr, args, lloc, cloc);
+}
+
+/// StaticDispatchExprNode
+StaticDispatchExprNode::StaticDispatchExprNode(
+    const std::string &funcName, const std::string &dispatchClass,
+    ExprNode *expr, std::vector<std::shared_ptr<ExprNode>> *args,
+    const uint32_t lloc, const uint32_t cloc)
+    : ParentNode(lloc, cloc), funcName_(funcName),
+      dispatchClass_(dispatchClass), expr_(expr), args_(std::move(*args)) {}
+
+StaticDispatchExprNode *StaticDispatchExprNode::MakeStaticDispatchExprNode(
+    const std::string &funcName, const std::string &dispatchClass,
+    ExprNode *expr, std::vector<std::shared_ptr<ExprNode>> *args,
+    const uint32_t lloc, const uint32_t cloc) {
+  return new StaticDispatchExprNode(funcName, dispatchClass, expr, args, lloc,
+                                    cloc);
+}
+
 } // namespace cool

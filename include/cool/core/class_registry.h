@@ -55,13 +55,12 @@ public:
   ExprType leastCommonAncestor(const ExprType &firstDescendantType,
                                const ExprType &secondDescendantType) const;
 
-  /// Check whether a class is a descendant of another class
+  /// Check whether a type conforms to another type
   ///
-  /// \param[in] descendantType descendant class type
-  /// \param[in] ancestorType ancestor class type
-  /// \return true if descendant is a descendant of ancestor, false otherwise
-  bool isAncestorOf(const ExprType &descendantType,
-                    const ExprType &ancestorType) const;
+  /// \param[in] childType child  type
+  /// \param[in] parentType parent type
+  /// \return true if child type conforms to parent type
+  bool conformTo(const ExprType &childType, const ExprType &parentType) const;
 
 private:
   /// Find the ID of a class, if it exists, or create a new one

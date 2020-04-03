@@ -34,6 +34,8 @@ public:
 
   Status visit(Context *context, CaseExprNode *node) final override;
 
+  // Status visit(Context *context, DispatchExprNode *node) final override;
+
   Status visit(Context *context, IdExprNode *node) final override;
 
   Status visit(Context *context, IfExprNode *node) final override;
