@@ -76,17 +76,17 @@ int32_t leastCommonAncestorImpl(
 
 ClassRegistry::ClassRegistry() {
   /// Register built-in classes
-  std::vector<std::string> names = {"Object", "Int", "Bool"};
+  std::vector<std::string> names = {"Object", "Int", "Bool", "Str", "IO"};
   for (auto &name : names) {
-    classNamesToClassIDs_[name] = classNamesToClassIDs_.size();
-    classRegistry_[classNamesToClassIDs_[name]] = nullptr;
+    auto classID = findOrCreateClassID(name);
+    registry_[classID] = nullptr;
   }
 }
 
 Status ClassRegistry::addClass(std::shared_ptr<ClassNode> node) {
   /// Class ID must have not been added to registry before
   IdentifierType classID = findOrCreateClassID(node->className());
-  if (classRegistry_.count(classID) > 0) {
+  if (registry_.count(classID) > 0) {
     return cool::GenericError("Error: class is already defined");
   }
 
@@ -97,14 +97,14 @@ Status ClassRegistry::addClass(std::shared_ptr<ClassNode> node) {
   classTree_[parentClassID].push_back(classID);
 
   /// Add class to registry and return
-  classRegistry_[classID] = std::move(node);
+  registry_[classID] = std::move(node);
   return Status::Ok();
 }
 
 Status ClassRegistry::checkInheritanceTree() const {
   /// All parent classes in the inheritance tree must have a definition
   for (auto &[parent, children] : classTree_) {
-    if (classRegistry_.count(parent) == 0) {
+    if (registry_.count(parent) == 0) {
       return cool::GenericError("Error: parent class is not defined");
     }
   }
@@ -134,7 +134,7 @@ Status ClassRegistry::checkInheritanceTree() const {
 ExprType ClassRegistry::leastCommonAncestor(const ExprType &descendantA,
                                             const ExprType &descendantB) const {
   ExprType result;
-  leastCommonAncestorImpl(classNamesToClassIDs_.find("Object")->second,
+  leastCommonAncestorImpl(namesToIDs_.find("Object")->second,
                           descendantA.typeID, descendantB.typeID, classTree_,
                           &result);
   return result;
@@ -142,10 +142,11 @@ ExprType ClassRegistry::leastCommonAncestor(const ExprType &descendantA,
 
 IdentifierType
 ClassRegistry::findOrCreateClassID(const std::string &className) {
-  if (classNamesToClassIDs_.count(className) == 0) {
-    classNamesToClassIDs_[className] = classNamesToClassIDs_.size();
+  if (namesToIDs_.count(className) == 0) {
+    namesToIDs_[className] = namesToIDs_.size();
+    IDsToNames_[namesToIDs_[className]] = className;
   }
-  return classNamesToClassIDs_[className];
+  return namesToIDs_[className];
 }
 
 bool ClassRegistry::conformTo(const ExprType &childType,

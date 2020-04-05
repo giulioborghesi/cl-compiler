@@ -116,7 +116,7 @@ Status TypeCheckPass::visit(Context *context, CaseExprNode *node) {
   node->setType(exprType);
   return Status::Ok();
 }
-/*
+
 Status TypeCheckPass::visit(Context *context, DispatchExprNode *node) {
   /// Type-check expression if it exists
   if (node->hasExpr()) {
@@ -126,12 +126,26 @@ Status TypeCheckPass::visit(Context *context, DispatchExprNode *node) {
     }
   }
 
-  /// Get type ID of expression (self included) and complete type-check
-  const auto typeID =
-      node->hasExpr() ? node->expr()->type().typeID : context->currentClassID();
-  return visitDispatchExpr(context, node, typeID);
+  auto findDispatchType = [context, node]() -> ExprType {
+    const auto classID = context->currentClassID();
+    if (!node->hasExpr() || node->expr()->type().typeID == classID) {
+      return ExprType{.typeID = classID, .isSelf = false};
+    }
+    return node->expr()->type();
+  };
+
+  auto findReturnType = [context, node]() -> ExprType {
+    if (node->hasExpr()) {
+      return node->expr()->type();
+    }
+    return ExprType{.typeID = context->currentClassID(), .isSelf = true};
+  };
+
+  /// Determine type of calling expression and complete type-check
+  const auto dispatchType = findDispatchType();
+  const auto returnType = findReturnType();
+  return visitDispatchExpr(context, node, dispatchType, returnType);
 }
-*/
 
 Status TypeCheckPass::visit(Context *context, IdExprNode *node) {
   auto *symbolTable = context->symbolTable();
@@ -264,6 +278,28 @@ Status TypeCheckPass::visit(Context *context, NewExprNode *node) {
   return Status::Ok();
 }
 
+Status TypeCheckPass::visit(Context *context, StaticDispatchExprNode *node) {
+  /// Type-check expression
+  auto statusExpr = node->expr()->visitNode(context, this);
+  if (!statusExpr.isOk()) {
+    return statusExpr;
+  }
+
+  /// Dispatch type must exist
+  const auto *registry = context->classRegistry();
+  if (!registry->hasClass(node->dispatchClass())) {
+    return GenericError("Error: static dispatch type is not defined");
+  }
+
+  /// Compute dispatch type
+  const auto dispatchTypeID = registry->typeID(node->dispatchClass());
+  const auto dispatchType = ExprType{.typeID = dispatchTypeID, .isSelf = false};
+
+  /// Compute return type and complete type-check
+  const auto returnType = node->expr()->type();
+  return visitDispatchExpr(context, node, dispatchType, returnType);
+}
+
 Status TypeCheckPass::visit(Context *context, UnaryExprNode *node) {
   /// Type-check subexpression
   auto statusExpr = node->expr()->visitNode(context, this);
@@ -338,44 +374,54 @@ Status TypeCheckPass::visitUnaryOpNotComp(Context *context, UnaryExprNode *node,
   node->setType(ExprType{.typeID = expectedTypeID, .isSelf = false});
   return Status::Ok();
 }
-/*
+
 template <typename DispatchExprT>
 Status TypeCheckPass::visitDispatchExpr(Context *context, DispatchExprT *node,
-                                        const ExprType exprType) {
-  /// Method must have been defined
-  const auto *methodTable = context->methodTable(typeID);
-  if (!methodTable.findKeyInTable(node->funcName())) {
+                                        const ExprType dispatchType,
+                                        const ExprType returnType) {
+  /// Fetch method table
+  const auto *methodTable = context->methodTable(dispatchType);
+  if (!methodTable) {
+    return GenericError("Error: type not defined");
+  }
+
+  /// Search for method record in table
+  if (!methodTable->findKeyInTable(node->methodName())) {
     return GenericError("Error: method not found");
   }
 
-  /// Number of arguments must match
-  const auto *method = methodTable->get(node->funcName());
-  if (method->argSize() != node->argSize()) {
+  /// Number of arguments and parameters must match
+  const auto &methodRecord = methodTable->get(node->methodName());
+  if (methodRecord.argsCount() != node->paramsCount()) {
     return GenericError("Error: invalid number of arguments");
   }
 
-  /// Type-check each argument
+  /// Type-check each parameter
   const auto *registry = context->classRegistry();
-  for (uint32_t i = 0; i < node->argSize(); ++i) {
-    auto statusExpr = node->exprs()[i]->visitNode(context, this);
+  for (uint32_t i = 0; i < node->paramsCount(); ++i) {
+    auto statusExpr = node->params()[i]->visitNode(context, this);
     if (!statusExpr.isOk()) {
       return statusExpr;
     }
 
-    if (!registry->conformTo(node->exprs()[i]->type(),
-                             method->exprs()[i]->type())) {
+    if (!registry->conformTo(node->params()[i]->type(),
+                             methodRecord.argsTypes()[i])) {
       return GenericError("Error: invalid argument type");
     }
   }
 
   /// Set expression type and return
-  if (method->returnType().isSelf) {
-    node->setType(exprType);
+  const auto formalReturnType = methodRecord.returnType();
+  if (formalReturnType.isSelf) {
+    node->setType(returnType);
   } else {
-    node->setType(method->returnType()) l
+    node->setType(formalReturnType);
   }
   return Status::Ok();
 }
-*/
+
+template Status TypeCheckPass::visitDispatchExpr<DispatchExprNode>(
+    Context *context, DispatchExprNode *node, const ExprType dispatchType,
+    const ExprType returnType);
 
 } // namespace cool

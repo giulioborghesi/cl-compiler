@@ -4,6 +4,7 @@
 #include <cool/core/status.h>
 #include <cool/ir/common.h>
 
+#include <cassert>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -36,18 +37,35 @@ public:
   /// \param[in] className class name
   /// \return the identifier corresponding to the input class name
   IdentifierType typeID(const std::string &className) const {
-    auto it = classNamesToClassIDs_.find(className);
-    if (it == classNamesToClassIDs_.end()) {
-      return -1;
-    }
+    auto it = namesToIDs_.find(className);
+    assert(it != namesToIDs_.end());
     return it->second;
   }
 
-  /// Find the least common ancestors of two classes
+  /// Return the class name corresponding to a type identifier
+  ///
+  /// \param[in] classID class ID
+  /// \return the class name corresponding to the input class ID
+  const std::string &className(const IdentifierType classID) const {
+    auto it = IDsToNames_.find(classID);
+    assert(it != IDsToNames_.end());
+    return it->second;
+  }
+
+  /// Determine whether a class is in the registry
+  ///
+  /// \param[in] className class name
+  /// \return true if the class is in the registry, false otherwise
+  bool hasClass(const std::string &className) const {
+    return namesToIDs_.find(className) != namesToIDs_.end();
+  }
+
+  /// Find the least common ancestors of two types
   ///
   /// \note This method requires both descendants to be registered. It also
-  /// assumes that the class inheritance tree is well formed. It is the client
-  /// code responsibility to check that these preconditions are satisfied
+  /// assumes that the class inheritance tree is well formed. It is the
+  /// client code responsibility to check that these preconditions are
+  /// satisfied
   ///
   /// \param[in] firstDescendantType type of first descendant class
   /// \param[in] secondDescendantType type of second descendant class
@@ -72,8 +90,11 @@ private:
   /// \return the class ID
   IdentifierType findOrCreateClassID(const std::string &className);
 
-  std::unordered_map<std::string, IdentifierType> classNamesToClassIDs_;
-  std::unordered_map<IdentifierType, std::shared_ptr<ClassNode>> classRegistry_;
+  /// Dictionaries
+  std::unordered_map<std::string, IdentifierType> namesToIDs_;
+  std::unordered_map<IdentifierType, std::string> IDsToNames_;
+
+  std::unordered_map<IdentifierType, std::shared_ptr<ClassNode>> registry_;
   std::unordered_map<IdentifierType, std::vector<IdentifierType>> classTree_;
 };
 

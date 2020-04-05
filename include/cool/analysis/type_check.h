@@ -34,7 +34,7 @@ public:
 
   Status visit(Context *context, CaseExprNode *node) final override;
 
-  // Status visit(Context *context, DispatchExprNode *node) final override;
+  Status visit(Context *context, DispatchExprNode *node) final override;
 
   Status visit(Context *context, IdExprNode *node) final override;
 
@@ -51,6 +51,8 @@ public:
 
   Status visit(Context *context, NewExprNode *node) final override;
 
+  Status visit(Context *context, StaticDispatchExprNode *node) final override;
+
   Status visit(Context *context, UnaryExprNode *node) final override;
 
   Status visit(Context *context, WhileExprNode *node) final override;
@@ -60,6 +62,11 @@ private:
 
   Status visitUnaryOpNotComp(Context *context, UnaryExprNode *node,
                              const std::string &expectedType);
+
+  template <typename DispatchExprT>
+  Status visitDispatchExpr(Context *context, DispatchExprT *node,
+                           const ExprType dispatchType,
+                           const ExprType returnType);
 };
 
 } // namespace cool

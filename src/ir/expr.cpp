@@ -178,33 +178,34 @@ CaseExprNode::MakeCaseExprNode(std::vector<std::shared_ptr<CaseNode>> *cases,
 }
 
 /// DispatchExprNode
-DispatchExprNode::DispatchExprNode(const std::string &funcName, ExprNode *expr,
-                                   std::vector<std::shared_ptr<ExprNode>> *args,
-                                   const uint32_t lloc, const uint32_t cloc)
-    : ParentNode(lloc, cloc), funcName_(funcName), expr_(expr),
-      args_(std::move(*args)) {}
+DispatchExprNode::DispatchExprNode(
+    const std::string &methodName, ExprNode *expr,
+    std::vector<std::shared_ptr<ExprNode>> *params, const uint32_t lloc,
+    const uint32_t cloc)
+    : ParentNode(lloc, cloc), methodName_(methodName), expr_(expr),
+      params_(std::move(*params)) {}
 
 DispatchExprNode *DispatchExprNode::MakeDispatchExprNode(
-    const std::string &funcName, ExprNode *expr,
-    std::vector<std::shared_ptr<ExprNode>> *args, const uint32_t lloc,
+    const std::string &methodName, ExprNode *expr,
+    std::vector<std::shared_ptr<ExprNode>> *params, const uint32_t lloc,
     const uint32_t cloc) {
-  return new DispatchExprNode(funcName, expr, args, lloc, cloc);
+  return new DispatchExprNode(methodName, expr, params, lloc, cloc);
 }
 
 /// StaticDispatchExprNode
 StaticDispatchExprNode::StaticDispatchExprNode(
-    const std::string &funcName, const std::string &dispatchClass,
-    ExprNode *expr, std::vector<std::shared_ptr<ExprNode>> *args,
+    const std::string &methodName, const std::string &dispatchClass,
+    ExprNode *expr, std::vector<std::shared_ptr<ExprNode>> *params,
     const uint32_t lloc, const uint32_t cloc)
-    : ParentNode(lloc, cloc), funcName_(funcName),
-      dispatchClass_(dispatchClass), expr_(expr), args_(std::move(*args)) {}
+    : ParentNode(lloc, cloc), methodName_(methodName),
+      dispatchClass_(dispatchClass), expr_(expr), params_(std::move(*params)) {}
 
 StaticDispatchExprNode *StaticDispatchExprNode::MakeStaticDispatchExprNode(
-    const std::string &funcName, const std::string &dispatchClass,
-    ExprNode *expr, std::vector<std::shared_ptr<ExprNode>> *args,
+    const std::string &methodName, const std::string &dispatchClass,
+    ExprNode *expr, std::vector<std::shared_ptr<ExprNode>> *params,
     const uint32_t lloc, const uint32_t cloc) {
-  return new StaticDispatchExprNode(funcName, dispatchClass, expr, args, lloc,
-                                    cloc);
+  return new StaticDispatchExprNode(methodName, dispatchClass, expr, params,
+                                    lloc, cloc);
 }
 
 } // namespace cool

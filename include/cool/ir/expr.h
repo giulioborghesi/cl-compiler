@@ -568,36 +568,38 @@ public:
 
   /// Factory method to create a node for a dispatch expression
   ///
-  /// \param[in] funcName function name
+  /// \param[in] methodName function name
   /// \param[in] expr expression on which function is called
-  /// \param[in] args function arguments
+  /// \param[in] params function parameters
   /// \param[in] lloc line location
   /// \param[in] cloc character location
   /// \return a pointer to the newly created dispatch expression node
   static DispatchExprNode *
-  MakeDispatchExprNode(const std::string &funcName, ExprNode *expr,
-                       std::vector<std::shared_ptr<ExprNode>> *args,
+  MakeDispatchExprNode(const std::string &methodName, ExprNode *expr,
+                       std::vector<std::shared_ptr<ExprNode>> *params,
                        const uint32_t lloc, const uint32_t cloc);
 
   /// Return a list of pointers to the function arguments nodes
   ///
   /// \return a vector of shared pointers to the function arguments nodes
-  const std::vector<std::shared_ptr<ExprNode>> &args() const { return args_; }
+  const std::vector<std::shared_ptr<ExprNode>> &params() const {
+    return params_;
+  }
 
-  /// Return the number of function arguments
+  /// Return the number of function parameters
   ///
-  /// \return the number of function arguments
-  const uint32_t argSize() const { return args_.size(); }
+  /// \return the number of function parameters
+  const uint32_t paramsCount() const { return params_.size(); }
 
   /// Return the expression node
   ///
   /// \return a shared pointer to the expression node
   std::shared_ptr<ExprNode> expr() const { return expr_; }
 
-  /// Return the function name
+  /// Return the method name
   ///
-  /// \return the function name
-  const std::string &funcName() const { return funcName_; }
+  /// \return the method name
+  const std::string &methodName() const { return methodName_; }
 
   /// Return whether the expression node is present or not
   ///
@@ -605,13 +607,13 @@ public:
   bool hasExpr() const { return expr_ != nullptr; }
 
 private:
-  DispatchExprNode(const std::string &funcName, ExprNode *expr,
-                   std::vector<std::shared_ptr<ExprNode>> *args,
+  DispatchExprNode(const std::string &methodName, ExprNode *expr,
+                   std::vector<std::shared_ptr<ExprNode>> *params,
                    const uint32_t lloc, const uint32_t cloc);
 
-  std::string funcName_;
+  std::string methodName_;
   std::shared_ptr<ExprNode> expr_;
-  std::vector<std::shared_ptr<ExprNode>> args_;
+  std::vector<std::shared_ptr<ExprNode>> params_;
 };
 
 /// Class for a node representing a static dispatch expression
@@ -626,28 +628,30 @@ public:
 
   /// Factory method to create a node for a static dispatch expression
   ///
-  /// \param[in] funcName function name
+  /// \param[in] methodName function name
   /// \param[in] dispatchClass dispatch class name
   /// \param[in] expr expression on which function is called
-  /// \param[in] args function arguments
+  /// \param[in] params function parameters
   /// \param[in] lloc line location
   /// \param[in] cloc character location
   /// \return a pointer to the newly created static dispatch expression node
   static StaticDispatchExprNode *
-  MakeStaticDispatchExprNode(const std::string &funcName,
+  MakeStaticDispatchExprNode(const std::string &methodName,
                              const std::string &dispatchClass, ExprNode *expr,
-                             std::vector<std::shared_ptr<ExprNode>> *args,
+                             std::vector<std::shared_ptr<ExprNode>> *params,
                              const uint32_t lloc, const uint32_t cloc);
 
-  /// Return a list of pointers to the function arguments nodes
+  /// Return a list of pointers to the function parameters nodes
   ///
-  /// \return a vector of shared pointers to the function arguments nodes
-  const std::vector<std::shared_ptr<ExprNode>> &args() const { return args_; }
+  /// \return a vector of shared pointers to the function parameters nodes
+  const std::vector<std::shared_ptr<ExprNode>> &params() const {
+    return params_;
+  }
 
-  /// Return the number of function arguments
+  /// Return the number of parameters in the function call
   ///
-  /// \return the number of function arguments
-  const uint32_t argSize() const { return args_.size(); }
+  /// \return the number of parameters
+  const uint32_t paramsCount() const { return params_.size(); }
 
   /// Return the parent class name on which the function should be called
   ///
@@ -659,21 +663,21 @@ public:
   /// \return a shared pointer to the expression node
   std::shared_ptr<ExprNode> expr() const { return expr_; }
 
-  /// Return the function name
+  /// Return the method name
   ///
-  /// \return the function name
-  const std::string &funcName() const { return funcName_; }
+  /// \return the method name
+  const std::string &methodName() const { return methodName_; }
 
 private:
-  StaticDispatchExprNode(const std::string &funcName,
+  StaticDispatchExprNode(const std::string &methodName,
                          const std::string &dispatchClass, ExprNode *expr,
-                         std::vector<std::shared_ptr<ExprNode>> *args,
+                         std::vector<std::shared_ptr<ExprNode>> *params,
                          const uint32_t lloc, const uint32_t cloc);
 
-  std::string funcName_;
+  std::string methodName_;
   std::string dispatchClass_;
   std::shared_ptr<ExprNode> expr_;
-  std::vector<std::shared_ptr<ExprNode>> args_;
+  std::vector<std::shared_ptr<ExprNode>> params_;
 };
 
 } // namespace cool
