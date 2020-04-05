@@ -20,6 +20,9 @@ enum class UnaryOpID : uint8_t { IsVoid, Not, Complement, Parenthesis };
 /// Arithmetic operations identifiers
 enum class ArithmeticOpID : uint8_t { Plus, Minus, Mult, Div };
 
+/// Comparison operations identifiers
+enum class ComparisonOpID : uint8_t { LessThan, LessThanOrEqual, Equal };
+
 } // namespace cool
 
 #endif

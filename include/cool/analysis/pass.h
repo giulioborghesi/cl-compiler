@@ -19,6 +19,7 @@ public:
   Pass() = default;
   virtual ~Pass() = default;
 
+  /// Program and class nodes
   virtual Status visit(Context *context, ProgramNode *node) {
     return Status::Ok();
   }
@@ -27,27 +28,8 @@ public:
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, ExprNode *node) {
-    return Status::Ok();
-  }
-
-  virtual Status visit(Context *context, LiteralExprNode<int32_t> *node) {
-    return Status::Ok();
-  }
-
-  virtual Status visit(Context *context, LiteralExprNode<std::string> *node) {
-    return Status::Ok();
-  }
-
-  virtual Status visit(Context *context, BooleanExprNode *node) {
-    return Status::Ok();
-  }
-
-  virtual Status visit(Context *context, IdExprNode *node) {
-    return Status::Ok();
-  };
-
-  virtual Status visit(Context *context, UnaryExprNode *node) {
+  /// Expressions nodes
+  virtual Status visit(Context *context, AssignmentExprNode *node) {
     return Status::Ok();
   }
 
@@ -55,15 +37,7 @@ public:
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, IfExprNode *node) {
-    return Status::Ok();
-  }
-
-  virtual Status visit(Context *context, WhileExprNode *node) {
-    return Status::Ok();
-  }
-
-  virtual Status visit(Context *context, AssignmentExprNode *node) {
+  virtual Status visit(Context *context, BinaryExprNode<ComparisonOpID> *node) {
     return Status::Ok();
   }
 
@@ -71,15 +45,7 @@ public:
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, NewExprNode *node) {
-    return Status::Ok();
-  }
-
-  virtual Status visit(Context *context, LetBindingNode *node) {
-    return Status::Ok();
-  }
-
-  virtual Status visit(Context *context, LetExprNode *node) {
+  virtual Status visit(Context *context, BooleanExprNode *node) {
     return Status::Ok();
   }
 
@@ -95,7 +61,47 @@ public:
     return Status::Ok();
   }
 
+  virtual Status visit(Context *context, ExprNode *node) {
+    return Status::Ok();
+  }
+
+  virtual Status visit(Context *context, IdExprNode *node) {
+    return Status::Ok();
+  }
+
+  virtual Status visit(Context *context, IfExprNode *node) {
+    return Status::Ok();
+  }
+
+  virtual Status visit(Context *context, LetBindingNode *node) {
+    return Status::Ok();
+  }
+
+  virtual Status visit(Context *context, LetExprNode *node) {
+    return Status::Ok();
+  }
+
+  virtual Status visit(Context *context, LiteralExprNode<int32_t> *node) {
+    return Status::Ok();
+  }
+
+  virtual Status visit(Context *context, LiteralExprNode<std::string> *node) {
+    return Status::Ok();
+  }
+
+  virtual Status visit(Context *context, NewExprNode *node) {
+    return Status::Ok();
+  }
+
   virtual Status visit(Context *context, StaticDispatchExprNode *node) {
+    return Status::Ok();
+  }
+
+  virtual Status visit(Context *context, UnaryExprNode *node) {
+    return Status::Ok();
+  }
+
+  virtual Status visit(Context *context, WhileExprNode *node) {
     return Status::Ok();
   }
 };

@@ -76,7 +76,7 @@ int32_t leastCommonAncestorImpl(
 
 ClassRegistry::ClassRegistry() {
   /// Register built-in classes
-  std::vector<std::string> names = {"Object", "Int", "Bool", "Str", "IO"};
+  std::vector<std::string> names = {"Object", "Int", "Bool", "String", "IO"};
   for (auto &name : names) {
     auto classID = findOrCreateClassID(name);
     registry_[classID] = nullptr;

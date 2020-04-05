@@ -3,58 +3,86 @@
 #include <cool/ir/expr.h>
 
 #include <iostream>
+#include <unordered_set>
 
 namespace cool {
 
 Status TypeCheckPass::visit(Context *context, AssignmentExprNode *node) {
-  /// Type-check lhs of assignment expression
-  auto statusId = node->id()->visitNode(context, this);
-  if (!statusId.isOk()) {
-    return statusId;
+  /// Variable must be present in symbol table
+  const auto *symbolTable = context->symbolTable();
+  if (!symbolTable->findKeyInTable(node->id())) {
+    return GenericError("Error: undefined variable");
   }
+  const auto idType = symbolTable->get(node->id());
 
-  /// Type-check rhs of assignment expression
-  auto statusValue = node->value()->visitNode(context, this);
+  /// Type-check right hand side of assignment expression
+  auto statusValue = node->rhsExpr()->visitNode(context, this);
   if (!statusValue.isOk()) {
     return statusValue;
   }
 
   /// Value type must be a subtype of id type
   const auto *registry = context->classRegistry();
-  if (!registry->conformTo(node->value()->type(), node->id()->type())) {
+  if (!registry->conformTo(node->rhsExpr()->type(), idType)) {
     return GenericError("Error: value type is not a subtype of id type");
   }
-  node->setType(node->value()->type());
+  node->setType(node->rhsExpr()->type());
   return Status::Ok();
 }
 
 Status TypeCheckPass::visit(Context *context,
                             BinaryExprNode<ArithmeticOpID> *node) {
-  const auto *registry = context->classRegistry();
-  const auto intTypeID = registry->typeID("Int");
+  const auto intTypeID = context->classRegistry()->typeID("Int");
+  const ExprType returnType = ExprType{.typeID = intTypeID, .isSelf = false};
 
-  /// Type-check left subexpression
-  auto statusLhs = node->lhs()->visitNode(context, this);
-  if (!statusLhs.isOk()) {
-    return statusLhs;
+  auto typeCheckF = [context](const auto &lhsTypeID, const auto &rhsTypeID) {
+    const auto intTypeID = context->classRegistry()->typeID("Int");
+    if (lhsTypeID != intTypeID || rhsTypeID != intTypeID) {
+      return GenericError(
+          "Error: only integer operands allowed in arithmetic expressions");
+    }
+    return Status::Ok();
+  };
+
+  return visitBinaryExpr(context, node, returnType, typeCheckF);
+}
+
+Status TypeCheckPass::visit(Context *context,
+                            BinaryExprNode<ComparisonOpID> *node) {
+  const auto boolTypeID = context->classRegistry()->typeID("Bool");
+  const ExprType returnType = ExprType{.typeID = boolTypeID, .isSelf = false};
+
+  /// Allowed types in equality expression
+  std::unordered_set<IdentifierType> types;
+  types.insert(context->classRegistry()->typeID("Bool"));
+  types.insert(context->classRegistry()->typeID("Int"));
+  types.insert(context->classRegistry()->typeID("String"));
+
+  /// Type-check function for comparison expressions
+  auto typeCheckC = [context](const auto &lhsTypeID, const auto &rhsTypeID) {
+    const auto intTypeID = context->classRegistry()->typeID("Int");
+    if (lhsTypeID != intTypeID || rhsTypeID != intTypeID) {
+      return GenericError(
+          "Error: only integer operands allowed in comparison expressions");
+    }
+    return Status::Ok();
+  };
+
+  /// Type-check function for equality expressions
+  auto typeCheckE = [context, types](const auto &lhsTypeID,
+                                     const auto &rhsTypeID) {
+    if (types.count(lhsTypeID) || types.count(rhsTypeID)) {
+      if (lhsTypeID != rhsTypeID) {
+        return GenericError("Error: incompatible types");
+      }
+    }
+    return Status::Ok();
+  };
+
+  if (node->opID() == ComparisonOpID::Equal) {
+    return visitBinaryExpr(context, node, returnType, typeCheckE);
   }
-
-  /// Type-check right subexpression
-  auto statusRhs = node->rhs()->visitNode(context, this);
-  if (!statusRhs.isOk()) {
-    return statusRhs;
-  }
-
-  /// Type-check binary expression
-  const auto lhsTypeID = node->lhs()->type().typeID;
-  const auto rhsTypeID = node->rhs()->type().typeID;
-  if (lhsTypeID != intTypeID || rhsTypeID != intTypeID) {
-    return GenericError("Error: operand is not an integer");
-  }
-
-  /// Set expression type and return
-  node->setType(ExprType{.typeID = intTypeID, .isSelf = false});
-  return Status::Ok();
+  return visitBinaryExpr(context, node, returnType, typeCheckC);
 }
 
 Status TypeCheckPass::visit(Context *context, BlockExprNode *node) {
@@ -79,15 +107,31 @@ Status TypeCheckPass::visit(Context *context, BooleanExprNode *node) {
 }
 
 Status TypeCheckPass::visit(Context *context, CaseNode *node) {
+  const auto *registry = context->classRegistry();
   auto *symbolTable = context->symbolTable();
   symbolTable->enterScope();
 
+  /// Helper function to determine the case binding type
+  auto getBindingType = [context, registry, node]() {
+    if (node->typeName() == "SELF_TYPE") {
+      return ExprType{.typeID = context->currentClassID(), .isSelf = true};
+    }
+    const auto typeID = registry->typeID(node->typeName());
+    return ExprType{.typeID = typeID, .isSelf = false};
+  };
+
+  /// Type must be valid or SELF_TYPE
+  const auto &typeName = node->typeName();
+  if (!registry->hasClass(typeName) && typeName != "SELF_TYPE") {
+    return GenericError("Error: invalid type of case binding");
+  }
+
   /// Type-check expression after having modified locally the symbol table
-  symbolTable->addElement(node->id()->idName(), node->idType());
+  symbolTable->addElement(node->id(), getBindingType());
   auto statusExpr = node->expr()->visitNode(context, this);
 
+  /// Exist scope and return the status of the case expression type-check
   symbolTable->exitScope();
-
   return statusExpr;
 }
 
@@ -95,18 +139,18 @@ Status TypeCheckPass::visit(Context *context, CaseExprNode *node) {
   const auto &cases = node->cases();
 
   /// Process the first case and initialize the return type
-  auto statusFirstExpr = cases[0]->visitNode(context, this);
-  if (!statusFirstExpr.isOk()) {
-    return statusFirstExpr;
+  auto statusFirstCase = cases[0]->visitNode(context, this);
+  if (!statusFirstCase.isOk()) {
+    return statusFirstCase;
   }
   ExprType exprType = cases[0]->expr()->type();
 
   /// Process the remaining cases
   const auto *registry = context->classRegistry();
   for (uint32_t i = 1; i < cases.size(); ++i) {
-    auto statusCurrExpr = cases[i]->visitNode(context, this);
-    if (!statusCurrExpr.isOk()) {
-      return statusCurrExpr;
+    auto statusCurrCase = cases[i]->visitNode(context, this);
+    if (!statusCurrCase.isOk()) {
+      return statusCurrCase;
     }
     exprType =
         registry->leastCommonAncestor(exprType, cases[i]->expr()->type());
@@ -126,7 +170,7 @@ Status TypeCheckPass::visit(Context *context, DispatchExprNode *node) {
     }
   }
 
-  auto findDispatchType = [context, node]() -> ExprType {
+  auto findCallerType = [context, node]() -> ExprType {
     const auto classID = context->currentClassID();
     if (!node->hasExpr() || node->expr()->type().typeID == classID) {
       return ExprType{.typeID = classID, .isSelf = false};
@@ -142,23 +186,22 @@ Status TypeCheckPass::visit(Context *context, DispatchExprNode *node) {
   };
 
   /// Determine type of calling expression and complete type-check
-  const auto dispatchType = findDispatchType();
+  const auto callerType = findCallerType();
   const auto returnType = findReturnType();
-  return visitDispatchExpr(context, node, dispatchType, returnType);
+  return visitDispatchExpr(context, node, callerType, returnType);
 }
 
 Status TypeCheckPass::visit(Context *context, IdExprNode *node) {
   auto *symbolTable = context->symbolTable();
-  if (!symbolTable->findKeyInTable(node->idName())) {
-    return GenericError("Error: identifier is undefined");
+  if (!symbolTable->findKeyInTable(node->id())) {
+    return GenericError("Error: undefined variable");
   }
-  node->setType(symbolTable->get(node->idName()));
+  node->setType(symbolTable->get(node->id()));
   return Status::Ok();
 }
 
 Status TypeCheckPass::visit(Context *context, IfExprNode *node) {
   const auto *registry = context->classRegistry();
-  const auto boolTypeID = registry->typeID("Bool");
 
   /// Type-check if-expression
   auto statusIfExpr = node->ifExpr()->visitNode(context, this);
@@ -179,6 +222,7 @@ Status TypeCheckPass::visit(Context *context, IfExprNode *node) {
   }
 
   /// If-expression type must be Bool
+  const auto boolTypeID = registry->typeID("Bool");
   if (node->ifExpr()->type().typeID != boolTypeID) {
     return GenericError("Error: if-expression type is not Bool");
   }
@@ -194,36 +238,52 @@ Status TypeCheckPass::visit(Context *context, LetBindingNode *node) {
   auto *registry = context->classRegistry();
   auto *symbolTable = context->symbolTable();
 
+  /// Helper function to determine the let binding type
+  auto getBindingType = [context, registry, node]() {
+    if (node->typeName() == "SELF_TYPE") {
+      return ExprType{.typeID = context->currentClassID(), .isSelf = true};
+    }
+    const auto typeID = registry->typeID(node->typeName());
+    return ExprType{.typeID = typeID, .isSelf = false};
+  };
+
+  /// Type must be valid or SELF_TYPE
+  const auto &typeName = node->typeName();
+  if (!registry->hasClass(typeName) && typeName != "SELF_TYPE") {
+    return GenericError("Error: invalid type of let binding");
+  }
+
+  /// Type-check let binding initialization expression if needed
+  const auto bindingType = getBindingType();
   if (node->hasExpr()) {
-    /// Type-check rhs
     auto statusExpr = node->expr()->visitNode(context, this);
     if (!statusExpr.isOk()) {
       return statusExpr;
     }
 
     /// Type of rhs expression must be a subtype of formal id type
-    if (!registry->conformTo(node->expr()->type(), node->idType())) {
-      return GenericError("Error: expr type is not a subtype of id type");
+    if (!registry->conformTo(node->expr()->type(), bindingType)) {
+      return GenericError(
+          "Error: expression type is not a subtype of let binding type");
     }
   }
-
-  /// Type of subexpression can be left to default type
-  return symbolTable->addElement(node->id()->idName(), node->idType());
+  return symbolTable->addElement(node->id(), bindingType);
 }
 
 Status TypeCheckPass::visit(Context *context, LetExprNode *node) {
   auto *symbolTable = context->symbolTable();
 
+  /// Helper function to unwind the symbol table
   auto unwindSymbolTable = [symbolTable](const uint32_t nCount) {
-    for (uint32_t i = 0; i < nCount; ++i) {
+    for (uint32_t iCount = 0; iCount < nCount; ++iCount) {
       symbolTable->exitScope();
     }
     return;
   };
 
-  /// Process bindings first
+  /// Process let bindings
   uint32_t unwindCount = 0;
-  for (auto &bindingNode : node->bindings()) {
+  for (auto bindingNode : node->bindings()) {
     ++unwindCount;
     symbolTable->enterScope();
     auto statusBinding = bindingNode->visitNode(context, this);
@@ -265,15 +325,18 @@ Status TypeCheckPass::visit(Context *context, NewExprNode *node) {
 
   /// SELF_TYPE needs a special treatment
   if (node->typeName() == "SELF_TYPE") {
-    const auto typeID = registry->typeID(context->currentClassName());
+    const auto typeID = context->currentClassID();
     node->setType(ExprType{.typeID = typeID, .isSelf = true});
     return Status::Ok();
   }
 
-  const auto typeID = registry->typeID(node->typeName());
-  if (typeID == -1) {
+  /// Type must be valid
+  if (!registry->hasClass(node->typeName())) {
     return GenericError("Error: undefined type in new expression");
   }
+
+  /// Assign type to expression and return
+  const auto typeID = registry->typeID(node->typeName());
   node->setType(ExprType{.typeID = typeID, .isSelf = false});
   return Status::Ok();
 }
@@ -287,17 +350,17 @@ Status TypeCheckPass::visit(Context *context, StaticDispatchExprNode *node) {
 
   /// Dispatch type must exist
   const auto *registry = context->classRegistry();
-  if (!registry->hasClass(node->dispatchClass())) {
+  if (!registry->hasClass(node->callerClass())) {
     return GenericError("Error: static dispatch type is not defined");
   }
 
-  /// Compute dispatch type
-  const auto dispatchTypeID = registry->typeID(node->dispatchClass());
-  const auto dispatchType = ExprType{.typeID = dispatchTypeID, .isSelf = false};
+  /// Compute caller type
+  const auto callerTypeID = registry->typeID(node->callerClass());
+  const auto callerType = ExprType{.typeID = callerTypeID, .isSelf = false};
 
   /// Compute return type and complete type-check
   const auto returnType = node->expr()->type();
-  return visitDispatchExpr(context, node, dispatchType, returnType);
+  return visitDispatchExpr(context, node, callerType, returnType);
 }
 
 Status TypeCheckPass::visit(Context *context, UnaryExprNode *node) {
@@ -310,12 +373,12 @@ Status TypeCheckPass::visit(Context *context, UnaryExprNode *node) {
   /// Assign type to expression or return an error message on error
   switch (node->opID()) {
   case UnaryOpID::IsVoid: {
-    return visitUnaryOpIsVoid(context, node);
+    return visitIsVoidExpr(context, node);
   }
   case UnaryOpID::Not:
   case UnaryOpID::Complement: {
     const std::string type = node->opID() == UnaryOpID::Not ? "Bool" : "Int";
-    return visitUnaryOpNotComp(context, node, type);
+    return visitNotOrCompExpr(context, node, type);
   }
   case UnaryOpID::Parenthesis: {
     node->setType(node->expr()->type());
@@ -337,6 +400,7 @@ Status TypeCheckPass::visit(Context *context, WhileExprNode *node) {
     return statusLoopCond;
   }
 
+  /// Type of loop condition must be bool
   const auto *registry = context->classRegistry();
   const auto boolTypeID = registry->typeID("Bool");
   if (node->loopCond()->type().typeID != boolTypeID) {
@@ -349,38 +413,71 @@ Status TypeCheckPass::visit(Context *context, WhileExprNode *node) {
     return statusLoopBody;
   }
 
+  /// Type of while expression is Object
   const auto objectTypeID = registry->typeID("Object");
   node->setType(ExprType{.typeID = objectTypeID, .isSelf = false});
   return Status::Ok();
 }
 
-Status TypeCheckPass::visitUnaryOpIsVoid(Context *context,
-                                         UnaryExprNode *node) {
-  /// Assign Bool type to expression
+template <typename OpType, typename FuncT>
+Status
+TypeCheckPass::visitBinaryExpr(Context *context, BinaryExprNode<OpType> *node,
+                               const ExprType &returnType, FuncT &&func) {
+  const auto *registry = context->classRegistry();
+  const auto intTypeID = registry->typeID("Int");
+
+  /// Type-check left subexpression
+  auto statusLhs = node->lhsExpr()->visitNode(context, this);
+  if (!statusLhs.isOk()) {
+    return statusLhs;
+  }
+
+  /// Type-check right subexpression
+  auto statusRhs = node->rhsExpr()->visitNode(context, this);
+  if (!statusRhs.isOk()) {
+    return statusRhs;
+  }
+
+  /// Type-check binary expression
+  const auto lhsTypeID = node->lhsExpr()->type().typeID;
+  const auto rhsTypeID = node->rhsExpr()->type().typeID;
+  auto status = func(lhsTypeID, rhsTypeID);
+  if (!status.isOk()) {
+    return status;
+  }
+
+  /// Set expression type and return
+  node->setType(returnType);
+  return Status::Ok();
+}
+
+Status TypeCheckPass::visitIsVoidExpr(Context *context, UnaryExprNode *node) {
+  /// Assign Bool type to isvoid expression
   const auto boolTypeID = context->classRegistry()->typeID("Bool");
   node->setType(ExprType{.typeID = boolTypeID, .isSelf = false});
   return Status::Ok();
 }
 
-Status TypeCheckPass::visitUnaryOpNotComp(Context *context, UnaryExprNode *node,
-                                          const std::string &expectedType) {
+Status TypeCheckPass::visitNotOrCompExpr(Context *context, UnaryExprNode *node,
+                                         const std::string &expectedType) {
   const auto expectedTypeID = context->classRegistry()->typeID(expectedType);
 
-  /// Subexpression type must be bool
+  /// Subexpression type must be bool for not, int for complement
   if (node->expr()->type().typeID != expectedTypeID) {
-    return GenericError("Error: operand of not is of incorrect type");
+    return GenericError(
+        "Error: operand of unary expression is of incorrect type");
   }
 
-  node->setType(ExprType{.typeID = expectedTypeID, .isSelf = false});
+  node->setType(node->expr()->type());
   return Status::Ok();
 }
 
 template <typename DispatchExprT>
 Status TypeCheckPass::visitDispatchExpr(Context *context, DispatchExprT *node,
-                                        const ExprType dispatchType,
+                                        const ExprType callerType,
                                         const ExprType returnType) {
   /// Fetch method table
-  const auto *methodTable = context->methodTable(dispatchType);
+  const auto *methodTable = context->methodTable(callerType);
   if (!methodTable) {
     return GenericError("Error: type not defined");
   }

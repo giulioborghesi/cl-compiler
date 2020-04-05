@@ -26,6 +26,9 @@ public:
   Status visit(Context *context,
                BinaryExprNode<ArithmeticOpID> *node) final override;
 
+  Status visit(Context *context,
+               BinaryExprNode<ComparisonOpID> *node) final override;
+
   Status visit(Context *context, BlockExprNode *node) final override;
 
   Status visit(Context *context, BooleanExprNode *node) final override;
@@ -58,15 +61,43 @@ public:
   Status visit(Context *context, WhileExprNode *node) final override;
 
 private:
-  Status visitUnaryOpIsVoid(Context *context, UnaryExprNode *node);
+  /// Implement type-checking rule for binary expressions
+  ///
+  /// \param[in] context type-checking context
+  /// \param[in] node binary expression node to type-check
+  /// \param[in] returnType expression return type
+  /// \param[in] func function implementing type-checking rule
+  /// \return Stats::Ok() if type-check succeds, an error message otherwise
+  template <typename OpType, typename FuncT>
+  Status visitBinaryExpr(Context *context, BinaryExprNode<OpType> *node,
+                         const ExprType &returnType, FuncT &&func);
 
-  Status visitUnaryOpNotComp(Context *context, UnaryExprNode *node,
-                             const std::string &expectedType);
-
+  /// Implement type-checking rule for dispatch expressions
+  ///
+  /// \param[in] context type-checking context
+  /// \param[in] node dispatch expression node to type-check
+  /// \param[in] callerType caller type
+  /// \param[in] returnType return type of dispatch expression
   template <typename DispatchExprT>
   Status visitDispatchExpr(Context *context, DispatchExprT *node,
-                           const ExprType dispatchType,
+                           const ExprType calleeType,
                            const ExprType returnType);
+
+  /// Implement type-checking rule for IsVoid unary expression
+  ///
+  /// \param[in] context type-checking context
+  /// \param[in] node unary expression node to type-check
+  /// \return Status::Ok() if type-check succeds, an error message otherwise
+  Status visitIsVoidExpr(Context *context, UnaryExprNode *node);
+
+  /// Implement type-checking rule for boolean NOT and integer complement
+  ///
+  /// \param[in] context type-checking context
+  /// \param[in] node unary expression node to type-check
+  /// \param[in] expectedType expected type of unary expression operand
+  /// \return Status::Ok() if type-check succeds, an error message otherwise
+  Status visitNotOrCompExpr(Context *context, UnaryExprNode *node,
+                            const std::string &expectedType);
 };
 
 } // namespace cool
