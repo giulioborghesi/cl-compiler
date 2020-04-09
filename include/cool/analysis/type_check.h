@@ -33,7 +33,7 @@ public:
 
   Status visit(Context *context, BooleanExprNode *node) final override;
 
-  Status visit(Context *context, CaseNode *node) final override;
+  Status visit(Context *context, CaseBindingNode *node) final override;
 
   Status visit(Context *context, CaseExprNode *node) final override;
 

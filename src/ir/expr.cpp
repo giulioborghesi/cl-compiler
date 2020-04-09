@@ -29,27 +29,27 @@ BlockExprNode::MakeBlockExprNode(std::vector<std::shared_ptr<ExprNode>> *exprs,
   return new BlockExprNode(exprs, lloc, cloc);
 }
 
-/// CaseNode
-CaseNode::CaseNode(const std::string &id, const std::string &typeName,
-                   ExprNode *expr, const uint32_t lloc, const uint32_t cloc)
+/// CaseBindingNode
+CaseBindingNode::CaseBindingNode(const std::string &id,
+                                 const std::string &typeName, ExprNode *expr,
+                                 const uint32_t lloc, const uint32_t cloc)
     : ParentNode(lloc, cloc), id_(id), typeName_(typeName), expr_(expr) {}
 
-CaseNode *CaseNode::MakeCaseNode(const std::string &id,
-                                 const std::string &typeName, ExprNode *expr,
-                                 const uint32_t lloc, const uint32_t cloc) {
-  return new CaseNode(id, typeName, expr, lloc, cloc);
+CaseBindingNode *CaseBindingNode::MakeCaseBindingNode(
+    const std::string &id, const std::string &typeName, ExprNode *expr,
+    const uint32_t lloc, const uint32_t cloc) {
+  return new CaseBindingNode(id, typeName, expr, lloc, cloc);
 }
 
 /// CaseExprNode
-CaseExprNode::CaseExprNode(std::vector<std::shared_ptr<CaseNode>> *cases,
+CaseExprNode::CaseExprNode(std::vector<std::shared_ptr<CaseBindingNode>> *cases,
                            ExprNode *expr, const uint32_t lloc,
                            const uint32_t cloc)
     : ParentNode(lloc, cloc), cases_(std::move(*cases)), expr_(expr) {}
 
-CaseExprNode *
-CaseExprNode::MakeCaseExprNode(std::vector<std::shared_ptr<CaseNode>> *cases,
-                               ExprNode *expr, const uint32_t lloc,
-                               const uint32_t cloc) {
+CaseExprNode *CaseExprNode::MakeCaseExprNode(
+    std::vector<std::shared_ptr<CaseBindingNode>> *cases, ExprNode *expr,
+    const uint32_t lloc, const uint32_t cloc) {
   return new CaseExprNode(cases, expr, lloc, cloc);
 }
 

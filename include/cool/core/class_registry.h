@@ -27,6 +27,17 @@ public:
   /// \return cool::Status::Ok() if successfull, error message otherwise
   Status addClass(std::shared_ptr<ClassNode> node);
 
+  /// Get a class node from the registry.
+  ///
+  /// \note This method will trigger an assertion if the class ID is invalid
+  ///
+  /// \param[in] classID class ID
+  /// \return a shared pointer to the class node
+  std::shared_ptr<ClassNode> classNode(const IdentifierType &classID) const {
+    assert(classRegistry_.count(classID) > 0);
+    return classRegistry_.find(classID)->second;
+  }
+
   /// Traverse the class inheritance tree and check for errors
   ///
   /// \return cool::Status::Ok() if the class inheritance tree is error free
@@ -57,7 +68,15 @@ public:
   /// \param[in] className class name
   /// \return true if the class is in the registry, false otherwise
   bool hasClass(const std::string &className) const {
-    return namesToIDs_.find(className) != namesToIDs_.end();
+    return namesToIDs_.count(className) > 0;
+  }
+
+  /// Overload using identifier type
+  ///
+  /// \param[in] classID class ID
+  /// \return true if the class is in the registry, false otherwise
+  bool hasClass(const IdentifierType &classID) const {
+    return IDsToNames_.count(classID) > 0;
   }
 
   /// Find the least common ancestors of two types
@@ -80,6 +99,14 @@ public:
   /// \return true if child type conforms to parent type
   bool conformTo(const ExprType &childType, const ExprType &parentType) const;
 
+  /// Get the class tree
+  ///
+  /// \return the class tree
+  const std::unordered_map<IdentifierType, std::vector<IdentifierType>> &
+  classTree() const {
+    return classTree_;
+  }
+
 private:
   /// Find the ID of a class, if it exists, or create a new one
   ///
@@ -94,7 +121,7 @@ private:
   std::unordered_map<std::string, IdentifierType> namesToIDs_;
   std::unordered_map<IdentifierType, std::string> IDsToNames_;
 
-  std::unordered_map<IdentifierType, std::shared_ptr<ClassNode>> registry_;
+  std::unordered_map<IdentifierType, std::shared_ptr<ClassNode>> classRegistry_;
   std::unordered_map<IdentifierType, std::vector<IdentifierType>> classTree_;
 };
 

@@ -30,7 +30,7 @@ class UnaryExprNode;
 class WhileExprNode;
 
 /// Untyped expression components nodes
-class CaseNode;
+class CaseBindingNode;
 class LetBindingNode;
 
 } // namespace cool

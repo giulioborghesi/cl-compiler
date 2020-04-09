@@ -79,14 +79,14 @@ ClassRegistry::ClassRegistry() {
   std::vector<std::string> names = {"Object", "Int", "Bool", "String", "IO"};
   for (auto &name : names) {
     auto classID = findOrCreateClassID(name);
-    registry_[classID] = nullptr;
+    classRegistry_[classID] = nullptr;
   }
 }
 
 Status ClassRegistry::addClass(std::shared_ptr<ClassNode> node) {
   /// Class ID must have not been added to registry before
   IdentifierType classID = findOrCreateClassID(node->className());
-  if (registry_.count(classID) > 0) {
+  if (classRegistry_.count(classID) > 0) {
     return cool::GenericError("Error: class is already defined");
   }
 
@@ -97,14 +97,14 @@ Status ClassRegistry::addClass(std::shared_ptr<ClassNode> node) {
   classTree_[parentClassID].push_back(classID);
 
   /// Add class to registry and return
-  registry_[classID] = std::move(node);
+  classRegistry_[classID] = std::move(node);
   return Status::Ok();
 }
 
 Status ClassRegistry::checkInheritanceTree() const {
   /// All parent classes in the inheritance tree must have a definition
   for (auto &[parent, children] : classTree_) {
-    if (registry_.count(parent) == 0) {
+    if (classRegistry_.count(parent) == 0) {
       return cool::GenericError("Error: parent class is not defined");
     }
   }

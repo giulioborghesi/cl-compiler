@@ -13,7 +13,6 @@ namespace cool {
 /// Forward declarations
 class ClassNode;
 
-class AttributeNode {};
 class MethodNode {};
 
 /// Class for a node representing a COOL program
@@ -41,6 +40,7 @@ private:
   const std::vector<std::shared_ptr<ClassNode>> classes_;
 };
 
+/// Class for a node representing a COOL class
 class ClassNode : public Visitable<Node, ClassNode> {
 
   using ParentNode = Visitable<Node, ClassNode>;
@@ -105,6 +105,36 @@ private:
 
   const std::vector<std::shared_ptr<AttributeNode>> attributes_;
   const std::vector<std::shared_ptr<MethodNode>> methods_;
+};
+
+/// Class for a node representing an attribute in a COOL class
+class AttributeNode : public Visitable<Node, AttributeNode> {
+
+  using ParentNode = Visitable<Node, AttributeNode>;
+
+public:
+  AttributeNode() = delete;
+  ~AttributeNode() final override = default;
+
+  static AttributeNode *MakeAttributeNode(const std::string &id,
+                                          const std::string &typeName,
+                                          ExprNode *initExpr,
+                                          const uint32_t lloc,
+                                          const uint32_t cloc);
+
+  const std::string &id() const { return id_; }
+
+  std::shared_ptr<ExprNode> initExpr() const { return initExpr_; }
+
+  const std::string &typeName() const { return typeName_; }
+
+private:
+  AttributeNode(const std::string &id, const std::string &typeName,
+                ExprNode *initExpr, const uint32_t lloc, const uint32_t cloc);
+
+  const std::string id_;
+  const std::string typeName_;
+  const std::shared_ptr<ExprNode> initExpr_;
 };
 
 } // namespace cool

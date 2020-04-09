@@ -1,1 +1,1 @@
-add_library(lib_analysis STATIC type_check.cpp)
+add_library(lib_analysis STATIC classes_definition.cpp type_check.cpp)

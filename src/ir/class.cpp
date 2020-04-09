@@ -1,5 +1,6 @@
 #include <cool/analysis/pass.h>
 #include <cool/ir/class.h>
+#include <cool/ir/expr.h>
 
 namespace cool {
 
@@ -27,6 +28,20 @@ ClassNode *ClassNode::MakeClassNode(
     const uint32_t cloc) {
   return new ClassNode(className, parentClassName, attributes, methods, lloc,
                        cloc);
+}
+
+AttributeNode::AttributeNode(const std::string &id, const std::string &typeName,
+                             ExprNode *initExpr, const uint32_t lloc,
+                             const uint32_t cloc)
+    : ParentNode(lloc, cloc), id_(id), typeName_(typeName),
+      initExpr_(initExpr) {}
+
+AttributeNode *AttributeNode::MakeAttributeNode(const std::string &id,
+                                                const std::string &typeName,
+                                                ExprNode *initExpr,
+                                                const uint32_t lloc,
+                                                const uint32_t cloc) {
+  return new AttributeNode(id, typeName, initExpr, lloc, cloc);
 }
 
 } // namespace cool

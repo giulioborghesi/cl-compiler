@@ -176,14 +176,14 @@ private:
   const std::vector<std::shared_ptr<ExprNode>> exprs_;
 };
 
-/// Class for a node representing a case in a case expression
-class CaseNode : public Visitable<Node, CaseNode> {
+/// Class for a node representing a case binding in a case expression
+class CaseBindingNode : public Visitable<Node, CaseBindingNode> {
 
-  using ParentNode = Visitable<Node, CaseNode>;
+  using ParentNode = Visitable<Node, CaseBindingNode>;
 
 public:
-  CaseNode() = delete;
-  ~CaseNode() final override = default;
+  CaseBindingNode() = delete;
+  ~CaseBindingNode() final override = default;
 
   /// Factory method to create a node for a case node
   ///
@@ -193,9 +193,9 @@ public:
   /// \param[in] lloc line location
   /// \param[in] cloc character location
   /// \return a pointer to the new case node
-  static CaseNode *MakeCaseNode(const std::string &id,
-                                const std::string &typeName, ExprNode *expr,
-                                const uint32_t lloc, const uint32_t cloc);
+  static CaseBindingNode *
+  MakeCaseBindingNode(const std::string &id, const std::string &typeName,
+                      ExprNode *expr, const uint32_t lloc, const uint32_t cloc);
 
   /// Return the identifier name
   ///
@@ -213,8 +213,8 @@ public:
   std::shared_ptr<ExprNode> expr() const { return expr_; }
 
 private:
-  CaseNode(const std::string &id, const std::string &typeName, ExprNode *expr,
-           const uint32_t lloc, const uint32_t cloc);
+  CaseBindingNode(const std::string &id, const std::string &typeName,
+                  ExprNode *expr, const uint32_t lloc, const uint32_t cloc);
 
   const std::string id_;
   const std::string typeName_;
@@ -238,22 +238,24 @@ public:
   /// \param[in] cloc character location
   /// \return a pointer to the new case expression node
   static CaseExprNode *
-  MakeCaseExprNode(std::vector<std::shared_ptr<CaseNode>> *cases,
+  MakeCaseExprNode(std::vector<std::shared_ptr<CaseBindingNode>> *cases,
                    ExprNode *expr, const uint32_t lloc, const uint32_t cloc);
 
   /// Return a list of pointers to the case nodes
   ///
   /// \return a vector of shared pointers to the case nodes
-  const std::vector<std::shared_ptr<CaseNode>> &cases() const { return cases_; }
+  const std::vector<std::shared_ptr<CaseBindingNode>> &cases() const {
+    return cases_;
+  }
 
   /// Return a pointer to the expression in the case statement
   std::shared_ptr<ExprNode> expr() const { return expr_; }
 
 private:
-  CaseExprNode(std::vector<std::shared_ptr<CaseNode>> *cases, ExprNode *expr,
-               const uint32_t lloc, const uint32_t cloc);
+  CaseExprNode(std::vector<std::shared_ptr<CaseBindingNode>> *cases,
+               ExprNode *expr, const uint32_t lloc, const uint32_t cloc);
 
-  const std::vector<std::shared_ptr<CaseNode>> cases_;
+  const std::vector<std::shared_ptr<CaseBindingNode>> cases_;
   const std::shared_ptr<ExprNode> expr_;
 };
 

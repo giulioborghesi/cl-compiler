@@ -19,12 +19,16 @@ public:
   Pass() = default;
   virtual ~Pass() = default;
 
-  /// Program and class nodes
-  virtual Status visit(Context *context, ProgramNode *node) {
+  /// Program, class and attributes nodes
+  virtual Status visit(Context *context, AttributeNode *node) {
     return Status::Ok();
   }
 
   virtual Status visit(Context *context, ClassNode *node) {
+    return Status::Ok();
+  }
+
+  virtual Status visit(Context *context, ProgramNode *node) {
     return Status::Ok();
   }
 
@@ -49,7 +53,7 @@ public:
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, CaseNode *node) {
+  virtual Status visit(Context *context, CaseBindingNode *node) {
     return Status::Ok();
   }
 

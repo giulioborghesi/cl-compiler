@@ -106,31 +106,24 @@ Status TypeCheckPass::visit(Context *context, BooleanExprNode *node) {
   return Status::Ok();
 }
 
-Status TypeCheckPass::visit(Context *context, CaseNode *node) {
+Status TypeCheckPass::visit(Context *context, CaseBindingNode *node) {
   const auto *registry = context->classRegistry();
   auto *symbolTable = context->symbolTable();
   symbolTable->enterScope();
 
-  /// Helper function to determine the case binding type
-  auto getBindingType = [context, registry, node]() {
-    if (node->typeName() == "SELF_TYPE") {
-      return ExprType{.typeID = context->currentClassID(), .isSelf = true};
-    }
-    const auto typeID = registry->typeID(node->typeName());
-    return ExprType{.typeID = typeID, .isSelf = false};
-  };
-
-  /// Type must be valid or SELF_TYPE
+  /// Type must be valid and not SELF_TYPE
   const auto &typeName = node->typeName();
-  if (!registry->hasClass(typeName) && typeName != "SELF_TYPE") {
+  if (typeName == "SELF_TYPE" || !registry->hasClass(typeName)) {
     return GenericError("Error: invalid type of case binding");
   }
 
-  /// Type-check expression after having modified locally the symbol table
-  symbolTable->addElement(node->id(), getBindingType());
-  auto statusExpr = node->expr()->visitNode(context, this);
+  /// Modify symbol table
+  const auto typeID = registry->typeID(node->typeName());
+  const auto exprType = ExprType{.typeID = typeID, .isSelf = false};
+  symbolTable->addElement(node->id(), exprType);
 
-  /// Exist scope and return the status of the case expression type-check
+  /// Type-check case expression, exit scope and return
+  auto statusExpr = node->expr()->visitNode(context, this);
   symbolTable->exitScope();
   return statusExpr;
 }
