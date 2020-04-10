@@ -52,8 +52,8 @@ public:
 
   /// Set the parent symbol table. Used for handling inheritance
   ///
-  /// \param[in] parent pointer to parent table
-  void setParent(SymbolTable *parent);
+  /// \param[in] parentTable pointer to parent table
+  void setParentTable(SymbolTable *parentTable) { parentTable_ = parentTable; }
 
   /// Return the value associated with the input key. The key must be present in
   /// the table, otherwise a runtime assertion will be triggered

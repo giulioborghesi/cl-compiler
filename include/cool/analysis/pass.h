@@ -28,6 +28,10 @@ public:
     return Status::Ok();
   }
 
+  virtual Status visit(Context *context, MethodNode *node) {
+    return Status::Ok();
+  }
+
   virtual Status visit(Context *context, ProgramNode *node) {
     return Status::Ok();
   }

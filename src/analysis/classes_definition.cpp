@@ -60,16 +60,69 @@ Status detectCyclesInClassTree(
 
 } // namespace
 
+Status ClassesDefinitionPass::visit(Context *context, AttributeNode *node) {
+  const auto *classRegistry = context->classRegistry();
+
+  /// Attributes cannot be redefined
+  auto *symbolTable = context->symbolTable();
+  if (symbolTable->findKeyInTable(node->id())) {
+    return GenericError("Error: cannot override attribute");
+  }
+
+  /// If attribute is self type, add it to symbol table and return
+  const auto classID = context->currentClassID();
+  const ExprType classType{.typeID = classID, .isSelf = true};
+  if (node->typeName() == "SELF_TYPE") {
+    symbolTable->addElement(node->id(), classType);
+  }
+
+  /// Attribute type cannot be a subtype of current class
+  const auto typeID = classRegistry->typeID(node->typeName());
+  const ExprType idType{.typeID = typeID, .isSelf = false};
+  if (typeID != classID && classRegistry->conformTo(idType, classType)) {
+    return GenericError("Error: attribute type is a subtype of current class");
+  }
+
+  /// All good, update symbol table and return
+  symbolTable->addElement(node->id(), idType);
+  return Status::Ok();
+}
+
 Status ClassesDefinitionPass::visit(Context *context, ClassNode *node) {
   context->setCurrentClassName(node->className());
   auto *symbolTable = context->symbolTable();
-  const auto *classRegistry = context->classRegistry();
+  auto *methodTable = context->methodTable();
 
-  /// Add the attributes to the symbol table
-  for (auto attribute : node->attributes()) {
+  /// Set parent tables
+  if (node->hasParentClass()) {
+    auto *parentSymbolTable = context->symbolTable(node->parentClassName());
+    auto *parentMethodTable = context->methodTable(node->parentClassName());
+    symbolTable->setParentTable(parentSymbolTable);
+    methodTable->setParentTable(parentMethodTable);
   }
 
-  /// All good, return ok
+  /// Add self to symbol table
+  const auto classID = context->currentClassID();
+  const ExprType classType{.typeID = classID, .isSelf = true};
+  symbolTable->addElement("self", classType);
+
+  /// Add attributes to symbol table
+  for (auto attribute : node->attributes()) {
+    auto status = attribute->visitNode(context, this);
+    if (!status.isOk()) {
+      return status;
+    }
+  }
+
+  /// Add methods to symbol table
+  for (auto method : node->methods()) {
+    auto status = method->visitNode(context, this);
+    if (!status.isOk()) {
+      return status;
+    }
+  }
+
+  /// All good, return
   return Status::Ok();
 }
 
@@ -106,7 +159,7 @@ Status ClassesDefinitionPass::visit(Context *context, ProgramNode *node) {
   }
   std::reverse(sortedClasses.begin(), sortedClasses.end());
 
-  /// Initialize symbol tables
+  /// Initialize symbol tables and method tables
   for (auto &classID : sortedClasses) {
     auto status = classRegistry->classNode(classID)->visitNode(context, this);
     if (!status.isOk()) {

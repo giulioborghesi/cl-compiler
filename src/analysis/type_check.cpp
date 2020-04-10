@@ -470,7 +470,7 @@ Status TypeCheckPass::visitDispatchExpr(Context *context, DispatchExprT *node,
                                         const ExprType callerType,
                                         const ExprType returnType) {
   /// Fetch method table
-  const auto *methodTable = context->methodTable(callerType);
+  const auto *methodTable = context->methodTable(callerType.typeID);
   if (!methodTable) {
     return GenericError("Error: type not defined");
   }

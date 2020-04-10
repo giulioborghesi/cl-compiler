@@ -41,16 +41,43 @@ public:
     return classRegistry_->typeID(currentClassName_);
   }
 
-  /// Get the method table for the specified type
+  /// Get the method table for the currently active class
   ///
-  /// \param[in] type class type
-  /// \return the method table for the specified type
-  MethodTableT *methodTable(const ExprType type) const {
-    const auto typeID = type.typeID;
-    if (methodTables_.find(typeID) == methodTables_.end()) {
-      return nullptr;
+  /// \note This method will create a new table for the currently active class
+  /// if one does not exist yet
+  ///
+  /// \return the method table for the currently active class
+  MethodTableT *methodTable() {
+    const auto currentClassID = classRegistry_->typeID(currentClassName_);
+    if (!methodTables_.count(currentClassID)) {
+      methodTables_.insert({currentClassID, std::make_unique<MethodTableT>()});
     }
-    return methodTables_.find(typeID)->second.get();
+    return methodTables_.find(currentClassID)->second.get();
+  }
+
+  /// Get the method table for the specified class given its name
+  ///
+  /// \warning This method assumes that the specified class exists
+  ///
+  /// \param[in] className class name
+  /// \return the method table for the specified class
+  MethodTableT *methodTable(const std::string &className) const {
+    const auto classID = classRegistry_->typeID(className);
+    auto it = methodTables_.find(classID);
+    assert(it != methodTables_.end());
+    return it->second.get();
+  }
+
+  /// Get the method table for the specified class given its type ID
+  ///
+  /// \warning This method assumes that the specified class exists
+  ///
+  /// \param[in] typeID type ID
+  /// \return the method table for the specified class
+  MethodTableT *methodTable(const IdentifierType &typeID) const {
+    auto it = methodTables_.find(typeID);
+    assert(it != methodTables_.end());
+    return it->second.get();
   }
 
   /// Set the name of the current class being processed
@@ -60,15 +87,40 @@ public:
     currentClassName_ = currentClassName;
   }
 
-  /// Get the symbol table for the class being processed
+  /// Get the symbol table for the currently active class
   ///
-  /// \return the symbol table for the class being processed
+  /// \return the symbol table for the currently active class
   SymbolTableT *symbolTable() {
     const auto currentClassID = classRegistry_->typeID(currentClassName_);
     if (!symbolTables_.count(currentClassID)) {
       symbolTables_.insert({currentClassID, std::make_unique<SymbolTableT>()});
     }
     return symbolTables_.find(currentClassID)->second.get();
+  }
+
+  /// Get the symbol table for the specified class
+  ///
+  /// \warning This method assumes that the specified class exists
+  ///
+  /// \param[in] className class name
+  /// \return the symbol table for the specified class
+  SymbolTableT *symbolTable(const std::string &className) const {
+    const auto classID = classRegistry_->typeID(className);
+    auto it = symbolTables_.find(classID);
+    assert(it != symbolTables_.end());
+    return it->second.get();
+  }
+
+  /// Get the symbol table for the specified class given its ID
+  ///
+  /// \warning This method assumes that the specified class exists
+  ///
+  /// \param[in] typeID type ID
+  /// \return the symbol table for the specified class
+  SymbolTableT *symbolTable(const IdentifierType &typeID) const {
+    auto it = symbolTables_.find(typeID);
+    assert(it != symbolTables_.end());
+    return it->second.get();
   }
 
 private:

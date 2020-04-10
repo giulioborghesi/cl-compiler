@@ -13,8 +13,6 @@ namespace cool {
 /// Forward declarations
 class ClassNode;
 
-class MethodNode {};
-
 /// Class for a node representing a COOL program
 class ProgramNode {
 
@@ -135,6 +133,37 @@ private:
   const std::string id_;
   const std::string typeName_;
   const std::shared_ptr<ExprNode> initExpr_;
+};
+
+class MethodNode : public Visitable<Node, MethodNode> {
+
+  using ParentNode = Visitable<Node, MethodNode>;
+
+public:
+  MethodNode() = delete;
+  ~MethodNode() final override = default;
+
+  static MethodNode *
+  MakeMethodNode(const std::string &id, const std::string &returnTypeName,
+                 std::vector<std::pair<std::string, std::string>> *arguments,
+                 const uint32_t lloc, const uint32_t cloc);
+
+  const std::string &id() const { return id_; }
+
+  const std::string &returnTypeName() const { return returnTypeName_; }
+
+  const std::vector<std::pair<std::string, std::string>> &arguments() const {
+    return arguments_;
+  }
+
+private:
+  MethodNode(const std::string &id, const std::string &returnTypeName,
+             std::vector<std::pair<std::string, std::string>> *arguments,
+             const uint32_t lloc, const uint32_t cloc);
+
+  const std::string id_;
+  const std::string returnTypeName_;
+  const std::vector<std::pair<std::string, std::string>> arguments_;
 };
 
 } // namespace cool
