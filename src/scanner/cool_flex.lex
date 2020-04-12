@@ -89,10 +89,11 @@ t(?i:rue)              { saveLoc(); cloc += 4; return TOKEN_TRUE; }
 [A-Z][a-zA-Z0-9_]*     { saveLoc(); cloc += strlen(yytext); yylval.string_val = strdup(yytext); return TOKEN_CLASS_ID; }  
 [a-z][a-zA-Z0-9_]*     { saveLoc(); cloc += strlen(yytext); yylval.string_val = strdup(yytext); return TOKEN_OBJECT_ID; }
 
-    /* Column, semicolumn and at */
+    /* Column, semicolumn, dot and at */
 "@"                    { saveLoc(); cloc += 1; return TOKEN_AT; }
 ":"                    { saveLoc(); cloc += 1; return TOKEN_COLUMN; }     
 ";"                    { saveLoc(); cloc += 1; return TOKEN_SEMICOLUMN; }
+"."                    { saveLoc(); cloc += 1; return TOKEN_DOT;}
 
     /* White spaces and newlines */
 [\n]                   { cloc = 0; lloc += 1; }
