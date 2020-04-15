@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <string>
 
-#include <cool/scanner/cool_flex.h>
+#include <cool/frontend/scanner_spec.h>
 
 std::string buffer;
 
@@ -20,7 +20,7 @@ DIGIT  [0-9]
 
 %option noyywrap
 
-%x STRING INCOMMENT COMMENT
+%x STRING INLINECOMMENT COMMENT
 
 %%
 
@@ -49,18 +49,18 @@ t(?i:rue)              { saveLoc(); cloc += 4; return TOKEN_TRUE; }
 "<-"                   { saveLoc(); cloc += 2; return TOKEN_ASSIGN; }
 
     /* In-line comment */
-"--"                   { cloc += 2; BEGIN(INCOMMENT); }
-<INCOMMENT>[\n]        { cloc = 0; lloc += 1; BEGIN(INITIAL); }
-<INCOMMENT>.           { ; }
-<INCOMMENT><<EOF>>     { BEGIN(INITIAL); return TOKEN_EOF; }
+"--"                   { cloc += 2; BEGIN(INLINECOMMENT); }
+<INLINECOMMENT>[\n]    { cloc = 0; lloc += 1; BEGIN(INITIAL); }
+<INLINECOMMENT>.       { ; }
+<INLINECOMMENT><<EOF>> { BEGIN(INITIAL); return TOKEN_EOF; }
 
     /* Out-of-line comment */
-"(*"                   { saveLoc(); cloc += 2; BEGIN(COMMENT); nestedComment += 1; }
-<COMMENT>"(*"          { cloc += 2; nestedComment += 1; }
-<COMMENT>"*)"          { cloc += 2; nestedComment -= 1; if (nestedComment == 0) { BEGIN(INITIAL); } }
+"(\*"                  { saveLoc(); cloc += 2; BEGIN(COMMENT); nestedComment += 1; }
+<COMMENT>"(\*"         { cloc += 2; nestedComment += 1; }
+<COMMENT>"\*)"         { cloc += 2; nestedComment -= 1; if (nestedComment == 0) { BEGIN(INITIAL); } }
 <COMMENT>[\n]          { cloc = 0; lloc += 1; }
 <COMMENT>.             { cloc += 1; }
-<COMMENT><<EOF>>       { BEGIN(INITIAL); return -5; }
+<COMMENT><<EOF>>       { BEGIN(INITIAL); return SCANNER_ERROR_UNTERMINATED_COMMENT; }
 
     /* Arithmetic operators */
 "+"                    { saveLoc(); cloc += 1; return TOKEN_PLUS; }
@@ -89,33 +89,36 @@ t(?i:rue)              { saveLoc(); cloc += 4; return TOKEN_TRUE; }
 [A-Z][a-zA-Z0-9_]*     { saveLoc(); cloc += strlen(yytext); yylval.string_val = strdup(yytext); return TOKEN_CLASS_ID; }  
 [a-z][a-zA-Z0-9_]*     { saveLoc(); cloc += strlen(yytext); yylval.string_val = strdup(yytext); return TOKEN_OBJECT_ID; }
 
-    /* Column, semicolumn, dot and at */
+    /* At, dot, column, semicolumn and comma */
 "@"                    { saveLoc(); cloc += 1; return TOKEN_AT; }
+"."                    { saveLoc(); cloc += 1; return TOKEN_DOT;}
 ":"                    { saveLoc(); cloc += 1; return TOKEN_COLUMN; }     
 ";"                    { saveLoc(); cloc += 1; return TOKEN_SEMICOLUMN; }
-"."                    { saveLoc(); cloc += 1; return TOKEN_DOT;}
+","                    { saveLoc(); cloc += 1; return TOKEN_COMMA; }
 
     /* White spaces and newlines */
-[\n]                   { cloc = 0; lloc += 1; }
+"\n"                   { cloc = 0; lloc += 1; }
 [ \f\r\t\v]            { cloc += 1; }
 
    /* Strings */
-"\""                   { buffer.clear(); BEGIN(STRING); }
-<STRING><<EOF>>        { return -4; }
-<STRING>[^\\\"\n]*     { buffer.append(yytext); }
-<STRING>("\\\n")       { buffer.append(yytext); }
-<STRING>"\\"[^bntf]    { buffer.push_back(yytext[1]); }        
-<STRING>"\\b"          { buffer.push_back('\b'); }
-<STRING>"\\t"          { buffer.push_back('\t'); }
-<STRING>"\\f"          { buffer.push_back('\f'); }
-<STRING>"\\n"|"\n"     { return -3; }
-<STRING>"\""           { yylval.string_val = strdup(buffer.c_str()); BEGIN(INITIAL); return TOKEN_STRING; }
+"\""                   { saveLoc(); buffer.clear(); BEGIN(STRING); }
+<STRING>"\""           { cloc += 1; yylval.string_val = strdup(buffer.c_str()); if (buffer.length() > MAX_STRING_LENGTH) { return SCANNER_ERROR_STRING_EXCEEDS_MAXLENGTH; }; return TOKEN_STRING; }
+<STRING>"\\\n"         { cloc = 0; lloc += 1; buffer.push_back('\\'); buffer.push_back('\n'); }
+<STRING>"\\n"          { cloc += 2; buffer.push_back('\n'); }
+<STRING>"\n"           { saveLoc(); return SCANNER_ERROR_STRING_CONTAINS_NEWLINE_CHARACTER; }
+<STRING>"\0"           { saveLoc(); return SCANNER_ERROR_STRING_CONTAINS_NULL_CHARACTER; }
+<STRING>"\\0"          { cloc += 2; buffer.push_back('\0'); }
+<STRING><<EOF>>        { BEGIN(INITIAL); return SCANNER_ERROR_UNTERMINATED_STRING; }
+<STRING>"\\b"          { cloc += 2; buffer.push_back('\b'); }
+<STRING>"\\t"          { cloc += 2; buffer.push_back('\t'); }
+<STRING>"\\f"          { cloc += 2; buffer.push_back('\f'); }
+<STRING>"\\"[^btf]     { cloc += 2; buffer.push_back(yytext[1]); }
 
    /* End of file */
 <<EOF>>                { return TOKEN_EOF; }
 
    /* All other characters are invalid and should trigger an error */
-.                      { return -2; } 
+.                      { return SCANNER_ERROR_INVALID_CHARACTER; } 
 
 %%
 

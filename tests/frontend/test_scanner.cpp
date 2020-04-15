@@ -1,8 +1,11 @@
-#include <cool/scanner/cool_flex.h>
+#include <cool/frontend/scanner.h>
+#include <cool/frontend/scanner_spec.h>
 
 #include <gtest/gtest.h>
 
 #include <iostream>
+#include <unistd.h>
+#include <vector>
 
 typedef struct yy_buffer_state *YY_BUFFER_STATE;
 extern int yylex();
@@ -10,19 +13,54 @@ extern YY_BUFFER_STATE yy_scan_buffer(char *, size_t);
 
 YYSTYPE yylval;
 
+using namespace cool;
+
+namespace {
+
+/// Expected tokens sequence in lexer_test.cl
+std::vector<uint32_t> TOKENS{TOKEN_CLASS,
+                             TOKEN_CLASS_ID,
+                             TOKEN_INHERITS,
+                             TOKEN_CLASS_ID,
+                             TOKEN_LEFT_CURLY_BRACE,
+                             TOKEN_OBJECT_ID,
+                             TOKEN_COLUMN,
+                             TOKEN_CLASS_ID,
+                             TOKEN_SEMICOLUMN,
+                             TOKEN_OBJECT_ID,
+                             TOKEN_LEFT_PARENTHESIS,
+                             TOKEN_OBJECT_ID,
+                             TOKEN_COLUMN,
+                             TOKEN_CLASS_ID,
+                             TOKEN_RIGHT_PARENTHESIS,
+                             TOKEN_COLUMN,
+                             TOKEN_CLASS_ID,
+                             TOKEN_LEFT_CURLY_BRACE,
+                             TOKEN_LEFT_CURLY_BRACE,
+                             TOKEN_OBJECT_ID,
+                             TOKEN_ASSIGN,
+                             TOKEN_OBJECT_ID,
+                             TOKEN_SEMICOLUMN,
+                             TOKEN_OBJECT_ID,
+                             TOKEN_SEMICOLUMN,
+                             TOKEN_RIGHT_CURLY_BRACE,
+                             TOKEN_RIGHT_CURLY_BRACE,
+                             TOKEN_SEMICOLUMN};
+
+} // namespace
+
 TEST(Scanner, BasicTests) {
 
-  /// Case-insensitive class keyword
+  /// Parse input file. Tokens must match expected ones
   {
-    char stringKeywords[] = "class cLasS ClaSS CLASS\0";
-    yy_scan_buffer(stringKeywords, sizeof(stringKeywords));
-    for (uint32_t i = 0; i < 4; ++i) {
-      auto status = yylex();
-      ASSERT_EQ(status, TOKEN_CLASS);
-    }
+    Scanner scanner;
+    auto statusInput = scanner.setInputFile("assets/lexer_test.cl");
+    ASSERT_TRUE(statusInput.isOk());
 
-    auto status = yylex();
-    ASSERT_EQ(status, TOKEN_EOF);
+    for (auto expectedToken : TOKENS) {
+      auto actualToken = scanner.nextToken();
+      ASSERT_EQ(actualToken.tokenID, expectedToken);
+    }
   }
 
   /// Boolean literals
@@ -77,9 +115,9 @@ TEST(Scanner, BasicTests) {
     auto status = yylex();
     ASSERT_EQ(status, TOKEN_OBJECT_ID);
 
-    /// Third token recognized as unterminated multi-line comment
+    /// Third token recognized as unterminated multi-line comment EOF
     status = yylex();
-    ASSERT_EQ(status, -5);
+    ASSERT_EQ(status, SCANNER_ERROR_UNTERMINATED_COMMENT);
   }
 
   /// Invalid and valid characters
@@ -89,7 +127,7 @@ TEST(Scanner, BasicTests) {
 
     /// First token invalid - token starts with backslash
     auto status = yylex();
-    ASSERT_EQ(status, -2);
+    ASSERT_EQ(status, SCANNER_ERROR_INVALID_CHARACTER);
 
     /// Second token recognized as identifier
     status = yylex();
