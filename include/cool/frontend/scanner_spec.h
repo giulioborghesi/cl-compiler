@@ -1,6 +1,8 @@
 #ifndef COOL_FRONTEND_SCANNER_SPEC_H
 #define COOL_FRONTEND_SCANNER_SPEC_H
 
+#include <cool/frontend/parse_result.h>
+
 #include <cstdlib>
 
 /// Errors
@@ -12,65 +14,63 @@
 #define SCANNER_ERROR_STRING_EXCEEDS_MAXLENGTH -6
 
 /// Token definition
-#define TOKEN_CLASS 258
-#define TOKEN_ELSE 259
-#define TOKEN_FALSE 260
-#define TOKEN_FI 261
-#define TOKEN_IF 262
-#define TOKEN_IN 263
-#define TOKEN_INHERITS 264
-#define TOKEN_ISVOID 265
-#define TOKEN_LET 266
-#define TOKEN_LOOP 267
-#define TOKEN_POOL 268
-#define TOKEN_THEN 269
-#define TOKEN_WHILE 270
-#define TOKEN_CASE 271
-#define TOKEN_ESAC 272
-#define TOKEN_NEW 273
-#define TOKEN_OF 274
-#define TOKEN_NOT 275
-#define TOKEN_TRUE 276
-#define TOKEN_ASSIGN 277
-#define TOKEN_PLUS 278
-#define TOKEN_MINUS 279
-#define TOKEN_MULT 280
-#define TOKEN_DIVIDE 281
-#define TOKEN_LESS_EQUAL 282
-#define TOKEN_LESS 283
-#define TOKEN_EQUAL 284
-#define TOKEN_COMPLEMENT 285
-#define TOKEN_LEFT_PARENTHESIS 286
-#define TOKEN_RIGHT_PARENTHESIS 287
-#define TOKEN_LEFT_CURLY_BRACE 288
-#define TOKEN_RIGHT_CURLY_BRACE 289
-#define TOKEN_INT 290
-#define TOKEN_CLASS_ID 291
-#define TOKEN_OBJECT_ID 292
-#define TOKEN_AT 293
-#define TOKEN_DOT 294
-#define TOKEN_COLUMN 295
-#define TOKEN_SEMICOLUMN 296
-#define TOKEN_COMMA 297
-#define TOKEN_STRING 298
-#define TOKEN_EOF 299
+#define CLASS_TOKEN 258
+#define ELSE_TOKEN 259
+#define FALSE_TOKEN 260
+#define FI_TOKEN 261
+#define IF_TOKEN 262
+#define IN_TOKEN 263
+#define INHERITS_TOKEN 264
+#define ISVOID_TOKEN 265
+#define LET_TOKEN 266
+#define LOOP_TOKEN 267
+#define POOL_TOKEN 268
+#define THEN_TOKEN 269
+#define WHILE_TOKEN 270
+#define CASE_TOKEN 271
+#define ESAC_TOKEN 272
+#define NEW_TOKEN 273
+#define OF_TOKEN 274
+#define NOT_TOKEN 275
+#define TRUE_TOKEN 276
+#define ASSIGN_TOKEN 277
+#define LESS_EQUAL_TOKEN 282
+#define INTEGER_TOKEN 290
+#define CLASS_ID_TOKEN 291
+#define OBJECT_ID_TOKEN 292
+#define STRING_TOKEN 298
+#define EOF_TOKEN 299
 
 // Maximum string length in COOL
 #define MAX_STRING_LENGTH 1000
 
+// Define YYSTYPE
 #if !defined YYSTYPE && !defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE {
-  int int_val;
-  char *string_val;
-  uint32_t lloc;
-  uint32_t cloc;
-} YYSTYPE;
-
+typedef struct cool::ParseResult YYSTYPE;
 #define yystype YYSTYPE
 #define YYSTYPE_IS_DECLARED 1
 #define YYSTYPE_IS_TRIVIAL 1
 #endif
 
-extern YYSTYPE yylval;
+// Scanner state type alias
+typedef void *yyscan_t;
+
+/// YACC buffer state type
+typedef struct yy_buffer_state *YY_BUFFER_STATE;
+
+/// YACC lexer state functions
+int yylex_init(yyscan_t *);
+int yylex_destroy(yyscan_t);
+
+/// YACC buffer creation functions
+YY_BUFFER_STATE yy_create_buffer(FILE *, int, yyscan_t);
+YY_BUFFER_STATE yy_scan_string(const char *, yyscan_t);
+
+/// YACC buffer destruction functions
+void yy_switch_to_buffer(YY_BUFFER_STATE, yyscan_t);
+void yy_delete_buffer(YY_BUFFER_STATE, yyscan_t);
+
+/// YACC lexer function
+int yylex(YYSTYPE *yylval, yyscan_t yystate);
 
 #endif
