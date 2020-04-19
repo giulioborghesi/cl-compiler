@@ -12,10 +12,8 @@ namespace cool {
 /// Forward declaration. Defined in implementation file
 class Buffer;
 
-/// RAII class to store the state of a YACC scanner
+/// RAII class to store the state of a FLEX scanner
 class ScannerState {
-
-  using BufferState = struct yy_buffer_state *;
 
 public:
   ~ScannerState();

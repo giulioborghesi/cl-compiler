@@ -7,9 +7,20 @@ namespace {
 static constexpr uint32_t MAX_BUFFER_SIZE = 2048;
 }
 
+/// Buffer state alias
+typedef struct yy_buffer_state *YY_BUFFER_STATE;
+
+/// Flex-defined functions to manage scanner states and buffers
+extern YY_BUFFER_STATE yy_create_buffer(FILE *, int, yyscan_t);
+extern void yy_delete_buffer(YY_BUFFER_STATE, yyscan_t);
+extern int yylex_destroy(yyscan_t);
+extern int yylex_init(yyscan_t *);
+extern YY_BUFFER_STATE yy_scan_string(const char *, yyscan_t);
+extern void yy_switch_to_buffer(YY_BUFFER_STATE, yyscan_t);
+
 namespace cool {
 
-/// RAII class to store the buffer of a YACC scanner
+/// RAII class to store the buffer of a FLEX scanner
 class Buffer {
 
 public:

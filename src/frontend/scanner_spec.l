@@ -3,17 +3,22 @@
 #include <cstdlib>
 #include <string>
 
-#include <cool/frontend/parse_result.h>
 #include <cool/frontend/scanner_spec.h>
 
-std::string buffer;
+/// Maximum buffer length
+static constexpr size_t MAX_STRING_LENGTH = 1024;
+
+struct ExtraState {
+    uint32_t openComments;
+    std::string stringText;
+};
 
 %}
 
 DIGIT  [0-9]
 
-%option noyywrap reentrant bison-bridge
-%option extra-type="uint32_t"
+%option noyywrap reentrant bison-bridge bison-locations
+%option extra-type="ExtraState*"
 
 %x STRING INLINECOMMENT COMMENT
 
@@ -47,12 +52,12 @@ t(?i:rue)              { return TRUE_TOKEN; }
 "--"                   { BEGIN(INLINECOMMENT); }
 <INLINECOMMENT>[\n]    { BEGIN(INITIAL); }
 <INLINECOMMENT>.       { }
-<INLINECOMMENT><<EOF>> { BEGIN(INITIAL); return EOF_TOKEN; }
+<INLINECOMMENT><<EOF>> { BEGIN(INITIAL); return 0; }
 
     /* Out-of-line comment */
-"(\*"                  { BEGIN(COMMENT); yyextra = 1; }
-<COMMENT>"(\*"         { yyextra += 1; }
-<COMMENT>"\*)"         { yyextra -= 1; if (yyextra == 0) { BEGIN(INITIAL); }}
+"(\*"                  { BEGIN(COMMENT); yyextra->openComments = 1; }
+<COMMENT>"(\*"         { yyextra->openComments += 1; }
+<COMMENT>"\*)"         { yyextra->openComments -= 1; if (yyextra == 0) { BEGIN(INITIAL); }}
 <COMMENT>[\n]          { }
 <COMMENT>.             { }
 <COMMENT><<EOF>>       { BEGIN(INITIAL); return SCANNER_ERROR_UNTERMINATED_COMMENT; }
@@ -90,21 +95,36 @@ t(?i:rue)              { return TRUE_TOKEN; }
 [ \f\r\t\v]            { }
 
    /* Strings */
-"\""                   { buffer.clear(); BEGIN(STRING); }
-<STRING>"\""           { yylval->literalVal = buffer; if (buffer.length() > MAX_STRING_LENGTH) { return SCANNER_ERROR_STRING_EXCEEDS_MAXLENGTH; }; return STRING_TOKEN; }
-<STRING>"\\\n"         { buffer.push_back('\\'); buffer.push_back('\n'); }
-<STRING>"\\n"          { buffer.push_back('\n'); }
-<STRING>"\n"           { return SCANNER_ERROR_STRING_CONTAINS_NEWLINE_CHARACTER; }
-<STRING>"\0"           { return SCANNER_ERROR_STRING_CONTAINS_NULL_CHARACTER; }
-<STRING>"\\0"          { buffer.push_back('\0'); }
-<STRING><<EOF>>        { BEGIN(INITIAL); return SCANNER_ERROR_UNTERMINATED_STRING; }
-<STRING>"\\b"          { buffer.push_back('\b'); }
-<STRING>"\\t"          { buffer.push_back('\t'); }
-<STRING>"\\f"          { buffer.push_back('\f'); }
-<STRING>"\\"[^btf]     { buffer.push_back(yytext[1]); }
+"\""                   { yyextra->stringText.clear() ; BEGIN(STRING); }
+<STRING>"\""           { 
+                            BEGIN(INITIAL); yylval->literalVal = yyextra->stringText; 
+                            if (yylval->literalVal.length() > MAX_STRING_LENGTH) { 
+                                return SCANNER_ERROR_STRING_EXCEEDS_MAXLENGTH; 
+                            } 
+                            return STRING_TOKEN; 
+                       }
+<STRING>"\\\n"         { yyextra->stringText.push_back('\\'); yyextra->stringText.push_back('\n'); }
+<STRING>"\\n"          { yyextra->stringText.push_back('\n'); }
+<STRING>"\n"           { 
+                           BEGIN(INITIAL); 
+                           return SCANNER_ERROR_STRING_CONTAINS_NEWLINE_CHARACTER; 
+                       }
+<STRING>"\0"           { 
+                           BEGIN(INITIAL); 
+                           return SCANNER_ERROR_STRING_CONTAINS_NULL_CHARACTER; 
+                       }
+<STRING>"\\0"          { yyextra->stringText.push_back('\0'); }
+<STRING><<EOF>>        { 
+                           BEGIN(INITIAL); 
+                           return SCANNER_ERROR_UNTERMINATED_STRING; 
+                       }
+<STRING>"\\b"          { yyextra->stringText.push_back('\b'); }
+<STRING>"\\t"          { yyextra->stringText.push_back('\t'); }
+<STRING>"\\f"          { yyextra->stringText.push_back('\f'); }
+<STRING>"\\"[^btf]     { yyextra->stringText.push_back(yytext[1]); }
 
    /* End of file */
-<<EOF>>                { return EOF_TOKEN; }
+<<EOF>>                { return 0; }
 
    /* All other characters are invalid and should trigger an error */
 .                      { return SCANNER_ERROR_INVALID_CHARACTER; } 

@@ -89,38 +89,38 @@ Status ClassesDefinitionPass::visit(Context *context, AttributeNode *node) {
 }
 
 Status ClassesDefinitionPass::visit(Context *context, ClassNode *node) {
-  context->setCurrentClassName(node->className());
-  auto *symbolTable = context->symbolTable();
-  auto *methodTable = context->methodTable();
+  /*  context->setCurrentClassName(node->className());
+    auto *symbolTable = context->symbolTable();
+    auto *methodTable = context->methodTable();
 
-  /// Set parent tables
-  if (node->hasParentClass()) {
-    auto *parentSymbolTable = context->symbolTable(node->parentClassName());
-    auto *parentMethodTable = context->methodTable(node->parentClassName());
-    symbolTable->setParentTable(parentSymbolTable);
-    methodTable->setParentTable(parentMethodTable);
-  }
-
-  /// Add self to symbol table
-  const auto classID = context->currentClassID();
-  const ExprType classType{.typeID = classID, .isSelf = true};
-  symbolTable->addElement("self", classType);
-
-  /// Add attributes to symbol table
-  for (auto attribute : node->attributes()) {
-    auto status = attribute->visitNode(context, this);
-    if (!status.isOk()) {
-      return status;
+    /// Set parent tables
+    if (node->hasParentClass()) {
+      auto *parentSymbolTable = context->symbolTable(node->parentClassName());
+      auto *parentMethodTable = context->methodTable(node->parentClassName());
+      symbolTable->setParentTable(parentSymbolTable);
+      methodTable->setParentTable(parentMethodTable);
     }
-  }
 
-  /// Add methods to symbol table
-  for (auto method : node->methods()) {
-    auto status = method->visitNode(context, this);
-    if (!status.isOk()) {
-      return status;
+    /// Add self to symbol table
+    const auto classID = context->currentClassID();
+    const ExprType classType{.typeID = classID, .isSelf = true};
+    symbolTable->addElement("self", classType);
+
+    /// Add attributes to symbol table
+    for (auto attribute : node->attributes()) {
+      auto status = attribute->visitNode(context, this);
+      if (!status.isOk()) {
+        return status;
+      }
     }
-  }
+
+    /// Add methods to symbol table
+    for (auto method : node->methods()) {
+      auto status = method->visitNode(context, this);
+      if (!status.isOk()) {
+        return status;
+      }
+    }*/
 
   /// All good, return
   return Status::Ok();
