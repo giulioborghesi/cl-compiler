@@ -15,7 +15,7 @@ struct ExprType {
 };
 
 /// Unary operations identifiers
-enum class UnaryOpID : uint8_t { IsVoid, Not, Complement, Parenthesis };
+enum class UnaryOpID : uint8_t { IsVoid, Not, Complement };
 
 /// Arithmetic operations identifiers
 enum class ArithmeticOpID : uint8_t { Plus, Minus, Mult, Div };

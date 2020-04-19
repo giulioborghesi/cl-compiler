@@ -46,19 +46,31 @@ AttributeNodePtr AttributeNode::MakeAttributeNode(const std::string &id,
 }
 
 /// MethodNode
-MethodNode::MethodNode(
-    const std::string &id, const std::string &returnTypeName,
-    std::vector<std::pair<std::string, std::string>> arguments,
-    const uint32_t lloc, const uint32_t cloc)
+MethodNode::MethodNode(const std::string &id, const std::string &returnTypeName,
+                       std::vector<FormalNodePtr> arguments,
+                       const uint32_t lloc, const uint32_t cloc)
     : ParentNode(lloc, cloc), id_(id), returnTypeName_(returnTypeName),
       arguments_(std::move(arguments)) {}
 
-MethodNodePtr MethodNode::MakeMethodNode(
-    const std::string &id, const std::string &returnTypeName,
-    std::vector<std::pair<std::string, std::string>> arguments,
-    const uint32_t lloc, const uint32_t cloc) {
+MethodNodePtr MethodNode::MakeMethodNode(const std::string &id,
+                                         const std::string &returnTypeName,
+                                         std::vector<FormalNodePtr> arguments,
+                                         const uint32_t lloc,
+                                         const uint32_t cloc) {
   return MethodNodePtr(
       new MethodNode(id, returnTypeName, std::move(arguments), lloc, cloc));
+}
+
+/// FormalNode
+FormalNode::FormalNode(const std::string &id, const std::string &typeName,
+                       const uint32_t lloc, const uint32_t cloc)
+    : ParentNode(lloc, cloc), id_(id), typeName_(typeName) {}
+
+FormalNodePtr FormalNode::MakeFormalNode(const std::string &id,
+                                         const std::string &typeName,
+                                         const uint32_t lloc,
+                                         const uint32_t cloc) {
+  return FormalNodePtr(new FormalNode(id, typeName, lloc, cloc));
 }
 
 } // namespace cool

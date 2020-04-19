@@ -373,10 +373,6 @@ Status TypeCheckPass::visit(Context *context, UnaryExprNode *node) {
     const std::string type = node->opID() == UnaryOpID::Not ? "Bool" : "Int";
     return visitNotOrCompExpr(context, node, type);
   }
-  case UnaryOpID::Parenthesis: {
-    node->setType(node->expr()->type());
-    return Status::Ok();
-  }
   default: {
     return GenericError("Error: unary operation not supported");
   }

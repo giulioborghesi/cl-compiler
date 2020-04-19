@@ -48,6 +48,9 @@ t(?i:rue)              { return TRUE_TOKEN; }
     /* Assignment operator */
 "<-"                   { return ASSIGN_TOKEN; }
 
+    /* Case operator */
+"=>"                   { return CASE_OPERATOR_TOKEN; }
+
     /* In-line comment */
 "--"                   { BEGIN(INLINECOMMENT); }
 <INLINECOMMENT>[\n]    { BEGIN(INITIAL); }

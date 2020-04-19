@@ -11,6 +11,7 @@ class Node;
 /// Program-related nodes
 class AttributeNode;
 class ClassNode;
+class FormalNode;
 class GenericAttributeNode;
 class MethodNode;
 class ProgramNode;
@@ -25,9 +26,11 @@ class DispatchExprNode;
 class ExprNode;
 class IdExprNode;
 class IfExprNode;
+class IsVoidExprNode;
 class LetExprNode;
 template <typename T> class LiteralExprNode;
 class NewExprNode;
+class NotExprNode;
 class StaticDispatchExprNode;
 class UnaryExprNode;
 class WhileExprNode;
@@ -39,6 +42,7 @@ class LetBindingNode;
 /// Shared pointer aliases
 using AttributeNodePtr = std::shared_ptr<AttributeNode>;
 using ClassNodePtr = std::shared_ptr<ClassNode>;
+using FormalNodePtr = std::shared_ptr<FormalNode>;
 using GenericAttributeNodePtr = std::shared_ptr<GenericAttributeNode>;
 using MethodNodePtr = std::shared_ptr<MethodNode>;
 using ProgramNodePtr = std::shared_ptr<ProgramNode>;

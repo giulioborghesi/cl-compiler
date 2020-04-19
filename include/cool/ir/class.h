@@ -139,27 +139,49 @@ public:
   MethodNode() = delete;
   ~MethodNode() final override = default;
 
-  static MethodNodePtr
-  MakeMethodNode(const std::string &id, const std::string &returnTypeName,
-                 std::vector<std::pair<std::string, std::string>> arguments,
-                 const uint32_t lloc, const uint32_t cloc);
+  static MethodNodePtr MakeMethodNode(const std::string &id,
+                                      const std::string &returnTypeName,
+                                      std::vector<FormalNodePtr> arguments,
+                                      const uint32_t lloc, const uint32_t cloc);
 
   const std::string &id() const { return id_; }
 
   const std::string &returnTypeName() const { return returnTypeName_; }
 
-  const std::vector<std::pair<std::string, std::string>> &arguments() const {
-    return arguments_;
-  }
+  const std::vector<FormalNodePtr> &arguments() const { return arguments_; }
 
 private:
   MethodNode(const std::string &id, const std::string &returnTypeName,
-             std::vector<std::pair<std::string, std::string>> arguments,
-             const uint32_t lloc, const uint32_t cloc);
+             std::vector<FormalNodePtr> arguments, const uint32_t lloc,
+             const uint32_t cloc);
 
   const std::string id_;
   const std::string returnTypeName_;
-  const std::vector<std::pair<std::string, std::string>> arguments_;
+  const std::vector<FormalNodePtr> arguments_;
+};
+
+class FormalNode : public Visitable<Node, FormalNode> {
+
+  using ParentNode = Visitable<Node, FormalNode>;
+
+public:
+  FormalNode() = delete;
+  ~FormalNode() final override = default;
+
+  static FormalNodePtr MakeFormalNode(const std::string &id,
+                                      const std::string &typeName,
+                                      const uint32_t lloc, const uint32_t cloc);
+
+  const std::string &id() const { return id_; }
+
+  const std::string &typeName() const { return typeName_; }
+
+private:
+  FormalNode(const std::string &id, const std::string &typeName,
+             const uint32_t lloc, const uint32_t cloc);
+
+  const std::string id_;
+  const std::string typeName_;
 };
 
 } // namespace cool
