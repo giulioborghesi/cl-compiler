@@ -5,61 +5,60 @@
 namespace cool {
 
 /// ProgramNode
-ProgramNode::ProgramNode(std::vector<std::shared_ptr<ClassNode>> *classes)
-    : classes_(std::move(*classes)) {}
+ProgramNode::ProgramNode(std::vector<ClassNodePtr> classes)
+    : classes_(std::move(classes)) {}
 
-ProgramNode *
-ProgramNode::MakeProgramNode(std::vector<std::shared_ptr<ClassNode>> *classes) {
-  return new ProgramNode(classes);
+ProgramNodePtr ProgramNode::MakeProgramNode(std::vector<ClassNodePtr> classes) {
+  return std::shared_ptr<ProgramNode>(new ProgramNode(std::move(classes)));
 }
 
 /// ClassNode
 ClassNode::ClassNode(const std::string &className,
                      const std::string &parentClassName,
-                     std::vector<std::shared_ptr<AttributeNode>> *attributes,
-                     std::vector<std::shared_ptr<MethodNode>> *methods,
+                     std::vector<GenericAttributeNodePtr> attributes,
                      const uint32_t lloc, const uint32_t cloc)
     : ParentNode(lloc, cloc), className_(className),
-      parentClassName_(parentClassName), attributes_(std::move(*attributes)),
-      methods_(std::move(*methods)) {}
+      parentClassName_(parentClassName), attributes_(std::move(attributes)) {}
 
-ClassNode *ClassNode::MakeClassNode(
-    const std::string &className, const std::string &parentClassName,
-    std::vector<std::shared_ptr<AttributeNode>> *attributes,
-    std::vector<std::shared_ptr<MethodNode>> *methods, const uint32_t lloc,
-    const uint32_t cloc) {
-  return new ClassNode(className, parentClassName, attributes, methods, lloc,
-                       cloc);
+ClassNodePtr
+ClassNode::MakeClassNode(const std::string &className,
+                         const std::string &parentClassName,
+                         std::vector<GenericAttributeNodePtr> attributes,
+                         const uint32_t lloc, const uint32_t cloc) {
+  return ClassNodePtr(new ClassNode(className, parentClassName,
+                                    std::move(attributes), lloc, cloc));
 }
 
 /// AttributeNode
 AttributeNode::AttributeNode(const std::string &id, const std::string &typeName,
-                             ExprNode *initExpr, const uint32_t lloc,
+                             ExprNodePtr initExpr, const uint32_t lloc,
                              const uint32_t cloc)
     : ParentNode(lloc, cloc), id_(id), typeName_(typeName),
       initExpr_(initExpr) {}
 
-AttributeNode *AttributeNode::MakeAttributeNode(const std::string &id,
-                                                const std::string &typeName,
-                                                ExprNode *initExpr,
-                                                const uint32_t lloc,
-                                                const uint32_t cloc) {
-  return new AttributeNode(id, typeName, initExpr, lloc, cloc);
+AttributeNodePtr AttributeNode::MakeAttributeNode(const std::string &id,
+                                                  const std::string &typeName,
+                                                  ExprNodePtr initExpr,
+                                                  const uint32_t lloc,
+                                                  const uint32_t cloc) {
+  return AttributeNodePtr(
+      new AttributeNode(id, typeName, initExpr, lloc, cloc));
 }
 
 /// MethodNode
 MethodNode::MethodNode(
     const std::string &id, const std::string &returnTypeName,
-    std::vector<std::pair<std::string, std::string>> *arguments,
+    std::vector<std::pair<std::string, std::string>> arguments,
     const uint32_t lloc, const uint32_t cloc)
     : ParentNode(lloc, cloc), id_(id), returnTypeName_(returnTypeName),
-      arguments_(std::move(*arguments)) {}
+      arguments_(std::move(arguments)) {}
 
-MethodNode *MethodNode::MakeMethodNode(
+MethodNodePtr MethodNode::MakeMethodNode(
     const std::string &id, const std::string &returnTypeName,
-    std::vector<std::pair<std::string, std::string>> *arguments,
+    std::vector<std::pair<std::string, std::string>> arguments,
     const uint32_t lloc, const uint32_t cloc) {
-  return new MethodNode(id, returnTypeName, arguments, lloc, cloc);
+  return MethodNodePtr(
+      new MethodNode(id, returnTypeName, std::move(arguments), lloc, cloc));
 }
 
 } // namespace cool

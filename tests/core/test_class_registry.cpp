@@ -18,11 +18,10 @@ namespace {
 /// \return a shared pointer to a class node for the specified class
 std::shared_ptr<ClassNode> CreateClassNode(const std::string &className,
                                            const std::string &parentClassName) {
-  std::vector<std::shared_ptr<AttributeNode>> attributes;
-  std::vector<std::shared_ptr<MethodNode>> methods;
+  std::vector<GenericAttributeNodePtr> attributes;
 
-  return std::shared_ptr<ClassNode>(ClassNode::MakeClassNode(
-      className, parentClassName, &attributes, &methods, 0, 0));
+  return std::shared_ptr<ClassNode>(
+      ClassNode::MakeClassNode(className, parentClassName, attributes, 0, 0));
 }
 
 } // namespace
