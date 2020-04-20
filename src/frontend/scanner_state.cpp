@@ -14,7 +14,7 @@ typedef struct yy_buffer_state *YY_BUFFER_STATE;
 extern YY_BUFFER_STATE yy_create_buffer(FILE *, int, yyscan_t);
 extern void yy_delete_buffer(YY_BUFFER_STATE, yyscan_t);
 extern int yylex_destroy(yyscan_t);
-extern int yylex_init(yyscan_t *);
+extern int yylex_init_extra(cool::ExtraState *, yyscan_t *);
 extern YY_BUFFER_STATE yy_scan_string(const char *, yyscan_t);
 extern void yy_switch_to_buffer(YY_BUFFER_STATE, yyscan_t);
 
@@ -90,7 +90,7 @@ StringBuffer::StringBuffer(yyscan_t state, const std::string &inputString)
 }
 
 ScannerState::ScannerState() : state_(nullptr), buffer_(nullptr) {
-  auto status = yylex_init(&state_);
+  auto status = yylex_init_extra(&extraState_, &state_);
   assert(status == 0);
 }
 

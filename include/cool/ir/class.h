@@ -27,7 +27,7 @@ public:
   /// Get the nodes of the program classes
   ///
   /// \return a vector of shared pointers to the nodes for the program classes
-  const std::vector<ClassNodePtr> &classes() const;
+  const std::vector<ClassNodePtr> &classes() const { return classes_; }
 
 private:
   ProgramNode(std::vector<ClassNodePtr> classes);

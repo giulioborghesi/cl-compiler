@@ -1,3 +1,4 @@
+#include <cool/frontend/scanner_extra.h>
 #include <cool/frontend/scanner_state.h>
 
 #include <gtest/gtest.h>
@@ -46,17 +47,15 @@ TEST(Scanner, BasicTests) {
 
   /// Parse input file. Tokens must match expected ones
   {
-      /*    FILE *inputFile = fopen("assets/lexer_test.cl", "r");
-          ScannerState state = ScannerState::MakeFromFile(inputFile);
+    const std::string filePath = "assets/lexer_test.cl";
+    ScannerState state = ScannerState::MakeFromFile(filePath);
 
-          YYSTYPE yylval;
-          Scanner scanner{};
-          for (auto expectedToken : TOKENS) {
-            auto actualToken = scanner.nextToken(state.scannerState(), &yylval);
-            ASSERT_EQ(actualToken.tokenID(), expectedToken);
-          }
-
-          fclose(inputFile); */
+    YYSTYPE yylval;
+    YYLTYPE yylloc;
+    for (auto expectedToken : TOKENS) {
+      auto actualToken = yylex(&yylval, &yylloc, state.scannerState());
+      ASSERT_EQ(actualToken, expectedToken);
+    }
   }
 
   /// Boolean literals
@@ -86,6 +85,21 @@ TEST(Scanner, BasicTests) {
           /// Next token is EOF
           status = yylex();
           ASSERT_EQ(status, EOF_TOKEN); */
+  }
+
+  /// String
+  {
+    const std::string text = "\"Test special characters: \g \b\"";
+    ScannerState state = ScannerState::MakeFromString(text);
+
+    YYSTYPE yylval;
+    YYLTYPE yylloc;
+
+    auto actualToken = yylex(&yylval, &yylloc, state.scannerState());
+    EXPECT_EQ(actualToken, STRING_TOKEN);
+
+    const std::string actualText = yylval.literalVal;
+    EXPECT_EQ(actualText, "Test special characters: g \b");
   }
 
   /// Inline comments

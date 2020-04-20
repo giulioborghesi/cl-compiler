@@ -14,3 +14,4 @@ package_add_test_with_libraries(test_expr ./ir/test_expr.cpp lib_ir "${PROJECT_D
 package_add_test_with_libraries(test_type_check ./analysis/test_type_check.cpp "lib_analysis;lib_core;lib_ir" "${PROJECT_DIR}")
 package_add_test_with_libraries(test_class_registry ./core/test_class_Registry.cpp "lib_ir;lib_core" "${PROJECT_DIR}")
 package_add_test_with_libraries(test_scanner ./frontend/test_scanner.cpp "lib_frontend;lib_core" "${CMAKE_CURRENT_SOURCE_DIR}/frontend/")
+package_add_test_with_libraries(test_parser ./frontend/test_parser.cpp "lib_frontend;lib_core;lib_ir" "${CMAKE_CURRENT_SOURCE_DIR}/frontend/")

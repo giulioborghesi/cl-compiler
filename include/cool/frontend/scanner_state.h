@@ -1,11 +1,13 @@
 #ifndef COOL_FRONTEND_SCANNER_STATE_H
 #define COOL_FRONTEND_SCANNER_STATE_H
 
-#include <cstdlib>
-#include <string>
-
 #include <cool/core/status.h>
+#include <cool/frontend/scanner_extra.h>
 #include <cool/frontend/scanner_spec.h>
+
+#include <cstdlib>
+#include <memory>
+#include <string>
 
 namespace cool {
 
@@ -45,6 +47,7 @@ protected:
 
 private:
   yyscan_t state_;
+  ExtraState extraState_;
   std::shared_ptr<Buffer> buffer_;
 };
 

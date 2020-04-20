@@ -417,6 +417,6 @@ letbinding: OBJECT_ID_TOKEN ':' CLASS_ID_TOKEN {
 
 %%
 
-void yyerror (yyscan_t state, cool::ProgramNodePtr*, char const *) {
+void yyerror (YYLTYPE* yylloc, yyscan_t state, cool::ProgramNodePtr*, char const *) {
     return;
 }
