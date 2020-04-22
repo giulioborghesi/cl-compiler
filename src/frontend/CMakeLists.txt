@@ -1,5 +1,5 @@
 find_package(FLEX)
-find_package(BISON)
+find_package(BISON 3)
 
 BISON_TARGET(
     Parser parser_spec.y 

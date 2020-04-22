@@ -1,4 +1,5 @@
 build/
 extern/
 .vscode
+.clang-format
 include/cool/frontend/scanner_spec.h

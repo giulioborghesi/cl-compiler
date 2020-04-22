@@ -9,6 +9,9 @@
 /// Maximum buffer length
 static constexpr size_t MAX_STRING_LENGTH = 1024;
 
+/// Helper function to update the token location 
+void UpdateLocation(YYLTYPE*, struct cool::ExtraState*, const uint32_t);
+
 %}
 
 DIGIT  [0-9]
@@ -17,8 +20,6 @@ DIGIT  [0-9]
 %option extra-type="struct cool::ExtraState*"
 
 %x STRING INLINECOMMENT COMMENT
-
-void UpdateLocation(YYLTYPE*, struct cool::ExtraState*, const uint32_t);
 
 %%
 
@@ -108,31 +109,67 @@ t(?i:rue)              { UpdateLocation(yylloc, yyextra, 4); return TRUE_TOKEN; 
 [ \f\r\t\v]            { yyextra->currentColumn++; }
 
    /* Strings */
-"\""                   { yyextra->stringText.clear(); BEGIN(STRING); }
+"\""                   { 
+                          yyextra->stringText.clear(); 
+                          yylloc->first_line = yyextra->currentLine;
+                          yylloc->first_column = yyextra->currentColumn;
+                          yyextra->currentColumn++;
+                          BEGIN(STRING); 
+                        }
 <STRING>"\""           { 
-                            BEGIN(INITIAL); 
-                            yylval->literalVal = yyextra->stringText;
-                            if (yylval->literalVal.length() > MAX_STRING_LENGTH) { 
-                                return SCANNER_ERROR_STRING_EXCEEDS_MAXLENGTH; 
-                            } 
-                            return STRING_TOKEN; 
-                       }
-<STRING>"\\\n"         { yyextra->stringText.append("\\\n"); }
-<STRING>"\\n"          { yyextra->stringText.push_back('\n'); }
+                          yylloc->last_line = yyextra->currentLine;
+                          yylloc->last_column = yyextra->currentColumn;
+                          BEGIN(INITIAL); 
+                          yylval->literalVal = yyextra->stringText;
+                          if (yylval->literalVal.length() > MAX_STRING_LENGTH) { 
+                            return SCANNER_ERROR_STRING_EXCEEDS_MAXLENGTH; 
+                          } 
+                          return STRING_TOKEN; 
+                        }
+<STRING>"\\\n"         { 
+                          yyextra->currentLine++;
+                          yyextra->currentColumn = 1;
+                          yyextra->stringText.append("\\\n"); 
+                        }
+<STRING>"\\n"          {  
+                          yyextra->currentColumn += 2;
+                          yyextra->stringText.push_back('\n'); 
+                        }
 <STRING>"\n"           { 
-                           BEGIN(INITIAL); 
-                           return SCANNER_ERROR_STRING_CONTAINS_NEWLINE_CHARACTER; 
-                       }
+                          yyextra->currentLine++;
+                          yyextra->currentColumn = 1;
+                          BEGIN(INITIAL); 
+                          return SCANNER_ERROR_STRING_CONTAINS_NEWLINE_CHARACTER; 
+                        }
 <STRING>"\0"           { 
-                           BEGIN(INITIAL); 
-                           return SCANNER_ERROR_STRING_CONTAINS_NULL_CHARACTER; 
-                       }
-<STRING>"\\0"          { yyextra->stringText.push_back('\0'); }
-<STRING>"\\b"          { yyextra->stringText.push_back('\b'); }
-<STRING>"\\t"          { yyextra->stringText.push_back('\t'); }
-<STRING>"\\f"          { yyextra->stringText.push_back('\f'); }
-<STRING>"\\"[^btf]     { yyextra->stringText.push_back(yytext[1]); }
-<STRING>.              { yyextra->stringText.push_back(yytext[0]); }
+                          yyextra->currentColumn++;
+                          BEGIN(INITIAL); 
+                          return SCANNER_ERROR_STRING_CONTAINS_NULL_CHARACTER; 
+                        }
+<STRING>"\\0"          { 
+                          yyextra->currentColumn += 2;
+                          yyextra->stringText.push_back('\0'); 
+                        }
+<STRING>"\\b"          { 
+                          yyextra->currentColumn += 2;
+                          yyextra->stringText.push_back('\b'); 
+                        }
+<STRING>"\\t"          { 
+                          yyextra->currentColumn += 2;
+                          yyextra->stringText.push_back('\t'); 
+                        }
+<STRING>"\\f"          {
+                          yyextra->currentColumn += 2; 
+                          yyextra->stringText.push_back('\f'); 
+                        }
+<STRING>"\\"[^btf]     { 
+                          yyextra->currentColumn += 2;
+                          yyextra->stringText.push_back(yytext[1]); 
+                        }
+<STRING>.              {
+                          yyextra->currentColumn += 1; 
+                          yyextra->stringText.push_back(yytext[0]); 
+                        }
 <STRING><<EOF>>        { 
                            BEGIN(INITIAL); 
                            return SCANNER_ERROR_UNTERMINATED_STRING; 
@@ -142,6 +179,14 @@ t(?i:rue)              { UpdateLocation(yylloc, yyextra, 4); return TRUE_TOKEN; 
 <<EOF>>                { return 0; }
 
    /* All other characters are invalid and should trigger an error */
-.                      { yyextra->current_column++; return SCANNER_ERROR_INVALID_CHARACTER; } 
+.                      { yyextra->currentColumn++; return SCANNER_ERROR_INVALID_CHARACTER; } 
 
 %%
+
+void UpdateLocation(YYLTYPE* loc, cool::ExtraState* extraState, const uint32_t length) {
+    loc->first_line = loc->last_line = extraState->currentLine;
+    loc->first_column = extraState->currentColumn;
+
+    extraState->currentColumn += (length - 1);
+    loc->last_column = extraState->currentColumn;
+}
