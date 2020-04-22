@@ -1,6 +1,9 @@
 #include <cool/frontend/scanner_extra.h>
 #include <cool/frontend/scanner_state.h>
 
+#include <cool/core/logger.h>
+#include <cool/core/logger_collection.h>
+
 #include <gtest/gtest.h>
 
 #include <iostream>
@@ -53,38 +56,41 @@ TEST(Scanner, BasicTests) {
     YYSTYPE yylval;
     YYLTYPE yylloc;
     for (auto expectedToken : TOKENS) {
-      auto actualToken = yylex(&yylval, &yylloc, state.scannerState());
+      auto actualToken = yylex(&yylval, &yylloc, nullptr, state.scannerState());
       ASSERT_EQ(actualToken, expectedToken);
     }
   }
 
   /// Boolean literals
   {
-      /*    char stringLiterals[] = "true False tRue fAlSe True\0";
-          yy_scan_buffer(stringLiterals, sizeof(stringLiterals));
+    const std::string text = "true False tRue fAlSe True\0";
+    ScannerState state = ScannerState::MakeFromString(text);
 
-          /// First token recognized as boolean literal
-          auto status = yylex();
-          ASSERT_EQ(status, TRUE_TOKEN);
+    YYSTYPE yylval;
+    YYLTYPE yylloc;
 
-          /// Second token recognized as class ID
-          status = yylex();
-          ASSERT_EQ(status, CLASS_ID_TOKEN);
+    /// First token recognized as boolean literal
+    auto status = yylex(&yylval, &yylloc, nullptr, state.scannerState());
+    ASSERT_EQ(status, TRUE_TOKEN);
 
-          /// Third and fourth token recognized as boolean literals
-          status = yylex();
-          ASSERT_EQ(status, TRUE_TOKEN);
+    /// Second token recognized as class ID
+    status = yylex(&yylval, &yylloc, nullptr, state.scannerState());
+    ASSERT_EQ(status, CLASS_ID_TOKEN);
 
-          status = yylex();
-          ASSERT_EQ(status, FALSE_TOKEN);
+    /// Third and fourth token recognized as boolean literals
+    status = yylex(&yylval, &yylloc, nullptr, state.scannerState());
+    ASSERT_EQ(status, TRUE_TOKEN);
 
-          /// Last token recognized as class ID
-          status = yylex();
-          ASSERT_EQ(status, CLASS_ID_TOKEN);
+    status = yylex(&yylval, &yylloc, nullptr, state.scannerState());
+    ASSERT_EQ(status, FALSE_TOKEN);
 
-          /// Next token is EOF
-          status = yylex();
-          ASSERT_EQ(status, EOF_TOKEN); */
+    /// Last token recognized as class ID
+    status = yylex(&yylval, &yylloc, nullptr, state.scannerState());
+    ASSERT_EQ(status, CLASS_ID_TOKEN);
+
+    /// Next token is EOF
+    status = yylex(&yylval, &yylloc, nullptr, state.scannerState());
+    ASSERT_EQ(status, 0);
   }
 
   /// String
@@ -95,7 +101,7 @@ TEST(Scanner, BasicTests) {
     YYSTYPE yylval;
     YYLTYPE yylloc;
 
-    auto actualToken = yylex(&yylval, &yylloc, state.scannerState());
+    auto actualToken = yylex(&yylval, &yylloc, nullptr, state.scannerState());
     EXPECT_EQ(actualToken, STRING_TOKEN);
 
     const std::string actualText = yylval.literalVal;
@@ -104,49 +110,56 @@ TEST(Scanner, BasicTests) {
 
   /// Inline comments
   {
-      /*    char stringComment[] = "-- One \nobjectName -- Two\0";
-          yy_scan_buffer(stringComment, sizeof(stringComment));
+    const std::string text = "-- One \nobjectName -- Two";
+    ScannerState state = ScannerState::MakeFromString(text);
 
-          /// Comments are ignored. First token recognized as object name
-          auto status = yylex();
-          ASSERT_EQ(status, OBJECT_ID_TOKEN);
+    YYSTYPE yylval;
+    YYLTYPE yylloc;
 
-          /// Last token is EOF as comment extends to EOF
-          status = yylex();
-          ASSERT_EQ(status, EOF_TOKEN);*/
+    /// Comments are ignored. First token recognized as object name
+    auto status = yylex(&yylval, &yylloc, nullptr, state.scannerState());
+    ASSERT_EQ(status, OBJECT_ID_TOKEN);
+
+    /// Last token is EOF as comment extends to EOF
+    status = yylex(&yylval, &yylloc, nullptr, state.scannerState());
+    ASSERT_EQ(status, 0);
   }
 
   /// Out-of-line comments
   {
-      /*    char stringComment[] = "(* empty\n
-         *)(*(**)empty*)object(*a\nempty\0"; yy_scan_buffer(stringComment,
-         sizeof(stringComment));
+    const std::string text = "(* empty\n*)(*(**)empty*)object(*a\nempty\0";
+    ScannerState state = ScannerState::MakeFromString(text);
 
-          /// Comments are ignored First token recognized as object name
-          auto status = yylex();
-          ASSERT_EQ(status, OBJECT_ID_TOKEN);
+    YYSTYPE yylval;
+    YYLTYPE yylloc;
 
-          /// Third token recognized as unterminated multi-line comment EOF
-          status = yylex();
-          ASSERT_EQ(status, SCANNER_ERROR_UNTERMINATED_COMMENT); */
+    /// Comments are ignored First token recognized as object name
+    auto status = yylex(&yylval, &yylloc, nullptr, state.scannerState());
+    ASSERT_EQ(status, OBJECT_ID_TOKEN);
+
+    /// Third token recognized as unterminated multi-line comment EOF
+    status = yylex(&yylval, &yylloc, nullptr, state.scannerState());
+    ASSERT_EQ(status, 0);
   }
 
   /// Invalid and valid characters
   {
-    /*    char stringInvalidChars[] = "\\n\n\0";
-        yy_scan_buffer(stringInvalidChars, sizeof(stringInvalidChars));
+    const std::string text = "\\n\n\0";
+    ScannerState state = ScannerState::MakeFromString(text);
 
-        /// First token invalid - token starts with backslash
-        auto status = yylex();
-        ASSERT_EQ(status, SCANNER_ERROR_INVALID_CHARACTER);
+    YYSTYPE yylval;
+    YYLTYPE yylloc;
 
-        /// Second token recognized as identifier
-        status = yylex();
-        ASSERT_EQ(status, OBJECT_ID_TOKEN);
+    /// Scanner skip the invalid character but pushes an error code
+    auto status = yylex(&yylval, &yylloc, nullptr, state.scannerState());
+    ASSERT_EQ(status, OBJECT_ID_TOKEN);
+    ASSERT_EQ(state.lastErrorCode(), 6);
 
-        /// Newline character should be eaten, next token is EOF
-        status = yylex();
-        ASSERT_EQ(status, EOF_TOKEN);*/
+    /// Newline character should be eaten, next token is EOF
+    state.resetErrorCode();
+    status = yylex(&yylval, &yylloc, nullptr, state.scannerState());
+    ASSERT_EQ(status, 0);
+    ASSERT_EQ(state.lastErrorCode(), 0);
   }
 }
 

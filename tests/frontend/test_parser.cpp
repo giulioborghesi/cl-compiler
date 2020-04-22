@@ -14,7 +14,7 @@ TEST(Parser, BasicTest) {
   ScannerState state = ScannerState::MakeFromFile(filePath);
 
   ProgramNodePtr programNode;
-  auto statusParse = yyparse(state.scannerState(), &programNode);
+  auto statusParse = yyparse(nullptr, state.scannerState(), &programNode);
 
   ASSERT_NE(programNode, nullptr);
   ASSERT_EQ(programNode->classes().size(), 1);

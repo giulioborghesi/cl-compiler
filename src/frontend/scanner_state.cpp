@@ -114,4 +114,10 @@ ScannerState ScannerState::MakeFromString(const std::string &inputString) {
   return state;
 }
 
+uint32_t ScannerState::lastErrorCode() const {
+  return extraState_.lastErrorCode;
+}
+
+void ScannerState::resetErrorCode() { extraState_.lastErrorCode = 0; }
+
 } // namespace cool

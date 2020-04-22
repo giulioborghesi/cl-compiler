@@ -20,14 +20,6 @@
 #include <string> 
 #include <vector>
 
-/// Lexer error codes
-#define SCANNER_ERROR_INVALID_CHARACTER -1
-#define SCANNER_ERROR_UNTERMINATED_COMMENT -2
-#define SCANNER_ERROR_STRING_CONTAINS_NULL_CHARACTER -3
-#define SCANNER_ERROR_STRING_CONTAINS_NEWLINE_CHARACTER -4
-#define SCANNER_ERROR_UNTERMINATED_STRING -5
-#define SCANNER_ERROR_STRING_EXCEEDS_MAXLENGTH -6
-
 /// Parser return type
 struct YYSTYPE {
     int32_t integerVal;
@@ -52,17 +44,30 @@ struct YYSTYPE {
 /// Lexer state type
 typedef void *yyscan_t;
 
+/// Forward declaration of logger collection class
+namespace cool {
+class LoggerCollection;
+}
+
 }
 
 %code provides {
 
-extern int yylex(YYSTYPE *, YYLTYPE*, yyscan_t);
+/// Lexer function 
+extern int yylex(YYSTYPE *, YYLTYPE*, cool::LoggerCollection*, yyscan_t);
+
+/// Lexer signature used inside lexer-generated file
+#undef YY_DECL
+#define YY_DECL int yylex \
+    (YYSTYPE * yylval_param, YYLTYPE * yylloc_param , cool::LoggerCollection* logger, yyscan_t yyscanner)
+
 
 /// Error function prototype
-void yyerror (YYLTYPE*, yyscan_t, cool::ProgramNodePtr*, char const *);
+void yyerror (YYLTYPE*, cool::LoggerCollection*, yyscan_t, cool::ProgramNodePtr*, char const *);
 
 }
 
+%param { cool::LoggerCollection* logger}
 %param { yyscan_t state }
 %parse-param {cool::ProgramNodePtr* program}
 
@@ -417,6 +422,6 @@ letbinding: OBJECT_ID_TOKEN ':' CLASS_ID_TOKEN {
 
 %%
 
-void yyerror (YYLTYPE* yylloc, yyscan_t state, cool::ProgramNodePtr*, char const *) {
+void yyerror (YYLTYPE* yylloc, cool::LoggerCollection*, yyscan_t state, cool::ProgramNodePtr*, char const *) {
     return;
 }

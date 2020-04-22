@@ -25,6 +25,12 @@ public:
   /// \return the scanner state
   yyscan_t scannerState() const { return state_; }
 
+  /// \brief Return the last error code seen by the scanner, or 0 if no error
+  /// occurred
+  ///
+  /// \return the last error code seen by the scanner
+  uint32_t lastErrorCode() const;
+
   /// \brief Factory method to create a ScannerState object from file
   ///
   /// \warning This method will throw an assertion should an error occur
@@ -40,6 +46,9 @@ public:
   /// \param[in] inputString string to parse
   /// \return a ScannerState object
   static ScannerState MakeFromString(const std::string &inputString);
+
+  /// \brief Reset the error code
+  void resetErrorCode();
 
 protected:
   /// Use factory method to create ScannerState objects
