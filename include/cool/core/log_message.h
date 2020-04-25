@@ -7,7 +7,7 @@
 
 namespace cool {
 
-enum LogMessageSeverity { DEBUG = 0, WARNING = 1, ERROR = 2, FATAL = 3 };
+enum class LogMessageSeverity { DEBUG = 0, WARNING = 1, ERROR = 2, FATAL = 3 };
 
 /// \brief Class that represents a log message
 class LogMessage {
