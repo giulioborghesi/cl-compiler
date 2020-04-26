@@ -2,6 +2,7 @@
 #define COOL_FRONTEND_SCANNER_STATE_H
 
 #include <cool/core/status.h>
+#include <cool/frontend/error_codes.h>
 #include <cool/frontend/scanner_extra.h>
 #include <cool/frontend/scanner_spec.h>
 
@@ -29,23 +30,25 @@ public:
   /// occurred
   ///
   /// \return the last error code seen by the scanner
-  uint32_t lastErrorCode() const;
+  FrontEndErrorCode lastErrorCode() const;
 
   /// \brief Factory method to create a ScannerState object from file
   ///
   /// \warning This method will throw an assertion should an error occur
   ///
   /// \param[in] filePath path to input file
-  /// \return a ScannerState object
-  static ScannerState MakeFromFile(const std::string &filePath);
+  /// \return a unique pointer to a ScannerState object
+  static std::unique_ptr<ScannerState>
+  MakeFromFile(const std::string &filePath);
 
   /// \brief Factory method to create a ScannerState object from a string
   ///
   /// \warning This method will throw an assertion should an error occur
   ///
   /// \param[in] inputString string to parse
-  /// \return a ScannerState object
-  static ScannerState MakeFromString(const std::string &inputString);
+  /// \return a unique pointer to a ScannerState object
+  static std::unique_ptr<ScannerState>
+  MakeFromString(const std::string &inputString);
 
   /// \brief Reset the error code
   void resetErrorCode();
@@ -57,7 +60,7 @@ protected:
 private:
   yyscan_t state_;
   ExtraState extraState_;
-  std::shared_ptr<Buffer> buffer_;
+  std::unique_ptr<Buffer> buffer_;
 };
 
 } // namespace cool

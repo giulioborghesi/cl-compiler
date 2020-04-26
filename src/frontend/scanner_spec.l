@@ -5,24 +5,15 @@
 #include <unordered_map>
 
 #include <cool/core/log_message.h>
+#include <cool/frontend/error_codes.h>
 #include <cool/frontend/scanner_extra.h>
 #include <cool/frontend/scanner_spec.h>
 
 /// Maximum buffer length
 static constexpr size_t MAX_LENGTH = 1024;
 
-/// Error codes
-enum ErrorCode {
-  ERROR_UNTERMINATED_COMMENT = 1,
-  ERROR_STRING_EXCEEDS_MAX_LENGTH = 2,
-  ERROR_STRING_CONTAINS_NEWLINE_CHARACTER = 3,
-  ERROR_STRING_CONTAINS_NULL_CHARACTER = 4,
-  ERROR_UNTERMINATED_STRING = 5,
-  ERROR_INVALID_CHARACTER = 6
-};
-
 /// Helper function to log an error message
-void LogError(const ErrorCode, const cool::ExtraState*, cool::LoggerCollection*);
+void LogError(const cool::FrontEndErrorCode, const cool::ExtraState*, cool::LoggerCollection*);
 
 /// Helper function to log the token location
 void LogToken(const YYLTYPE*, const int32_t, cool::LoggerCollection*);
@@ -171,8 +162,8 @@ t(?i:rue)               {
 <COMMENT>.              {   yyextra->currentColumn++; }
 <COMMENT><<EOF>>        { 
                             BEGIN(INITIAL); 
-                            LogError(ERROR_UNTERMINATED_COMMENT, yyextra, logger); 
-                            yyextra->lastErrorCode = ERROR_UNTERMINATED_COMMENT;
+                            LogError(cool::FrontEndErrorCode::LEXER_ERROR_UNTERMINATED_COMMENT, yyextra, logger); 
+                            yyextra->lastErrorCode = cool::FrontEndErrorCode::LEXER_ERROR_UNTERMINATED_COMMENT;
                         }
 
     /* Single character tokens */
@@ -262,8 +253,8 @@ t(?i:rue)               {
                             BEGIN(INITIAL); 
                             yylval->literalVal = yyextra->stringText;
                             if (yylval->literalVal.length() > MAX_LENGTH) { 
-                                LogError(ERROR_STRING_EXCEEDS_MAX_LENGTH, yyextra, logger); 
-                                yyextra->lastErrorCode = ERROR_STRING_EXCEEDS_MAX_LENGTH;
+                                LogError(cool::FrontEndErrorCode::LEXER_ERROR_STRING_EXCEEDS_MAX_LENGTH, yyextra, logger); 
+                                yyextra->lastErrorCode = cool::FrontEndErrorCode::LEXER_ERROR_STRING_EXCEEDS_MAX_LENGTH;
                                 yyextra->currentColumn++;
                             } else {
                                 if (logger) {
@@ -287,15 +278,15 @@ t(?i:rue)               {
                             yyextra->stringText.push_back('\n'); 
                         }
 <STRING>"\n"            { 
-                            LogError(ERROR_STRING_CONTAINS_NEWLINE_CHARACTER, yyextra, logger);
-                            yyextra->lastErrorCode = ERROR_STRING_CONTAINS_NEWLINE_CHARACTER;
+                            LogError(cool::FrontEndErrorCode::LEXER_ERROR_STRING_CONTAINS_NEWLINE_CHARACTER, yyextra, logger);
+                            yyextra->lastErrorCode = cool::FrontEndErrorCode::LEXER_ERROR_STRING_CONTAINS_NEWLINE_CHARACTER;
                             yyextra->currentLine++;
                             yyextra->currentColumn = 1;
                             BEGIN(INITIAL); 
                         }
 <STRING>"\0"            { 
-                            LogError(ERROR_STRING_CONTAINS_NULL_CHARACTER, yyextra, logger);
-                            yyextra->lastErrorCode = ERROR_STRING_CONTAINS_NULL_CHARACTER;
+                            LogError(cool::FrontEndErrorCode::LEXER_ERROR_STRING_CONTAINS_NULL_CHARACTER, yyextra, logger);
+                            yyextra->lastErrorCode = cool::FrontEndErrorCode::LEXER_ERROR_STRING_CONTAINS_NULL_CHARACTER;
                             yyextra->currentColumn++;
                             BEGIN(INITIAL); 
                         }
@@ -324,8 +315,8 @@ t(?i:rue)               {
                             yyextra->stringText.push_back(yytext[0]); 
                         }
 <STRING><<EOF>>         { 
-                            LogError(ERROR_UNTERMINATED_STRING, yyextra, logger); 
-                            yyextra->lastErrorCode = ERROR_UNTERMINATED_STRING;
+                            LogError(cool::FrontEndErrorCode::LEXER_ERROR_UNTERMINATED_STRING, yyextra, logger); 
+                            yyextra->lastErrorCode = cool::FrontEndErrorCode::LEXER_ERROR_UNTERMINATED_STRING;
                             BEGIN(INITIAL);
                             return 0; 
                         }
@@ -335,23 +326,23 @@ t(?i:rue)               {
 
    /* All other characters are invalid and should trigger an error */
 .                       { 
-                            LogError(ERROR_INVALID_CHARACTER, yyextra, logger);
-                            yyextra->lastErrorCode = ERROR_INVALID_CHARACTER;
+                            LogError(cool::FrontEndErrorCode::LEXER_ERROR_INVALID_CHARACTER, yyextra, logger);
+                            yyextra->lastErrorCode = cool::FrontEndErrorCode::LEXER_ERROR_INVALID_CHARACTER;
                             yyextra->currentColumn++; 
                         }
                             
 %%
 
 /// Helper function to log an error message
-void LogError(const ErrorCode code, const cool::ExtraState* extraState, cool::LoggerCollection* logger) {
+void LogError(const cool::FrontEndErrorCode code, const cool::ExtraState* extraState, cool::LoggerCollection* logger) {
 
-    static std::unordered_map<int32_t, std::string> sErrorToString = {
-        {ERROR_UNTERMINATED_COMMENT, "unterminated comment"},
-        {ERROR_STRING_EXCEEDS_MAX_LENGTH, "string exceeds maximum length"},
-        {ERROR_STRING_CONTAINS_NEWLINE_CHARACTER, "unescaped newline character in string is not allowed"},
-        {ERROR_STRING_CONTAINS_NULL_CHARACTER, "unescaped null character in string is not allowed"},
-        {ERROR_UNTERMINATED_STRING, "unterminated string"},
-        {ERROR_INVALID_CHARACTER, "invalid character in input stream"}
+    static std::unordered_map<cool::FrontEndErrorCode, std::string> sErrorToString = {
+        {cool::FrontEndErrorCode::LEXER_ERROR_UNTERMINATED_COMMENT, "unterminated comment"},
+        {cool::FrontEndErrorCode::LEXER_ERROR_STRING_EXCEEDS_MAX_LENGTH, "string exceeds maximum length"},
+        {cool::FrontEndErrorCode::LEXER_ERROR_STRING_CONTAINS_NEWLINE_CHARACTER, "unescaped newline character in string is not allowed"},
+        {cool::FrontEndErrorCode::LEXER_ERROR_STRING_CONTAINS_NULL_CHARACTER, "unescaped null character in string is not allowed"},
+        {cool::FrontEndErrorCode::LEXER_ERROR_UNTERMINATED_STRING, "unterminated string"},
+        {cool::FrontEndErrorCode::LEXER_ERROR_INVALID_CHARACTER, "invalid character in input stream"}
     };
 
     /// Do nothing if logger is not registered

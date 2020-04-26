@@ -2,11 +2,29 @@
 
 %code top {
 
+#include <cool/core/log_message.h>
+#include <cool/core/logger_collection.h>
+#include <cool/frontend/error_codes.h>
+#include <cool/frontend/scanner_extra.h>
 #include <cool/ir/class.h>
 #include <cool/ir/expr.h>
 
 #include <memory>
 #include <vector>
+
+typedef struct cool::ExtraState* YY_EXTRA_TYPE;
+typedef void *yyscan_t;
+
+struct YYLTYPE;
+
+/// Extract the extra lexer argument
+YY_EXTRA_TYPE yyget_extra(yyscan_t);
+
+/// Dummy error function prototype -- unused but required by Bison
+void yyerror (YYLTYPE*, cool::LoggerCollection*, yyscan_t, cool::ProgramNodePtr*, char const *);
+
+/// Actual error function
+void LogError(const cool::FrontEndErrorCode code, const uint32_t lloc, const uint32_t cloc, cool::LoggerCollection* logger);
 
 }
 
@@ -60,10 +78,6 @@ extern int yylex(YYSTYPE *, YYLTYPE*, cool::LoggerCollection*, yyscan_t);
 #undef YY_DECL
 #define YY_DECL int yylex \
     (YYSTYPE * yylval_param, YYLTYPE * yylloc_param , cool::LoggerCollection* logger, yyscan_t yyscanner)
-
-
-/// Error function prototype
-void yyerror (YYLTYPE*, cool::LoggerCollection*, yyscan_t, cool::ProgramNodePtr*, char const *);
 
 }
 
@@ -151,277 +165,305 @@ program:  classes {
 ;       
 
 classes:  class_ ';' { 
-    $$ = std::vector<cool::ClassNodePtr>{$1}; 
-  }
+        $$ = std::vector<cool::ClassNodePtr>{$1}; 
+    }
 | error ';' {
-    $$ = std::vector<cool::ClassNodePtr>();
-  }
+        $$ = std::vector<cool::ClassNodePtr>();
+    }
 | classes class_ ';' { 
-    $$ = std::move($1); $$.push_back($2); 
-  }
+        $$ = std::move($1); $$.push_back($2); 
+    }
 | classes error ';' {
-    $$ = std::move($1); 
-  }
+        yyget_extra(state)->lastErrorCode = cool::FrontEndErrorCode::PARSER_ERROR_INVALID_CLASS;
+        LogError(cool::FrontEndErrorCode::PARSER_ERROR_INVALID_CLASS, 
+            @2.first_line, @2.first_column, logger);
+        $$ = std::move($1); 
+    }
 ; 
 
 class_: CLASS_TOKEN CLASS_ID_TOKEN '{' features '}' {
-    $$ = cool::ClassNode::MakeClassNode(
-      $2, "", $4, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::ClassNode::MakeClassNode(
+            $2, "", $4, @1.first_line, @1.first_column
+        );
+    }
 | CLASS_TOKEN CLASS_ID_TOKEN INHERITS_TOKEN CLASS_ID_TOKEN '{' features '}' {
-    $$ = cool::ClassNode::MakeClassNode(
-      $2, $4, $6, @1.first_line, @1.first_column
-    ); 
-  }
+        $$ = cool::ClassNode::MakeClassNode(
+            $2, $4, $6, @1.first_line, @1.first_column
+        ); 
+    }
 ;
 
 /* Class features */
 features: %empty { 
-    $$ = std::vector<cool::GenericAttributeNodePtr>(); 
-  }
+        $$ = std::vector<cool::GenericAttributeNodePtr>(); 
+    }
 | features feature ';' { 
-    $$ = std::move($1); $$.push_back($2); 
-  }
+        $$ = std::move($1); $$.push_back($2); 
+    }
 | features error ';' {
-    $$ = std::move($1);
-  }
+        yyget_extra(state)->lastErrorCode = cool::FrontEndErrorCode::PARSER_ERROR_INVALID_FEATURE;
+        LogError(cool::FrontEndErrorCode::PARSER_ERROR_INVALID_FEATURE,
+            @2.first_line, @2.first_column, logger);
+        $$ = std::move($1);
+    }
 ;
 
 feature: OBJECT_ID_TOKEN ':' CLASS_ID_TOKEN { 
-    $$ = cool::AttributeNode::MakeAttributeNode(
-      $1, $3, nullptr, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::AttributeNode::MakeAttributeNode(
+            $1, $3, nullptr, @1.first_line, @1.first_column
+        );
+    }
 | OBJECT_ID_TOKEN ':' CLASS_ID_TOKEN "<-" expr {
-    $$ = cool::AttributeNode::MakeAttributeNode(
-      $1, $3, $5, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::AttributeNode::MakeAttributeNode(
+            $1, $3, $5, @1.first_line, @1.first_column
+        );
+    }
 | OBJECT_ID_TOKEN '(' formals ')' ':' CLASS_ID_TOKEN '{' expr '}' {
-    $$ = cool::MethodNode::MakeMethodNode(
-      $1, $6, $3, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::MethodNode::MakeMethodNode(
+            $1, $6, $3, @1.first_line, @1.first_column
+        );
+    }
 ;
 
 /* Methods formal arguments */
 formals : formal {
-    $$ = std::vector<cool::FormalNodePtr>{$1};
-  }
+        $$ = std::vector<cool::FormalNodePtr>{$1};
+    }
 | formals ',' formal {
-    $$ = std::move($1); $$.push_back($3);
-  }
+        $$ = std::move($1); $$.push_back($3);
+    }
 ;
 
 formal : OBJECT_ID_TOKEN ':' CLASS_ID_TOKEN {
-    $$ = cool::FormalNode::MakeFormalNode(
-      $1, $3, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::FormalNode::MakeFormalNode(
+            $1, $3, @1.first_line, @1.first_column
+        );
+    }
 ;
 
 /* Expressions list, semi-column separated */
 exprs: expr ';' { 
-    $$ = std::vector<cool::ExprNodePtr>{$1}; 
-  }
+        $$ = std::vector<cool::ExprNodePtr>{$1}; 
+    }
 | error ';' { 
-    $$ = std::vector<cool::ExprNodePtr>(); 
-  }
+        $$ = std::vector<cool::ExprNodePtr>(); 
+    }
 | exprs expr ';' { 
-    $$ = std::move($1); $$.push_back($2); 
-  }
+        $$ = std::move($1); $$.push_back($2); 
+    }
 | exprs error ';' { 
-    $$ = std::move($1); 
-  }
+        yyget_extra(state)->lastErrorCode = cool::FrontEndErrorCode::PARSER_ERROR_INVALID_EXPRESSION;
+        LogError(cool::FrontEndErrorCode::PARSER_ERROR_INVALID_EXPRESSION,
+            @2.first_line, @2.first_column, logger);
+        $$ = std::move($1); 
+    }
 ;
 
 /* Expressions list, comma separated */
 exprsc: '(' exprsl ')' {
-    $$ = std::move($2);
-  }
+        $$ = std::move($2);
+    }
 ;
 
 exprsl: expr {
-    $$ = std::vector<cool::ExprNodePtr>{$1};
-  }
+        $$ = std::vector<cool::ExprNodePtr>{$1};
+    }
 | exprsl ',' expr {
-    $$ = std::move($1); $$.push_back($3);
-  }
+        $$ = std::move($1); $$.push_back($3);
+    }
 ;
 
 /* Expressions */
 expr: OBJECT_ID_TOKEN "<-" expr { 
-    $$ = cool::AssignmentExprNode::MakeAssignmentExprNode(
-      $1, $3, @1.first_line, @1.first_column
-    ); 
-  }
+        $$ = cool::AssignmentExprNode::MakeAssignmentExprNode(
+            $1, $3, @1.first_line, @1.first_column
+        ); 
+    }
 | expr '@' CLASS_ID_TOKEN '.' OBJECT_ID_TOKEN exprsc {
-    $$ = cool::StaticDispatchExprNode::MakeStaticDispatchExprNode(
-      $5, $3, $1, $6, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::StaticDispatchExprNode::MakeStaticDispatchExprNode(
+            $5, $3, $1, $6, @1.first_line, @1.first_column
+        );
+    }
 | expr '.' OBJECT_ID_TOKEN exprsc {
-    $$ = cool::DispatchExprNode::MakeDispatchExprNode(
-      $3, $1, $4, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::DispatchExprNode::MakeDispatchExprNode(
+            $3, $1, $4, @1.first_line, @1.first_column
+        );
+    }
 | OBJECT_ID_TOKEN exprsc {
-    $$ = cool::DispatchExprNode::MakeDispatchExprNode(
-      $1, nullptr, $2, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::DispatchExprNode::MakeDispatchExprNode(
+            $1, nullptr, $2, @1.first_line, @1.first_column
+        );
+    }
 | CASE_TOKEN expr OF_TOKEN casebindings ESAC_TOKEN {
-    $$ = cool::CaseExprNode::MakeCaseExprNode(
-      $4, $2, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::CaseExprNode::MakeCaseExprNode(
+            $4, $2, @1.first_line, @1.first_column
+        );
+    }
 | IF_TOKEN expr THEN_TOKEN expr ELSE_TOKEN expr FI_TOKEN {
-    $$ = cool::IfExprNode::MakeIfExprNode(
-      $2, $4, $6, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::IfExprNode::MakeIfExprNode(
+            $2, $4, $6, @1.first_line, @1.first_column
+        );
+    }
 | ISVOID_TOKEN expr { 
-    $$ = cool::UnaryExprNode::MakeUnaryExprNode(
-      $2, cool::UnaryOpID::IsVoid, @1.first_line, @1.first_column
-    ); 
-  }
+        $$ = cool::UnaryExprNode::MakeUnaryExprNode(
+            $2, cool::UnaryOpID::IsVoid, @1.first_line, @1.first_column
+        ); 
+    }
 | LET_TOKEN letbindings IN_TOKEN expr {
-    $$ = cool::LetExprNode::MakeLetExprNode(
-      std::move($2), $4, @1.first_line, @1.first_column
-    );
-}
+        $$ = cool::LetExprNode::MakeLetExprNode(
+            std::move($2), $4, @1.first_line, @1.first_column
+        );
+    }
 | NEW_TOKEN CLASS_ID_TOKEN { 
-    $$ = cool::NewExprNode::MakeNewExprNode(
-      $2, @1.first_line, @1.first_column
-    ); 
-  }
+        $$ = cool::NewExprNode::MakeNewExprNode(
+            $2, @1.first_line, @1.first_column
+        ); 
+    }
 | NOT_TOKEN expr {
-    $$ = cool::UnaryExprNode::MakeUnaryExprNode(
-      $2, cool::UnaryOpID::Not, @1.first_line, @1.first_column
-    ); 
-  }
+        $$ = cool::UnaryExprNode::MakeUnaryExprNode(
+            $2, cool::UnaryOpID::Not, @1.first_line, @1.first_column
+        ); 
+    }
 | OBJECT_ID_TOKEN {
-    $$ = cool::IdExprNode::MakeIdExprNode(
-      $1, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::IdExprNode::MakeIdExprNode(
+            $1, @1.first_line, @1.first_column
+        );
+    }
 | WHILE_TOKEN expr LOOP_TOKEN expr POOL_TOKEN {
-    $$ = cool::WhileExprNode::MakeWhileExprNode(
-      $2, $4, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::WhileExprNode::MakeWhileExprNode(
+            $2, $4, @1.first_line, @1.first_column
+        );
+    }
 | '{' exprs '}' { 
-    $$ = cool::BlockExprNode::MakeBlockExprNode(
-      std::move($2), @1.first_line, @1.first_column
-    ); 
-  }
+        $$ = cool::BlockExprNode::MakeBlockExprNode(
+            std::move($2), @1.first_line, @1.first_column
+        ); 
+    }
 | '(' expr ')' { 
-    $$ = $2; 
-  }
+        $$ = $2; 
+    }
 | expr '+' expr { 
-    $$ = cool::BinaryExprNode<cool::ArithmeticOpID>::MakeBinaryExprNode(
-      $1, $3, cool::ArithmeticOpID::Plus, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::BinaryExprNode<cool::ArithmeticOpID>::MakeBinaryExprNode(
+            $1, $3, cool::ArithmeticOpID::Plus, @1.first_line, @1.first_column
+        );
+    }
 | expr '-' expr { 
-    $$ = cool::BinaryExprNode<cool::ArithmeticOpID>::MakeBinaryExprNode(
-      $1, $3, cool::ArithmeticOpID::Minus, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::BinaryExprNode<cool::ArithmeticOpID>::MakeBinaryExprNode(
+            $1, $3, cool::ArithmeticOpID::Minus, @1.first_line, @1.first_column
+        );
+    }
 | expr '*' expr { 
-    $$ = cool::BinaryExprNode<cool::ArithmeticOpID>::MakeBinaryExprNode(
-      $1, $3, cool::ArithmeticOpID::Mult, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::BinaryExprNode<cool::ArithmeticOpID>::MakeBinaryExprNode(
+            $1, $3, cool::ArithmeticOpID::Mult, @1.first_line, @1.first_column
+        );
+    }
 | expr '/' expr { 
-    $$ = cool::BinaryExprNode<cool::ArithmeticOpID>::MakeBinaryExprNode(
-      $1, $3, cool::ArithmeticOpID::Div, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::BinaryExprNode<cool::ArithmeticOpID>::MakeBinaryExprNode(
+            $1, $3, cool::ArithmeticOpID::Div, @1.first_line, @1.first_column
+        );
+    }
 | expr '<' expr { 
-    $$ = cool::BinaryExprNode<cool::ComparisonOpID>::MakeBinaryExprNode(
-      $1, $3, cool::ComparisonOpID::LessThan, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::BinaryExprNode<cool::ComparisonOpID>::MakeBinaryExprNode(
+            $1, $3, cool::ComparisonOpID::LessThan, @1.first_line, @1.first_column
+        );
+    }
 | expr "<=" expr { 
-    $$ = cool::BinaryExprNode<cool::ComparisonOpID>::MakeBinaryExprNode(
-      $1, $3, cool::ComparisonOpID::LessThanOrEqual, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::BinaryExprNode<cool::ComparisonOpID>::MakeBinaryExprNode(
+            $1, $3, cool::ComparisonOpID::LessThanOrEqual, @1.first_line, @1.first_column
+        );
+    }
 | expr '=' expr { 
-    $$ = cool::BinaryExprNode<cool::ComparisonOpID>::MakeBinaryExprNode(
-      $1, $3, cool::ComparisonOpID::Equal, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::BinaryExprNode<cool::ComparisonOpID>::MakeBinaryExprNode(
+            $1, $3, cool::ComparisonOpID::Equal, @1.first_line, @1.first_column
+        );
+    }
 | '~' expr { 
-    $$ = cool::UnaryExprNode::MakeUnaryExprNode(
-      $2, cool::UnaryOpID::Complement, @1.first_line, @1.first_column
-    ); 
-  }
+        $$ = cool::UnaryExprNode::MakeUnaryExprNode(
+            $2, cool::UnaryOpID::Complement, @1.first_line, @1.first_column
+        ); 
+    }
 | FALSE_TOKEN {
-    $$ = cool::BooleanExprNode::MakeBooleanExprNode(
-      false, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::BooleanExprNode::MakeBooleanExprNode(
+            false, @1.first_line, @1.first_column
+        );
+    }
 | INTEGER_TOKEN {
-    $$ = cool::LiteralExprNode<int32_t>::MakeLiteralExprNode(
-      $1, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::LiteralExprNode<int32_t>::MakeLiteralExprNode(
+            $1, @1.first_line, @1.first_column
+        );
+    }
 | STRING_TOKEN {
-    $$ = cool::LiteralExprNode<std::string>::MakeLiteralExprNode(
-      $1, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::LiteralExprNode<std::string>::MakeLiteralExprNode(
+            $1, @1.first_line, @1.first_column
+        );
+    }
 | TRUE_TOKEN {
-    $$ = cool::BooleanExprNode::MakeBooleanExprNode(
-      true, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::BooleanExprNode::MakeBooleanExprNode(
+            true, @1.first_line, @1.first_column
+        );
+    }
 ;
 
 /* Case bindings list */
 casebindings: casebinding ';' {
-    $$ = std::vector<cool::CaseBindingNodePtr>{$1};
-  }
+        $$ = std::vector<cool::CaseBindingNodePtr>{$1};
+    }
 | casebindings casebinding ';' {
-    $$ = std::move($1); $$.push_back($2);
-  }
+        $$ = std::move($1); $$.push_back($2);
+    }
 ;
 
 /* Case bindings */
 casebinding: OBJECT_ID_TOKEN ':' CLASS_ID_TOKEN "=>" expr ';' {
-    $$ = cool::CaseBindingNode::MakeCaseBindingNode(
-      $1, $3, $5, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::CaseBindingNode::MakeCaseBindingNode(
+            $1, $3, $5, @1.first_line, @1.first_column
+        );
+    }
 ;
 
 /* Let bindings list */
 letbindings: letbinding {
-    $$ = std::vector<cool::LetBindingNodePtr>{$1};
-  }
+        $$ = std::vector<cool::LetBindingNodePtr>{$1};
+    }
 | letbindings ',' letbinding {
-    $$ = std::move($1); $$.push_back($3);
-  }
+        $$ = std::move($1); $$.push_back($3);
+    }
 ;
 
 /* Let bindings */
 letbinding: OBJECT_ID_TOKEN ':' CLASS_ID_TOKEN {
-    $$ = cool::LetBindingNode::MakeLetBindingNode(
-      $1, $3, nullptr, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::LetBindingNode::MakeLetBindingNode(
+            $1, $3, nullptr, @1.first_line, @1.first_column
+        );
+    }
 | OBJECT_ID_TOKEN ':' CLASS_ID_TOKEN "<-" expr {
-    $$ = cool::LetBindingNode::MakeLetBindingNode(
-      $1, $3, $5, @1.first_line, @1.first_column
-    );
-  }
+        $$ = cool::LetBindingNode::MakeLetBindingNode(
+            $1, $3, $5, @1.first_line, @1.first_column
+        );
+    }
 ;
 
 %%
 
-void yyerror (YYLTYPE* yylloc, cool::LoggerCollection*, yyscan_t state, cool::ProgramNodePtr*, char const *) {
-    return;
+void LogError(const cool::FrontEndErrorCode code, const uint32_t lloc, const uint32_t cloc, cool::LoggerCollection* logger) {
+    
+    static std::unordered_map<cool::FrontEndErrorCode, std::string> sErrorToString = {
+        {cool::FrontEndErrorCode::PARSER_ERROR_INVALID_CLASS, "invalid class definition"},
+        {cool::FrontEndErrorCode::PARSER_ERROR_INVALID_FEATURE, "invalid feature definition"},
+        {cool::FrontEndErrorCode::PARSER_ERROR_INVALID_EXPRESSION, "invalid expression definition"}
+    };
+
+    /// Do nothing if logger is not registered
+    if (!logger) {
+        return;
+    }
+
+    /// Guard against unexpected errors
+    assert(sErrorToString.count(code) > 0);
+
+    /// Log error message
+    logger->logMessage(cool::LogMessage::MakeErrorMessage("line: %d, col: %d: Error: %s", 
+        lloc, cloc, sErrorToString[code]));
 }
+
+void yyerror (YYLTYPE* yylloc, cool::LoggerCollection*, yyscan_t state, cool::ProgramNodePtr*, char const *) { }

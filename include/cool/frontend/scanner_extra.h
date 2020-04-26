@@ -2,6 +2,7 @@
 #define COOL_FRONTEND_SCANNER_EXTRA_H
 
 #include <cool/core/logger_collection.h>
+#include <cool/frontend/error_codes.h>
 
 #include <cstdlib>
 #include <string>
@@ -13,7 +14,7 @@ struct ExtraState {
   uint32_t currentColumn = 1;
 
   uint32_t openComments = 0;
-  uint32_t lastErrorCode = 0;
+  FrontEndErrorCode lastErrorCode = FrontEndErrorCode::NO_ERROR;
 
   std::string stringText;
 };

@@ -48,7 +48,7 @@ public:
   ~FileBuffer() override;
 
 private:
-  FILE *file_;
+  FILE *file_ = nullptr;
 };
 
 /// Specialization of buffer class for string objects
@@ -63,7 +63,11 @@ private:
   std::string string_;
 };
 
-Buffer::~Buffer() { yy_delete_buffer(buffer_, state_); }
+Buffer::~Buffer() {
+  if (buffer_) {
+    yy_delete_buffer(buffer_, state_);
+  }
+}
 
 FileBuffer::FileBuffer(yyscan_t state, const std::string &filePath)
     : Buffer(state) {
@@ -78,8 +82,9 @@ FileBuffer::FileBuffer(yyscan_t state, const std::string &filePath)
 }
 
 FileBuffer::~FileBuffer() {
-  int status = fclose(file_);
-  assert(status == 0);
+  if (file_) {
+    assert(fclose(file_) == 0);
+  }
 }
 
 StringBuffer::StringBuffer(yyscan_t state, const std::string &inputString)
@@ -96,28 +101,34 @@ ScannerState::ScannerState() : state_(nullptr), buffer_(nullptr) {
 
 ScannerState::~ScannerState() {
   buffer_.reset();
-  auto status = yylex_destroy(state_);
-  assert(status == 0);
+  if (state_ != nullptr) {
+    auto status = yylex_destroy(state_);
+    assert(status == 0);
+  }
 }
 
-ScannerState ScannerState::MakeFromFile(const std::string &inputPath) {
-  ScannerState state{};
-  state.buffer_ =
-      std::shared_ptr<Buffer>(new FileBuffer(state.state_, inputPath));
+std::unique_ptr<ScannerState>
+ScannerState::MakeFromFile(const std::string &inputPath) {
+  auto state = std::unique_ptr<ScannerState>(new ScannerState{});
+  state->buffer_ =
+      std::unique_ptr<Buffer>(new FileBuffer(state->state_, inputPath));
   return state;
 }
 
-ScannerState ScannerState::MakeFromString(const std::string &inputString) {
-  ScannerState state{};
-  state.buffer_ =
-      std::shared_ptr<Buffer>(new StringBuffer(state.state_, inputString));
+std::unique_ptr<ScannerState>
+ScannerState::MakeFromString(const std::string &inputString) {
+  auto state = std::unique_ptr<ScannerState>(new ScannerState{});
+  state->buffer_ =
+      std::unique_ptr<Buffer>(new StringBuffer(state->state_, inputString));
   return state;
 }
 
-uint32_t ScannerState::lastErrorCode() const {
+FrontEndErrorCode ScannerState::lastErrorCode() const {
   return extraState_.lastErrorCode;
 }
 
-void ScannerState::resetErrorCode() { extraState_.lastErrorCode = 0; }
+void ScannerState::resetErrorCode() {
+  extraState_.lastErrorCode = FrontEndErrorCode::NO_ERROR;
+}
 
 } // namespace cool

@@ -1,4 +1,5 @@
-#include <cool/frontend/scanner_state.h>
+//#include <cool/frontend/scanner_state.h>
+#include <cool/frontend/parser.h>
 #include <cool/ir/class.h>
 
 #include <gtest/gtest.h>
@@ -10,16 +11,32 @@
 using namespace cool;
 
 TEST(Parser, BasicTest) {
+  /// Create parser
   const std::string filePath = "assets/parser_test.cl";
-  ScannerState state = ScannerState::MakeFromFile(filePath);
+  auto parser = Parser::MakeFromFile(filePath);
 
-  ProgramNodePtr programNode;
-  auto statusParse = yyparse(nullptr, state.scannerState(), &programNode);
-
+  /// Parse program and verify results
+  auto programNode = parser.parse();
   ASSERT_NE(programNode, nullptr);
   ASSERT_EQ(programNode->classes().size(), 1);
   ASSERT_EQ(programNode->classes()[0]->className(), "CellularAutomaton");
-  ASSERT_EQ(statusParse, 0);
+}
+
+TEST(Parser, InvalidAttribute) {
+  /// Create parser
+  const std::string programText = "class Test {\n attr String; \n };";
+  auto parser = Parser::MakeFromString(programText);
+
+  /// Parse program
+  auto programNode = parser.parse();
+  ASSERT_EQ(parser.lastErrorCode(),
+            FrontEndErrorCode::PARSER_ERROR_INVALID_FEATURE);
+
+  /// Verify results
+  ASSERT_NE(programNode, nullptr);
+  ASSERT_EQ(programNode->classes().size(), 1);
+  ASSERT_EQ(programNode->classes()[0]->className(), "Test");
+  ASSERT_EQ(programNode->classes()[0]->attributes().size(), 0);
 }
 
 int main(int argc, char **argv) {
