@@ -20,6 +20,9 @@ class Context {
   using MethodValueT = MethodRecord;
   using MethodTableT = SymbolTable<KeyT, MethodValueT>;
 
+  template <typename T>
+  using TableCollectionT = std::unordered_map<IdentifierType, T>;
+
 public:
   Context() = delete;
   Context(ClassRegistry *classRegistry);
@@ -41,19 +44,10 @@ public:
     return classRegistry_->typeID(currentClassName_);
   }
 
-  /// Get the method table for the currently active class
-  ///
-  /// \note This method will create a new table for the currently active class
-  /// if one does not exist yet
+  /// Get or create the method table for the currently active class
   ///
   /// \return the method table for the currently active class
-  MethodTableT *methodTable() {
-    const auto currentClassID = classRegistry_->typeID(currentClassName_);
-    if (!methodTables_.count(currentClassID)) {
-      methodTables_.insert({currentClassID, std::make_unique<MethodTableT>()});
-    }
-    return methodTables_.find(currentClassID)->second.get();
-  }
+  MethodTableT *methodTable() { return genericTable(methodTables_); }
 
   /// Get the method table for the specified class given its name
   ///
@@ -87,16 +81,10 @@ public:
     currentClassName_ = currentClassName;
   }
 
-  /// Get the symbol table for the currently active class
+  /// Get or create the symbol table for the currently active class
   ///
   /// \return the symbol table for the currently active class
-  SymbolTableT *symbolTable() {
-    const auto currentClassID = classRegistry_->typeID(currentClassName_);
-    if (!symbolTables_.count(currentClassID)) {
-      symbolTables_.insert({currentClassID, std::make_unique<SymbolTableT>()});
-    }
-    return symbolTables_.find(currentClassID)->second.get();
-  }
+  SymbolTableT *symbolTable() { return genericTable(symbolTables_); }
 
   /// Get the symbol table for the specified class
   ///
@@ -124,11 +112,15 @@ public:
   }
 
 private:
+  /// Ger or create a table for the currently active class
+  ///
+  /// \param[in] tables tables collection
+  /// \return a table for the currently active class
+  template <typename T>
+  T *genericTable(TableCollectionT<std::unique_ptr<T>> &tables);
+
   std::string currentClassName_;
   std::unique_ptr<ClassRegistry> classRegistry_;
-
-  template <typename T>
-  using TableCollectionT = std::unordered_map<IdentifierType, T>;
 
   TableCollectionT<std::unique_ptr<SymbolTableT>> symbolTables_;
   TableCollectionT<std::unique_ptr<MethodTableT>> methodTables_;

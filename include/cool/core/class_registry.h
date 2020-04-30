@@ -45,21 +45,21 @@ public:
     return classRegistry_.find(this->typeID(className))->second;
   }
 
-  /// \brief Return the identifier corresponding to a class name
-  ///
-  /// \param[in] className class name
-  /// \return the identifier corresponding to the input class name
-  IdentifierType typeID(const std::string &className) const {
-    auto it = namesToIDs_.find(className);
-    assert(it != namesToIDs_.end());
-    return it->second;
-  }
-
   /// \brief Return the class name corresponding to a type identifier
   ///
   /// \param[in] classID class ID
   /// \return the class name corresponding to the input class ID
   const std::string &className(const IdentifierType classID) const;
+
+  /// \brief Check whether a type conforms to another type
+  ///
+  /// \note This algorithm could be optimize to run in constant time. The
+  /// current implementation runs in linear time.
+  ///
+  /// \param[in] childType child  type
+  /// \param[in] parentType parent type
+  /// \return true if child type conforms to parent type
+  bool conformTo(const ExprType &childType, const ExprType &parentType) const;
 
   /// \brief Determine whether a class is in the registry
   ///
@@ -90,15 +90,21 @@ public:
   ExprType leastCommonAncestor(const ExprType &firstDescendantType,
                                const ExprType &secondDescendantType) const;
 
-  /// \brief Check whether a type conforms to another type
+  /// \brief Return the identifier corresponding to a class name
   ///
-  /// \note This algorithm could be optimize to run in constant time. The
-  /// current implementation runs in linear time.
-  ///
-  /// \param[in] childType child  type
-  /// \param[in] parentType parent type
-  /// \return true if child type conforms to parent type
-  bool conformTo(const ExprType &childType, const ExprType &parentType) const;
+  /// \param[in] className class name
+  /// \return the identifier corresponding to the input class name
+  IdentifierType typeID(const std::string &className) const {
+    auto it = namesToIDs_.find(className);
+    assert(it != namesToIDs_.end());
+    return it->second;
+  }
+
+  ExprType typeExpression(const std::string &className,
+                          const bool isSelf) const {
+    const auto typeID = namesToIDs_.find(className)->second;
+    return ExprType{.typeID = typeID, .isSelf = isSelf};
+  }
 
 private:
   /// \brief Find the ID of a class, if it exists, or create a new one

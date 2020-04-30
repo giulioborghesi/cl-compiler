@@ -5,6 +5,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <iostream>
+
 namespace cool {
 
 namespace {
@@ -59,18 +61,37 @@ ProgramNodePtr ProgramNode::MakeProgramNode(std::vector<ClassNodePtr> classes) {
 /// ClassNode
 ClassNode::ClassNode(const std::string &className,
                      const std::string &parentClassName,
-                     std::vector<GenericAttributeNodePtr> attributes,
-                     const uint32_t lloc, const uint32_t cloc)
+                     std::vector<AttributeNodePtr> attributes,
+                     std::vector<MethodNodePtr> methods, const uint32_t lloc,
+                     const uint32_t cloc)
     : ParentNode(lloc, cloc), className_(className),
-      parentClassName_(parentClassName), attributes_(std::move(attributes)) {}
+      parentClassName_(parentClassName), attributes_(std::move(attributes)),
+      methods_(std::move(methods)) {}
 
 ClassNodePtr
 ClassNode::MakeClassNode(const std::string &className,
                          const std::string &parentClassName,
-                         std::vector<GenericAttributeNodePtr> attributes,
+                         std::vector<GenericAttributeNodePtr> genericAttributes,
                          const uint32_t lloc, const uint32_t cloc) {
+  /// Separate class methods from class attributes
+  std::vector<AttributeNodePtr> attributes;
+  std::vector<MethodNodePtr> methods;
+  for (auto genericAttribute : genericAttributes) {
+    if (std::dynamic_pointer_cast<AttributeNode>(genericAttribute)) {
+      std::cout << "Casted attribute" << std::endl;
+      attributes.push_back(
+          std::dynamic_pointer_cast<AttributeNode>(genericAttribute));
+    } else {
+      std::cout << "Casted method" << std::endl;
+      methods.push_back(
+          std::dynamic_pointer_cast<MethodNode>(genericAttribute));
+    }
+  }
+
+  /// Construct the class node
   return ClassNodePtr(new ClassNode(className, parentClassName,
-                                    std::move(attributes), lloc, cloc));
+                                    std::move(attributes), std::move(methods),
+                                    lloc, cloc));
 }
 
 /// AttributeNode

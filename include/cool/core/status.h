@@ -24,6 +24,7 @@ private:
   std::string errorMsg_;
 };
 
+Status EmptyError();
 Status GenericError(const std::string &errorMsg);
 
 } // namespace cool

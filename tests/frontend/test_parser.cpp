@@ -20,7 +20,8 @@ TEST(Parser, BasicTest) {
   ASSERT_NE(programNode, nullptr);
   ASSERT_EQ(programNode->classes().size(), 1);
   ASSERT_EQ(programNode->classes()[0]->className(), "CellularAutomaton");
-  ASSERT_EQ(programNode->classes()[0]->attributes().size(), 2);
+  ASSERT_EQ(programNode->classes()[0]->attributes().size(), 1);
+  ASSERT_EQ(programNode->classes()[0]->methods().size(), 1);
 }
 
 TEST(Parser, InvalidVariableAttribute) {
@@ -73,11 +74,8 @@ TEST(Parser, InvalidExpressionInBlock) {
   ASSERT_NE(programNode, nullptr);
   ASSERT_EQ(programNode->classes().size(), 1);
   ASSERT_EQ(programNode->classes()[0]->className(), "ExprTest");
-  ASSERT_EQ(programNode->classes()[0]->attributes().size(), 1);
-
-  auto formalAttributeNode = programNode->classes()[0]->attributes()[0].get();
-  auto methodNode = dynamic_cast<MethodNode *>(formalAttributeNode);
-  ASSERT_NE(methodNode, nullptr);
+  ASSERT_EQ(programNode->classes()[0]->attributes().size(), 0);
+  ASSERT_EQ(programNode->classes()[0]->methods().size(), 1);
 }
 
 int main(int argc, char **argv) {

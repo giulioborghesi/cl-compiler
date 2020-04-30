@@ -49,14 +49,13 @@ public:
   ///
   /// \param[in] className class name
   /// \param[in] parentClassName parent class name
-  /// \param[in] attributes list of shared pointers to nodes of class attributes
-  /// \param[in] lloc line location
-  /// \param[in] cloc character location
-  /// \return a shared pointer to the new class node
+  /// \param[in] genericAttributes list of shared pointers to attribute nodes
+  /// \param[in] lloc line location \param[in] cloc character
+  /// location \return a shared pointer to the new class node
   static ClassNodePtr
   MakeClassNode(const std::string &className,
                 const std::string &parentClassName,
-                std::vector<GenericAttributeNodePtr> attributes,
+                std::vector<GenericAttributeNodePtr> genericAttributes,
                 const uint32_t lloc, const uint32_t cloc);
 
   /// Get the class name
@@ -76,20 +75,27 @@ public:
 
   /// Get the nodes of the class attributes
   ///
-  /// \return a vector of shared pointers to the nodes of the class attributes
-  const std::vector<GenericAttributeNodePtr> &attributes() const {
+  /// \return a vector of shared pointers to the class attributes nodes
+  const std::vector<AttributeNodePtr> &attributes() const {
     return attributes_;
   }
 
+  /// Get the nodes of the class methods
+  ///
+  /// \return a vector of shared pointers to the class method nodes
+  const std::vector<MethodNodePtr> &methods() const { return methods_; }
+
 private:
   ClassNode(const std::string &className, const std::string &parentClassName,
-            std::vector<GenericAttributeNodePtr> attributes,
-            const uint32_t lloc, const uint32_t cloc);
+            std::vector<AttributeNodePtr> attributes,
+            std::vector<MethodNodePtr> methods, const uint32_t lloc,
+            const uint32_t cloc);
 
   const std::string className_;
   const std::string parentClassName_;
 
-  const std::vector<GenericAttributeNodePtr> attributes_;
+  const std::vector<AttributeNodePtr> attributes_;
+  const std::vector<MethodNodePtr> methods_;
 };
 
 /// Class for a node representing a generic attribute in a COOL class

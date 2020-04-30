@@ -12,6 +12,13 @@ namespace cool {
 
 namespace {
 
+/// \brief Implementation of cycles detector in class tree
+///
+/// \param[in] edges class tree edges
+/// \param[in] root root node used by DFS algorithm
+/// \param[in] visitedAll nodes visited so far
+/// \param[in] visitedNow nodes visited in current search
+/// \return Status::Ok() if no cycle is detected in the class inheritance tree
 Status
 ValidClassTreeImpl(const std::unordered_map<std::string, std::string> &edges,
                    const std::string &root,
@@ -79,10 +86,14 @@ Status ClassesDefinitionPass::visit(Context *context, ProgramNode *node) {
   /// Classes are defined only once
   std::unordered_map<std::string, ClassNodePtr> classNodes;
   for (auto classNode : node->classes()) {
-    if (classNodes.count(classNode->className())) {
+    const auto &className = classNode->className();
+    if (classNodes.count(className)) {
       classesDefinitionOk = false;
+    } else if (className == "SELF_TYPE") {
+      classesDefinitionOk = false;
+    } else {
+      classNodes.insert({classNode->className(), classNode});
     }
-    classNodes.insert({classNode->className(), classNode});
   }
 
   if (!classesDefinitionOk) {

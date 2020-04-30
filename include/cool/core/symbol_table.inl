@@ -11,7 +11,7 @@ Status SymbolTable<KeyT, ValueT>::addElement(const KeyT &key,
   if (this->findKeyInScope(key)) {
     return GenericError("Error: identifier already defined in current scope");
   }
-  nestedTables_.back()[key] = value;
+  nestedTables_.back().insert({key, value});
   return Status::Ok();
 }
 

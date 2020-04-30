@@ -11,6 +11,9 @@ namespace cool {
 class MethodRecord {
 
 public:
+  MethodRecord(const ExprType &returnType, std::vector<ExprType> argsTypes)
+      : returnType_(returnType), argsTypes_(std::move(argsTypes)) {}
+
   /// Return the number of method arguments
   ///
   /// \return the number of method arguments
@@ -24,11 +27,11 @@ public:
   /// Return the method return type
   ///
   /// \return the method return type
-  ExprType returnType() const { return returnType_; }
+  const ExprType &returnType() const { return returnType_; }
 
 private:
-  ExprType returnType_;
-  std::vector<ExprType> argsTypes_;
+  const ExprType returnType_;
+  const std::vector<ExprType> argsTypes_;
 };
 
 } // namespace cool
