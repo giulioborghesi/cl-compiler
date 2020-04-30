@@ -2,14 +2,58 @@
 #include <cool/ir/class.h>
 #include <cool/ir/expr.h>
 
+#include <string>
+#include <unordered_map>
+
 namespace cool {
+
+namespace {
+
+/// \brief Helper function to sort the classes in topological sort if possible
+///
+/// \param[in] classNodes unsorted class nodes
+/// \return the class nodes in sorted order, if possible
+std::vector<ClassNodePtr>
+SortClasses(const std::vector<ClassNodePtr> &classNodes) {
+  std::vector<ClassNodePtr> classStack;
+  std::unordered_map<std::string, std::vector<ClassNodePtr>> inheritanceTree;
+  for (auto classNode : classNodes) {
+    if (classNode->hasParentClass()) {
+      inheritanceTree[classNode->parentClassName()].push_back(classNode);
+    } else {
+      classStack.push_back(classNode);
+    }
+  }
+
+  std::vector<ClassNodePtr> sortedClassNodes;
+  while (classStack.size()) {
+    auto topClass = classStack.back();
+    classStack.pop_back();
+    sortedClassNodes.push_back(topClass);
+
+    if (inheritanceTree.count(topClass->className())) {
+      for (auto childClass : inheritanceTree[topClass->className()]) {
+        classStack.push_back(childClass);
+      }
+    }
+  }
+
+  if (sortedClassNodes.size() == classNodes.size()) {
+    return sortedClassNodes;
+  }
+  return classNodes;
+}
+
+} // namespace
 
 /// ProgramNode
 ProgramNode::ProgramNode(std::vector<ClassNodePtr> classes)
     : classes_(std::move(classes)) {}
 
 ProgramNodePtr ProgramNode::MakeProgramNode(std::vector<ClassNodePtr> classes) {
-  return std::shared_ptr<ProgramNode>(new ProgramNode(std::move(classes)));
+  //  InstallBuiltInClasses(classes);
+  auto sortedClasses = SortClasses(classes);
+  return ProgramNodePtr(new ProgramNode(std::move(sortedClasses)));
 }
 
 /// ClassNode

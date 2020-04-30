@@ -11,10 +11,6 @@ public:
   ClassesDefinitionPass() = default;
   ~ClassesDefinitionPass() final override = default;
 
-  Status visit(Context *context, AttributeNode *node) final override;
-
-  Status visit(Context *context, ClassNode *node) final override;
-
   Status visit(Context *context, ProgramNode *node) final override;
 };
 

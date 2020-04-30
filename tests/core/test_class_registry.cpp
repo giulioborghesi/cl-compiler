@@ -16,11 +16,10 @@ namespace {
 /// \param[in] className class name
 /// \param[in] parentClassName parent class name
 /// \return a shared pointer to a class node for the specified class
-std::shared_ptr<ClassNode> CreateClassNode(const std::string &className,
-                                           const std::string &parentClassName) {
+ClassNodePtr CreateClassNode(const std::string &className,
+                             const std::string &parentClassName) {
   std::vector<GenericAttributeNodePtr> attributes;
-
-  return std::shared_ptr<ClassNode>(
+  return ClassNodePtr(
       ClassNode::MakeClassNode(className, parentClassName, attributes, 0, 0));
 }
 
@@ -42,57 +41,6 @@ TEST(ClassRegistry, DuplicatedClassInRegistry) {
   /// Attempting to add a class that is already in the registry
   auto statusA2 = registry.addClass(classA2);
   ASSERT_FALSE(statusA2.isOk());
-}
-
-TEST(ClassRegistry, NonExistentParentClass) {
-  auto classA = CreateClassNode("A", "");
-
-  ClassRegistry registry{};
-
-  auto statusAddClassA = registry.addClass(classA);
-  ASSERT_TRUE(statusAddClassA.isOk());
-
-  /// Inheritance tree is well formed
-  {
-    auto statusCheckInheritance = registry.checkInheritanceTree();
-    ASSERT_TRUE(statusCheckInheritance.isOk());
-  }
-
-  /// Add node with non-existing parent class
-  auto classB = CreateClassNode("B", "C");
-  auto statusAddClassB = registry.addClass(classB);
-  ASSERT_TRUE(statusAddClassB.isOk());
-
-  /// Inheritance tree is now ill formed
-  {
-    auto statusCheckInheritance = registry.checkInheritanceTree();
-    ASSERT_FALSE(statusCheckInheritance.isOk());
-    ASSERT_EQ(statusCheckInheritance.getErrorMessage(),
-              "Error: parent class is not defined");
-  }
-}
-
-TEST(ClassRegistry, CyclicDependencyInClassInheritanceTree) {
-  auto classA = CreateClassNode("A", "C");
-  auto classB = CreateClassNode("B", "A");
-  auto classC = CreateClassNode("C", "B");
-
-  ClassRegistry registry{};
-
-  auto statusAddClassA = registry.addClass(classA);
-  ASSERT_TRUE(statusAddClassA.isOk());
-
-  auto statusAddClassB = registry.addClass(classB);
-  ASSERT_TRUE(statusAddClassB.isOk());
-
-  auto statusAddClassC = registry.addClass(classC);
-  ASSERT_TRUE(statusAddClassC.isOk());
-
-  auto statusCheckInheritance = registry.checkInheritanceTree();
-  ASSERT_FALSE(statusCheckInheritance.isOk());
-
-  ASSERT_EQ(statusCheckInheritance.getErrorMessage(),
-            "Error: cyclic class dependency detected");
 }
 
 TEST(ClassRegistry, TypeRelationships) {
@@ -119,13 +67,9 @@ TEST(ClassRegistry, TypeRelationships) {
   ExprType typeB{.typeID = registry.typeID("B"), .isSelf = false};
   ExprType typeC{.typeID = registry.typeID("C"), .isSelf = false};
   ExprType typeD{.typeID = registry.typeID("D"), .isSelf = false};
-  ExprType typeO{.typeID = registry.typeID("Object"), .isSelf = false};
 
   /// C is a descendant of A
   ASSERT_TRUE(registry.conformTo(typeC, typeA));
-
-  /// A is a descendant of Object
-  ASSERT_TRUE(registry.conformTo(typeA, typeO));
 
   /// A is not a descendant of B
   ASSERT_FALSE(registry.conformTo(typeA, typeB));

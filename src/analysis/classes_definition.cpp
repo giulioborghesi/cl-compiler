@@ -12,156 +12,113 @@ namespace cool {
 
 namespace {
 
-/// Detect cycles in class tree
-///
-/// \param[in] tree class inheritance tree
-/// \param[in] parent parent node for DFS algorithm
-/// \param[inout] visitedNow set of nodes visited in current DFS iteration
-/// \param[inout] visitedAll set of visited nodes
-/// \param[out] sortedClasses list of classes sorted in topological order
-/// \return Status::Ok() on success
-Status detectCyclesInClassTree(
-    const std::unordered_map<IdentifierType, std::vector<IdentifierType>> &tree,
-    const IdentifierType &parent,
-    std::unordered_set<IdentifierType> *visitedNow,
-    std::unordered_set<IdentifierType> *visitedAll,
-    std::vector<IdentifierType> *sortedClasses) {
-  /// Check for cyclic dependency
-  if (visitedNow->count(parent)) {
+Status
+ValidClassTreeImpl(const std::unordered_map<std::string, std::string> &edges,
+                   const std::string &root,
+                   std::unordered_set<std::string> &visitedAll,
+                   std::unordered_set<std::string> &visitedNow) {
+  /// Graph has a cycle, generate error message and exit
+  if (visitedNow.count(root)) {
     return GenericError("Error: cyclic class dependency detected");
   }
 
-  /// Do nothing if node was processed already
-  if (visitedAll->count(parent)) {
+  /// This branch has no cycle, exit early
+  if (visitedAll.count(root)) {
     return Status::Ok();
   }
 
-  /// Add node to visited lists
-  visitedNow->insert(parent);
-  visitedAll->insert(parent);
+  visitedNow.insert(root);
+  visitedAll.insert(root);
 
-  /// Recurse on children nodes
-  auto kvIterator = tree.find(parent);
-  if (kvIterator != tree.end()) {
-    for (auto child : kvIterator->second) {
-      auto status = detectCyclesInClassTree(tree, child, visitedNow, visitedAll,
-                                            sortedClasses);
-      if (!status.isOk()) {
-        return status;
-      }
-    }
-  }
-
-  /// Remove node from visited list, add class to list and return
-  visitedNow->erase(visitedNow->find(parent));
-  sortedClasses->push_back(parent);
-  return Status::Ok();
-}
-
-} // namespace
-
-Status ClassesDefinitionPass::visit(Context *context, AttributeNode *node) {
-  const auto *classRegistry = context->classRegistry();
-
-  /// Attributes cannot be redefined
-  auto *symbolTable = context->symbolTable();
-  if (symbolTable->findKeyInTable(node->id())) {
-    return GenericError("Error: cannot override attribute");
-  }
-
-  /// If attribute is self type, add it to symbol table and return
-  const auto classID = context->currentClassID();
-  const ExprType classType{.typeID = classID, .isSelf = true};
-  if (node->typeName() == "SELF_TYPE") {
-    symbolTable->addElement(node->id(), classType);
-  }
-
-  /// Attribute type cannot be a subtype of current class
-  const auto typeID = classRegistry->typeID(node->typeName());
-  const ExprType idType{.typeID = typeID, .isSelf = false};
-  if (typeID != classID && classRegistry->conformTo(idType, classType)) {
-    return GenericError("Error: attribute type is a subtype of current class");
-  }
-
-  /// All good, update symbol table and return
-  symbolTable->addElement(node->id(), idType);
-  return Status::Ok();
-}
-
-Status ClassesDefinitionPass::visit(Context *context, ClassNode *node) {
-  /*  context->setCurrentClassName(node->className());
-    auto *symbolTable = context->symbolTable();
-    auto *methodTable = context->methodTable();
-
-    /// Set parent tables
-    if (node->hasParentClass()) {
-      auto *parentSymbolTable = context->symbolTable(node->parentClassName());
-      auto *parentMethodTable = context->methodTable(node->parentClassName());
-      symbolTable->setParentTable(parentSymbolTable);
-      methodTable->setParentTable(parentMethodTable);
-    }
-
-    /// Add self to symbol table
-    const auto classID = context->currentClassID();
-    const ExprType classType{.typeID = classID, .isSelf = true};
-    symbolTable->addElement("self", classType);
-
-    /// Add attributes to symbol table
-    for (auto attribute : node->attributes()) {
-      auto status = attribute->visitNode(context, this);
-      if (!status.isOk()) {
-        return status;
-      }
-    }
-
-    /// Add methods to symbol table
-    for (auto method : node->methods()) {
-      auto status = method->visitNode(context, this);
-      if (!status.isOk()) {
-        return status;
-      }
-    }*/
-
-  /// All good, return
-  return Status::Ok();
-}
-
-Status ClassesDefinitionPass::visit(Context *context, ProgramNode *node) {
-  auto *classRegistry = context->classRegistry();
-  const auto &classTree = classRegistry->classTree();
-
-  /// Add classes to class registry
-  for (auto classNode : node->classes()) {
-    auto status = classRegistry->addClass(classNode);
+  /// Iterate on parent if applicable
+  if (edges.count(root)) {
+    const auto parent = edges.find(root)->second;
+    auto status = ValidClassTreeImpl(edges, parent, visitedAll, visitedNow);
     if (!status.isOk()) {
       return status;
     }
   }
 
-  /// Validate inheritance tree and sort classes
-  std::vector<IdentifierType> sortedClasses;
-  std::unordered_set<IdentifierType> visitedNow, visitedAll;
-  for (auto it = classTree.begin(); it != classTree.end(); ++it) {
-    /// Parent node must be defined
-    const auto &parent = it->first;
-    if (!classRegistry->hasClass(parent)) {
-      return GenericError("Error: parent class not defined");
-    }
+  /// Search succeeded
+  visitedNow.erase(root);
+  return Status::Ok();
+}
 
-    /// Traverse the inheritance tree starting from the parent node
-    auto statusCycles = detectCyclesInClassTree(classTree, parent, &visitedNow,
-                                                &visitedAll, &sortedClasses);
-
-    /// Early return if an error was detected
-    if (!statusCycles.isOk()) {
-      return statusCycles;
+/// \brief Helper function that looks for cycles in the class inheritance tree
+///
+/// \param[in] node pointer to program node in the AST
+/// \return Status::Ok() if no cycle is detected in the class inheritance tree
+Status ValidClassTree(ProgramNode *node) {
+  std::unordered_map<std::string, std::string> edges;
+  for (auto classNode : node->classes()) {
+    if (classNode->hasParentClass()) {
+      edges.insert({classNode->className(), classNode->parentClassName()});
     }
   }
-  std::reverse(sortedClasses.begin(), sortedClasses.end());
 
-  /// Initialize symbol tables and method tables
-  for (auto &classID : sortedClasses) {
-    auto status = classRegistry->classNode(classID)->visitNode(context, this);
+  std::unordered_set<std::string> visitedNow;
+  std::unordered_set<std::string> visitedAll;
+
+  for (auto classNode : node->classes()) {
+    const auto &root = classNode->className();
+    auto status = ValidClassTreeImpl(edges, root, visitedAll, visitedNow);
+    if (!status.isOk()) {
+      return status;
+    }
+  }
+
+  return Status::Ok();
+}
+
+} // namespace
+
+Status ClassesDefinitionPass::visit(Context *context, ProgramNode *node) {
+  bool classesDefinitionOk = true;
+  auto *registry = context->classRegistry();
+
+  /// Classes are defined only once
+  std::unordered_map<std::string, ClassNodePtr> classNodes;
+  for (auto classNode : node->classes()) {
+    if (classNodes.count(classNode->className())) {
+      classesDefinitionOk = false;
+    }
+    classNodes.insert({classNode->className(), classNode});
+  }
+
+  if (!classesDefinitionOk) {
+    return GenericError("Error: cannot redefine classes");
+  }
+
+  /// Parent classes are defined and valid
+  std::unordered_set<std::string> invalidParents = {"Bool", "Int", "String"};
+  for (auto classNode : node->classes()) {
+    if (!classNode->hasParentClass()) {
+      continue;
+    }
+
+    const auto &parentClassName = classNode->parentClassName();
+    if (classNodes.count(parentClassName)) {
+      classesDefinitionOk = false;
+    }
+
+    if (invalidParents.count(parentClassName)) {
+      classesDefinitionOk = false;
+    }
+  }
+
+  if (!classesDefinitionOk) {
+    return GenericError("Error: parent classes either not defined or invalid");
+  }
+
+  /// Valid inheritance tree does not contain cycles
+  auto statusCycles = ValidClassTree(node);
+  if (!statusCycles.isOk()) {
+    return statusCycles;
+  }
+
+  /// No error detected. Add classes to class registry and return
+  for (auto classNode : node->classes()) {
+    auto status = registry->addClass(classNode);
     if (!status.isOk()) {
       return status;
     }

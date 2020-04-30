@@ -1,6 +1,7 @@
 #ifndef COOL_IR_CLASS_H
 #define COOL_IR_CLASS_H
 
+#include <cool/ir/common.h>
 #include <cool/ir/fwd.h>
 #include <cool/ir/node.h>
 #include <cool/ir/visitable.h>

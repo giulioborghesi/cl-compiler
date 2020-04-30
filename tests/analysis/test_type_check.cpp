@@ -16,7 +16,7 @@ std::unique_ptr<Context> MakeContext() {
 }
 
 } // namespace
-
+/*
 TEST(TypeCheckTests, AddExpressionTypeCheck) {
   /// Create binary expression
   auto lhs = LiteralExprNode<int32_t>::MakeLiteralExprNode(0, 0, 0);
@@ -28,7 +28,7 @@ TEST(TypeCheckTests, AddExpressionTypeCheck) {
   auto context = MakeContext();
   std::unique_ptr<TypeCheckPass> pass(new TypeCheckPass{});
   ASSERT_TRUE(expr->visitNode(context.get(), pass.get()).isOk());
-}
+}*/
 
 int main(int argc, char **argv) {
   testing::InitGoogleTest(&argc, argv);

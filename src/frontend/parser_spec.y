@@ -160,7 +160,7 @@ extern int yylex(YYSTYPE *, YYLTYPE*, cool::LoggerCollection*, yyscan_t);
 
 /* Classes */
 program:  classes { 
-    $$ = cool::ProgramNode::MakeProgramNode($1); *program = $$;
+    $$ = cool::ProgramNode::MakeProgramNode(std::move($1)); *program = $$;
   }
 ;       
 
