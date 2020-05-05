@@ -50,7 +50,7 @@ SortClasses(const std::vector<ClassNodePtr> &classNodes) {
 
 /// ProgramNode
 ProgramNode::ProgramNode(std::vector<ClassNodePtr> classes)
-    : classes_(std::move(classes)) {}
+    : ParentNode(0, 0), classes_(std::move(classes)) {}
 
 ProgramNodePtr ProgramNode::MakeProgramNode(std::vector<ClassNodePtr> classes) {
   //  InstallBuiltInClasses(classes);

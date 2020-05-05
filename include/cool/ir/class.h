@@ -13,7 +13,9 @@
 namespace cool {
 
 /// Class for a node representing a COOL program
-class ProgramNode {
+class ProgramNode : public Visitable<Node, ProgramNode> {
+
+  using ParentNode = Visitable<Node, ProgramNode>;
 
 public:
   ProgramNode() = delete;

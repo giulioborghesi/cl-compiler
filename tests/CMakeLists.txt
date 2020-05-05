@@ -12,6 +12,7 @@ endmacro()
 
 package_add_test_with_libraries(test_expr ./ir/test_expr.cpp lib_ir "${PROJECT_DIR}")
 package_add_test_with_libraries(test_type_check ./analysis/test_type_check.cpp "lib_analysis;lib_core;lib_ir" "${PROJECT_DIR}")
+package_add_test_with_libraries(test_classes_definition ./analysis/test_classes_definition.cpp "lib_analysis;lib_core;lib_ir" "${PROJECT_DIR}")
 package_add_test_with_libraries(test_class_registry ./core/test_class_registry.cpp "lib_ir;lib_core" "${PROJECT_DIR}")
 package_add_test_with_libraries(test_log_message ./core/test_log_message.cpp "lib_core" "${PROJECT_DIR}")
 package_add_test_with_libraries(test_logger_collection ./core/test_logger_collection.cpp "lib_core" "${PROJECT_DIR}")

@@ -83,11 +83,16 @@ Status ClassesDefinitionPass::visit(Context *context, ProgramNode *node) {
   bool classesDefinitionOk = true;
   auto *registry = context->classRegistry();
 
+  using StringSetType = std::unordered_set<std::string>;
+
   /// Classes are defined only once
+  StringSetType invalidClasses = {"Object", "IO", "Bool", "Int", "String"};
   std::unordered_map<std::string, ClassNodePtr> classNodes;
   for (auto classNode : node->classes()) {
     const auto &className = classNode->className();
-    if (classNodes.count(className)) {
+    if (invalidClasses.count(className)) {
+      classesDefinitionOk = false;
+    } else if (classNodes.count(className)) {
       classesDefinitionOk = false;
     } else if (className == "SELF_TYPE") {
       classesDefinitionOk = false;
@@ -101,14 +106,14 @@ Status ClassesDefinitionPass::visit(Context *context, ProgramNode *node) {
   }
 
   /// Parent classes are defined and valid
-  std::unordered_set<std::string> invalidParents = {"Bool", "Int", "String"};
+  StringSetType invalidParents = {"Bool", "Int", "String"};
   for (auto classNode : node->classes()) {
     if (!classNode->hasParentClass()) {
       continue;
     }
 
     const auto &parentClassName = classNode->parentClassName();
-    if (classNodes.count(parentClassName)) {
+    if (!classNodes.count(parentClassName)) {
       classesDefinitionOk = false;
     }
 
