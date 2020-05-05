@@ -19,8 +19,8 @@ namespace {
 ClassNodePtr CreateClassNode(const std::string &className,
                              const std::string &parentClassName) {
   std::vector<GenericAttributeNodePtr> attributes;
-  return ClassNodePtr(
-      ClassNode::MakeClassNode(className, parentClassName, attributes, 0, 0));
+  return ClassNodePtr(ClassNode::MakeClassNode(className, parentClassName,
+                                               attributes, false, 0, 0));
 }
 
 } // namespace

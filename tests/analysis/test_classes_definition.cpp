@@ -24,7 +24,8 @@ std::unique_ptr<Context> MakeContext() {
 ClassNodePtr MakeEmptyClass(const std::string &className,
                             const std::string &parentName) {
   std::vector<GenericAttributeNodePtr> attributes;
-  return ClassNode::MakeClassNode(className, parentName, attributes, 0, 0);
+  return ClassNode::MakeClassNode(className, parentName, attributes, false, 0,
+                                  0);
 }
 
 } // namespace

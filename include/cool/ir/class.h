@@ -52,13 +52,20 @@ public:
   /// \param[in] className class name
   /// \param[in] parentClassName parent class name
   /// \param[in] genericAttributes list of shared pointers to attribute nodes
-  /// \param[in] lloc line location \param[in] cloc character
+  /// \param[in] builtIn built-in class parameter
+  /// \param[in] lloc line location
+  /// \param[in] cloc character
   /// location \return a shared pointer to the new class node
   static ClassNodePtr
   MakeClassNode(const std::string &className,
                 const std::string &parentClassName,
                 std::vector<GenericAttributeNodePtr> genericAttributes,
-                const uint32_t lloc, const uint32_t cloc);
+                const bool builtIn, const uint32_t lloc, const uint32_t cloc);
+
+  /// Query whether the class is a built-in class or not
+  ///
+  /// \return True if the class is a built-in class, false otherwise
+  bool builtIn() const { return builtIn_; }
 
   /// Get the class name
   ///
@@ -90,8 +97,10 @@ public:
 private:
   ClassNode(const std::string &className, const std::string &parentClassName,
             std::vector<AttributeNodePtr> attributes,
-            std::vector<MethodNodePtr> methods, const uint32_t lloc,
-            const uint32_t cloc);
+            std::vector<MethodNodePtr> methods, const bool builtIn,
+            const uint32_t lloc, const uint32_t cloc);
+
+  const bool builtIn_;
 
   const std::string className_;
   const std::string parentClassName_;

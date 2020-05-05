@@ -17,14 +17,18 @@ typedef void *yyscan_t;
 
 struct YYLTYPE;
 
-/// Extract the extra lexer argument
+/// Helper function to extract the extra argument taken by the lexer
 YY_EXTRA_TYPE yyget_extra(yyscan_t);
+
+/// Helper function to install the built-in COOL classes
+std::vector<cool::ClassNodePtr> InstallBuiltInClasses(std::vector<cool::ClassNodePtr> classes);
 
 /// Dummy error function prototype -- unused but required by Bison
 void yyerror (YYLTYPE*, cool::LoggerCollection*, yyscan_t, cool::ProgramNodePtr*, char const *);
 
 /// Actual error function
-void LogError(const cool::FrontEndErrorCode code, const uint32_t lloc, const uint32_t cloc, cool::LoggerCollection* logger);
+void LogError(const cool::FrontEndErrorCode code, const uint32_t lloc, 
+            const uint32_t cloc, cool::LoggerCollection* logger);
 
 }
 
@@ -159,9 +163,14 @@ extern int yylex(YYSTYPE *, YYLTYPE*, cool::LoggerCollection*, yyscan_t);
 %%
 
 /* Classes */
-program:  classes { 
+program:  classes {
+    $1 = InstallBuiltInClasses(std::move($1));
     $$ = cool::ProgramNode::MakeProgramNode(std::move($1)); *program = $$;
   }
+| %empty {
+        std::vector<cool::ClassNodePtr> classes;
+        $$ = cool::ProgramNode::MakeProgramNode(std::move(classes)); *program = $$;
+    }
 ;       
 
 classes:  class_ ';' { 
@@ -183,12 +192,12 @@ classes:  class_ ';' {
 
 class_: CLASS_TOKEN CLASS_ID_TOKEN '{' features '}' {
         $$ = cool::ClassNode::MakeClassNode(
-            $2, "", $4, @1.first_line, @1.first_column
+            $2, "Object", $4, false, @1.first_line, @1.first_column
         );
     }
 | CLASS_TOKEN CLASS_ID_TOKEN INHERITS_TOKEN CLASS_ID_TOKEN '{' features '}' {
         $$ = cool::ClassNode::MakeClassNode(
-            $2, $4, $6, @1.first_line, @1.first_column
+            $2, $4, $6, false, @1.first_line, @1.first_column
         ); 
     }
 ;
@@ -444,6 +453,76 @@ letbinding: OBJECT_ID_TOKEN ':' CLASS_ID_TOKEN {
 ;
 
 %%
+
+std::vector<cool::ClassNodePtr> InstallBuiltInClasses(std::vector<cool::ClassNodePtr> classes) {
+    std::vector<cool::ClassNodePtr> targetClasses;
+
+    /// Install Object class
+    {
+        std::vector<cool::FormalNodePtr> emptyArgs;
+        std::vector<cool::GenericAttributeNodePtr> attrs;
+        attrs.push_back(cool::MethodNode::MakeMethodNode("abort", "Object", emptyArgs, 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("copy", "SELF_TYPE", emptyArgs, 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("type_name", "String", emptyArgs, 0, 0));
+        targetClasses.push_back(cool::ClassNode::MakeClassNode("Object", "", attrs, true, 0, 0));
+    }
+
+    /// Install Int and Bool classes
+    {
+        std::vector<cool::GenericAttributeNodePtr> emptyAttrs;
+        targetClasses.push_back(cool::ClassNode::MakeClassNode("Int", "Object", emptyAttrs, true, 0, 0));
+        targetClasses.push_back(cool::ClassNode::MakeClassNode("Bool", "Object", emptyAttrs, true, 0, 0));
+    }
+
+    /// Install IO class
+    {
+        std::vector<cool::FormalNodePtr> args;
+        std::vector<cool::GenericAttributeNodePtr> attrs;
+
+        /// Methods with no arguments first
+        attrs.push_back(cool::MethodNode::MakeMethodNode("in_string", "String", args, 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("in_int", "Int", args, 0, 0));
+
+        /// Remaining methods
+        args.push_back(cool::FormalNode::MakeFormalNode("x", "String", 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("out_string", "SELF_TYPE", args, 0, 0));
+
+        args.pop_back();
+        args.push_back(cool::FormalNode::MakeFormalNode("x", "Int", 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("out_int", "SELF_TYPE", args, 0, 0));
+
+        /// Install class
+        targetClasses.push_back(cool::ClassNode::MakeClassNode("IO", "Object", attrs, true, 0, 0));
+    }
+
+    /// Install String class
+    {
+        std::vector<cool::FormalNodePtr> args;
+        std::vector<cool::GenericAttributeNodePtr> attrs;
+
+        /// Method with no arguments first
+        attrs.push_back(cool::MethodNode::MakeMethodNode("length", "Int", args, 0, 0));
+
+        /// Remaining methods
+        args.push_back(cool::FormalNode::MakeFormalNode("s", "String", 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("concat", "String", args, 0, 0));
+
+        args.pop_back();
+        args.push_back(cool::FormalNode::MakeFormalNode("i", "Int", 0, 0));
+        args.push_back(cool::FormalNode::MakeFormalNode("l", "Int", 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("substr", "String", args, 0, 0));
+
+        /// Install class
+        targetClasses.push_back(cool::ClassNode::MakeClassNode("String", "Object", attrs, true, 0, 0));
+    }
+
+    /// Copy parsed classes
+    for (auto classNode: classes) {
+        targetClasses.push_back(classNode);
+    }
+
+    return targetClasses;
+}
 
 void LogError(const cool::FrontEndErrorCode code, const uint32_t lloc, const uint32_t cloc, cool::LoggerCollection* logger) {
     

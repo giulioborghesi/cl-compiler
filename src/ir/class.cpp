@@ -2,10 +2,9 @@
 #include <cool/ir/class.h>
 #include <cool/ir/expr.h>
 
+#include <algorithm>
 #include <string>
 #include <unordered_map>
-
-#include <iostream>
 
 namespace cool {
 
@@ -53,7 +52,6 @@ ProgramNode::ProgramNode(std::vector<ClassNodePtr> classes)
     : ParentNode(0, 0), classes_(std::move(classes)) {}
 
 ProgramNodePtr ProgramNode::MakeProgramNode(std::vector<ClassNodePtr> classes) {
-  //  InstallBuiltInClasses(classes);
   auto sortedClasses = SortClasses(classes);
   return ProgramNodePtr(new ProgramNode(std::move(sortedClasses)));
 }
@@ -62,27 +60,24 @@ ProgramNodePtr ProgramNode::MakeProgramNode(std::vector<ClassNodePtr> classes) {
 ClassNode::ClassNode(const std::string &className,
                      const std::string &parentClassName,
                      std::vector<AttributeNodePtr> attributes,
-                     std::vector<MethodNodePtr> methods, const uint32_t lloc,
-                     const uint32_t cloc)
-    : ParentNode(lloc, cloc), className_(className),
+                     std::vector<MethodNodePtr> methods, const bool builtIn,
+                     const uint32_t lloc, const uint32_t cloc)
+    : ParentNode(lloc, cloc), builtIn_(builtIn), className_(className),
       parentClassName_(parentClassName), attributes_(std::move(attributes)),
       methods_(std::move(methods)) {}
 
-ClassNodePtr
-ClassNode::MakeClassNode(const std::string &className,
-                         const std::string &parentClassName,
-                         std::vector<GenericAttributeNodePtr> genericAttributes,
-                         const uint32_t lloc, const uint32_t cloc) {
+ClassNodePtr ClassNode::MakeClassNode(
+    const std::string &className, const std::string &parentClassName,
+    std::vector<GenericAttributeNodePtr> genericAttributes, const bool builtIn,
+    const uint32_t lloc, const uint32_t cloc) {
   /// Separate class methods from class attributes
   std::vector<AttributeNodePtr> attributes;
   std::vector<MethodNodePtr> methods;
   for (auto genericAttribute : genericAttributes) {
     if (std::dynamic_pointer_cast<AttributeNode>(genericAttribute)) {
-      std::cout << "Casted attribute" << std::endl;
       attributes.push_back(
           std::dynamic_pointer_cast<AttributeNode>(genericAttribute));
     } else {
-      std::cout << "Casted method" << std::endl;
       methods.push_back(
           std::dynamic_pointer_cast<MethodNode>(genericAttribute));
     }
@@ -91,7 +86,7 @@ ClassNode::MakeClassNode(const std::string &className,
   /// Construct the class node
   return ClassNodePtr(new ClassNode(className, parentClassName,
                                     std::move(attributes), std::move(methods),
-                                    lloc, cloc));
+                                    builtIn, lloc, cloc));
 }
 
 /// AttributeNode
