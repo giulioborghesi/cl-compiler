@@ -56,7 +56,7 @@ Status ProgramNode::sortClasses() {
 
   /// Return an error message if a cyclic class definition is detected
   if (sortedClasses.size() < classes_.size()) {
-    return GenericError("Error: cyclic classes definition detected");
+    return GenericError("Error. Cyclic classes definition detected");
   }
 
   /// All good, replace classes collection with sorted one and return

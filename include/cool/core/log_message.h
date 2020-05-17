@@ -21,7 +21,7 @@ public:
   /// \brief Get the log message
   ///
   /// \return the log message
-  const std::string &logMessage() const { return logMessage_; }
+  const std::string &message() const { return logMessage_; }
 
   /// \brief Create a debug message
   ///

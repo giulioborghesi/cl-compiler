@@ -8,23 +8,24 @@ TEST(LogMessage, BasicTest) {
 
   /// Create a debug message
   {
-    auto message = LogMessage::MakeDebugMessage("Plain message");
-    ASSERT_EQ(message.severity(), LogMessageSeverity::DEBUG);
-    ASSERT_EQ(message.logMessage(), "Plain message");
+    auto logMessage = LogMessage::MakeDebugMessage("Plain message");
+    ASSERT_EQ(logMessage.severity(), LogMessageSeverity::DEBUG);
+    ASSERT_EQ(logMessage.message(), "Plain message");
   }
 
   /// Create a debug message with format
   {
-    auto message = LogMessage::MakeDebugMessage("Message with format: %d", 15);
-    ASSERT_EQ(message.severity(), LogMessageSeverity::DEBUG);
-    ASSERT_EQ(message.logMessage(), "Message with format: 15");
+    auto logMessage =
+        LogMessage::MakeDebugMessage("Message with format: %d", 15);
+    ASSERT_EQ(logMessage.severity(), LogMessageSeverity::DEBUG);
+    ASSERT_EQ(logMessage.message(), "Message with format: 15");
   }
 
   /// Create an error message
   {
-    auto message = LogMessage::MakeErrorMessage("Error message");
-    ASSERT_EQ(message.severity(), LogMessageSeverity::ERROR);
-    ASSERT_EQ(message.logMessage(), "Error message");
+    auto logMessage = LogMessage::MakeErrorMessage("Error message");
+    ASSERT_EQ(logMessage.severity(), LogMessageSeverity::ERROR);
+    ASSERT_EQ(logMessage.message(), "Error message");
   }
 }
 

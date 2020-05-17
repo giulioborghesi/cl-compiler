@@ -29,7 +29,7 @@ public:
   /// \brief Log a message
   ///
   /// \param[in] message message to log
-  virtual void logMessage(const LogMessage &message) const = 0;
+  virtual void logMessage(const LogMessage &message) = 0;
 };
 
 /// \brief Class that implements the logger interface
@@ -41,7 +41,7 @@ public:
 
   ~Logger() = default;
 
-  void logMessage(const LogMessage &message) const final override;
+  void logMessage(const LogMessage &logMessage) final override;
 
 private:
   std::unique_ptr<Sink> sink_;
@@ -54,7 +54,7 @@ public:
   StdoutSink() = default;
   ~StdoutSink() final = default;
 
-  void record(const LogMessage &message) final;
+  void record(const LogMessage &logMessage) final;
 };
 
 } // namespace cool

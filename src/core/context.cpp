@@ -1,11 +1,16 @@
 
 #include <cool/core/context.h>
+#include <cool/core/logger_collection.h>
 #include <cool/ir/class.h>
 
 namespace cool {
 
 Context::Context(ClassRegistry *classRegistry)
-    : classRegistry_(classRegistry) {}
+    : classRegistry_(classRegistry), logger_(nullptr) {}
+
+Context::Context(ClassRegistry *classRegistry,
+                 std::shared_ptr<LoggerCollection> logger)
+    : classRegistry_(classRegistry), logger_(logger) {}
 
 template <typename T>
 T *Context::genericTable(TableCollectionT<std::unique_ptr<T>> &tables) {

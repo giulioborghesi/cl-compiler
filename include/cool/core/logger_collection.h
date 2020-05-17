@@ -63,7 +63,21 @@ private:
     snprintf(buffer, 2048, __VA_ARGS__);                                       \
                                                                                \
     std::string message = sHeader.str();                                       \
-    message.append(std::string(buffer) + "\n");                                \
+    message.append(std::string(buffer));                                       \
+    LogMessage logMessage(message, LogMessageSeverity::severity);              \
+    logger->logMessage(logMessage);                                            \
+  }
+
+#define LOG_MESSAGE(logger, severity, ...)                                     \
+  {                                                                            \
+    std::ostringstream sHeader;                                                \
+    sHeader << "Generic error. ";                                              \
+                                                                               \
+    char buffer[2048];                                                         \
+    snprintf(buffer, 2048, __VA_ARGS__);                                       \
+                                                                               \
+    std::string message = sHeader.str();                                       \
+    message.append(std::string(buffer));                                       \
     LogMessage logMessage(message, LogMessageSeverity::severity);              \
     logger->logMessage(logMessage);                                            \
   }
@@ -76,6 +90,16 @@ private:
 #define LOG_DEBUG_MESSAGE_WITH_LOCATION(logger, token, ...)                    \
   if (logger) {                                                                \
     LOG_MESSAGE_WITH_LOCATION(logger, token, DEBUG, __VA_ARGS__)               \
+  }
+
+#define LOG_ERROR_MESSAGE(logger, ...)                                         \
+  if (logger) {                                                                \
+    LOG_MESSAGE(logger, ERROR, __VA_ARGS__);                                   \
+  }
+
+#define LOG_DEBUG_MESSAGE(logger, ...)                                         \
+  if (logger) {                                                                \
+    LOG_MESSAGE(logger, DEBUG, __VA_ARGS__);                                   \
   }
 
 } // namespace cool

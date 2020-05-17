@@ -11,6 +11,7 @@ add_subdirectory(src)
 
 #if (BUILD_TESTS)
     include(GoogleTest)
+    include_directories(tests)
     enable_testing()
     add_subdirectory(tests)
 #endif()

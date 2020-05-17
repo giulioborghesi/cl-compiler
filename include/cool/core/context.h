@@ -28,7 +28,10 @@ class Context {
 
 public:
   Context() = delete;
-  Context(ClassRegistry *classRegistry);
+  explicit Context(ClassRegistry *classRegistry);
+
+  Context(ClassRegistry *classRegistry,
+          std::shared_ptr<LoggerCollection> logger);
 
   /// Get the class registry
   ///
