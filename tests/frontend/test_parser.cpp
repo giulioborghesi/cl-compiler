@@ -19,9 +19,9 @@ TEST(Parser, BasicTest) {
   auto programNode = parser.parse();
   ASSERT_NE(programNode, nullptr);
   ASSERT_EQ(programNode->classes().size(), 6);
-  ASSERT_EQ(programNode->classes()[3]->className(), "CellularAutomaton");
-  ASSERT_EQ(programNode->classes()[3]->attributes().size(), 1);
-  ASSERT_EQ(programNode->classes()[3]->methods().size(), 1);
+  ASSERT_EQ(programNode->classes()[5]->className(), "CellularAutomaton");
+  ASSERT_EQ(programNode->classes()[5]->attributes().size(), 1);
+  ASSERT_EQ(programNode->classes()[5]->methods().size(), 1);
 }
 
 TEST(Parser, InvalidVariableAttribute) {
@@ -37,8 +37,8 @@ TEST(Parser, InvalidVariableAttribute) {
   /// Verify results
   ASSERT_NE(programNode, nullptr);
   ASSERT_EQ(programNode->classes().size(), 6);
-  ASSERT_EQ(programNode->classes()[1]->className(), "Test");
-  ASSERT_EQ(programNode->classes()[1]->attributes().size(), 0);
+  ASSERT_EQ(programNode->classes()[5]->className(), "Test");
+  ASSERT_EQ(programNode->classes()[5]->attributes().size(), 0);
 }
 
 TEST(Parser, InvalidMethodAttribute) {
@@ -55,8 +55,8 @@ TEST(Parser, InvalidMethodAttribute) {
   /// Verify results
   ASSERT_NE(programNode, nullptr);
   ASSERT_EQ(programNode->classes().size(), 6);
-  ASSERT_EQ(programNode->classes()[1]->className(), "AttrTest");
-  ASSERT_EQ(programNode->classes()[1]->attributes().size(), 1);
+  ASSERT_EQ(programNode->classes()[5]->className(), "AttrTest");
+  ASSERT_EQ(programNode->classes()[5]->attributes().size(), 1);
 }
 
 TEST(Parser, InvalidExpressionInBlock) {
@@ -73,9 +73,9 @@ TEST(Parser, InvalidExpressionInBlock) {
   /// Verify results
   ASSERT_NE(programNode, nullptr);
   ASSERT_EQ(programNode->classes().size(), 6);
-  ASSERT_EQ(programNode->classes()[1]->className(), "ExprTest");
-  ASSERT_EQ(programNode->classes()[1]->attributes().size(), 0);
-  ASSERT_EQ(programNode->classes()[1]->methods().size(), 1);
+  ASSERT_EQ(programNode->classes()[5]->className(), "ExprTest");
+  ASSERT_EQ(programNode->classes()[5]->attributes().size(), 0);
+  ASSERT_EQ(programNode->classes()[5]->methods().size(), 1);
 }
 
 int main(int argc, char **argv) {

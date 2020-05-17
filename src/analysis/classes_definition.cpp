@@ -1,5 +1,6 @@
 #include <cool/analysis/classes_definition.h>
 #include <cool/core/context.h>
+#include <cool/core/logger_collection.h>
 #include <cool/ir/class.h>
 
 #include <algorithm>
@@ -82,30 +83,45 @@ Status ValidClassTree(ProgramNode *node) {
 Status ClassesDefinitionPass::visit(Context *context, ProgramNode *node) {
   bool classesDefinitionOk = true;
   auto *registry = context->classRegistry();
+  auto *logger = context->logger();
 
+  /// Built-in classes
   using StringSetType = std::unordered_set<std::string>;
+  static StringSetType reservedClasses = {"Object", "IO", "Bool", "Int",
+                                          "String"};
 
-  /// Classes are defined only once
-  StringSetType invalidClasses = {"Object", "IO", "Bool", "Int", "String"};
+  /// Check first class definitions. A class must be defined once, cannot
+  /// redefine a built-in class and its name cannot be SELF_TYPE
   std::unordered_map<std::string, ClassNodePtr> classNodes;
   for (auto classNode : node->classes()) {
     const auto &className = classNode->className();
-    if (invalidClasses.count(className)) {
+    if (reservedClasses.count(className) && !classNode->builtIn()) {
       classesDefinitionOk = false;
+      LOG_ERROR_MESSAGE_WITH_LOCATION(
+          logger, classNode,
+          "Class %s is a built-in class and cannot be redefined",
+          className.c_str());
     } else if (classNodes.count(className)) {
       classesDefinitionOk = false;
+      LOG_ERROR_MESSAGE_WITH_LOCATION(
+          logger, classNode,
+          "Class %s was defined at line %d and cannot be redefined",
+          className.c_str(), classNode->lineLoc());
     } else if (className == "SELF_TYPE") {
       classesDefinitionOk = false;
+      LOG_ERROR_MESSAGE_WITH_LOCATION(logger, classNode,
+                                      "SELF_TYPE is not a valid class name");
     } else {
-      classNodes.insert({classNode->className(), classNode});
+      classNodes.insert({className, classNode});
     }
   }
 
   if (!classesDefinitionOk) {
-    return GenericError("Error: cannot redefine classes");
+    return GenericError("Error: program contains incorrect class definitions");
   }
 
-  /// Parent classes are defined and valid
+  /// Check now parent classes. Parent classes must be defined and cannot be
+  /// one of Bool, Int or String
   StringSetType invalidParents = {"Bool", "Int", "String"};
   for (auto classNode : node->classes()) {
     if (!classNode->hasParentClass()) {
@@ -115,10 +131,16 @@ Status ClassesDefinitionPass::visit(Context *context, ProgramNode *node) {
     const auto &parentClassName = classNode->parentClassName();
     if (!classNodes.count(parentClassName)) {
       classesDefinitionOk = false;
+      LOG_ERROR_MESSAGE_WITH_LOCATION(logger, classNode,
+                                      "Parent class %s is not defined",
+                                      parentClassName.c_str());
     }
 
     if (invalidParents.count(parentClassName)) {
       classesDefinitionOk = false;
+      LOG_ERROR_MESSAGE_WITH_LOCATION(
+          logger, classNode, "Class %s cannot inherit from built-in class %s",
+          classNode->className().c_str(), parentClassName.c_str());
     }
   }
 

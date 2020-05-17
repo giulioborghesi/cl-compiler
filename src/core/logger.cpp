@@ -4,7 +4,7 @@
 
 namespace cool {
 
-Logger::Logger(Sink *sink, LogMessageSeverity severity) {
+Logger::Logger(Sink *sink, LogMessageSeverity severity) : ILogger() {
   sink_ = std::unique_ptr<Sink>(sink);
   severity_ = severity;
 }

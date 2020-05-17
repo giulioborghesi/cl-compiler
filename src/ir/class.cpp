@@ -3,57 +3,65 @@
 #include <cool/ir/expr.h>
 
 #include <algorithm>
+#include <queue>
 #include <string>
 #include <unordered_map>
 
 namespace cool {
-
-namespace {
-
-/// \brief Helper function to sort the classes in topological sort if possible
-///
-/// \param[in] classNodes unsorted class nodes
-/// \return the class nodes in sorted order, if possible
-std::vector<ClassNodePtr>
-SortClasses(const std::vector<ClassNodePtr> &classNodes) {
-  std::vector<ClassNodePtr> classStack;
-  std::unordered_map<std::string, std::vector<ClassNodePtr>> inheritanceTree;
-  for (auto classNode : classNodes) {
-    if (classNode->hasParentClass()) {
-      inheritanceTree[classNode->parentClassName()].push_back(classNode);
-    } else {
-      classStack.push_back(classNode);
-    }
-  }
-
-  std::vector<ClassNodePtr> sortedClassNodes;
-  while (classStack.size()) {
-    auto topClass = classStack.back();
-    classStack.pop_back();
-    sortedClassNodes.push_back(topClass);
-
-    if (inheritanceTree.count(topClass->className())) {
-      for (auto childClass : inheritanceTree[topClass->className()]) {
-        classStack.push_back(childClass);
-      }
-    }
-  }
-
-  if (sortedClassNodes.size() == classNodes.size()) {
-    return sortedClassNodes;
-  }
-  return classNodes;
-}
-
-} // namespace
 
 /// ProgramNode
 ProgramNode::ProgramNode(std::vector<ClassNodePtr> classes)
     : ParentNode(0, 0), classes_(std::move(classes)) {}
 
 ProgramNodePtr ProgramNode::MakeProgramNode(std::vector<ClassNodePtr> classes) {
-  auto sortedClasses = SortClasses(classes);
-  return ProgramNodePtr(new ProgramNode(std::move(sortedClasses)));
+  return ProgramNodePtr(new ProgramNode(std::move(classes)));
+}
+
+Status ProgramNode::sortClasses() {
+  std::unordered_map<ClassNodePtr, uint32_t> classOrder;
+  std::unordered_map<std::string, std::vector<ClassNodePtr>> edges;
+
+  /// Construct adjacency list representation of class tree
+  for (auto classNode : classes_) {
+    if (classNode->hasParentClass()) {
+      classOrder[classNode] += 1;
+      edges[classNode->parentClassName()].push_back(classNode);
+    }
+  }
+
+  /// Initialize nodes with no parent
+  std::queue<ClassNodePtr> frontier;
+  for (auto classNode : classes_) {
+    if (!classOrder.count(classNode)) {
+      frontier.push(classNode);
+    }
+  }
+
+  /// Order classes
+  std::vector<ClassNodePtr> sortedClasses;
+  while (frontier.size()) {
+    auto rootClass = frontier.front();
+    frontier.pop();
+
+    sortedClasses.push_back(rootClass);
+    if (edges.count(rootClass->className())) {
+      for (auto childClass : edges[rootClass->className()]) {
+        classOrder[childClass] -= 1;
+        if (classOrder[childClass] == 0) {
+          frontier.push(childClass);
+        }
+      }
+    }
+  }
+
+  /// Return an error message if a cyclic class definition is detected
+  if (sortedClasses.size() < classes_.size()) {
+    return GenericError("Error: cyclic classes definition detected");
+  }
+
+  /// All good, replace classes collection with sorted one and return
+  classes_.swap(sortedClasses);
+  return Status::Ok();
 }
 
 /// ClassNode

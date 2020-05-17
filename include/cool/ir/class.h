@@ -1,6 +1,7 @@
 #ifndef COOL_IR_CLASS_H
 #define COOL_IR_CLASS_H
 
+#include <cool/core/status.h>
 #include <cool/ir/common.h>
 #include <cool/ir/fwd.h>
 #include <cool/ir/node.h>
@@ -32,10 +33,15 @@ public:
   /// \return a vector of shared pointers to the nodes for the program classes
   const std::vector<ClassNodePtr> &classes() const { return classes_; }
 
+  /// Sort the program classes in topological order
+  ///
+  /// \return Status::Ok() if the classes tree has no cycle, an error otherwise
+  Status sortClasses();
+
 private:
   ProgramNode(std::vector<ClassNodePtr> classes);
 
-  const std::vector<ClassNodePtr> classes_;
+  std::vector<ClassNodePtr> classes_;
 };
 
 /// Class for a node representing a COOL class
@@ -162,11 +168,11 @@ public:
                                       std::vector<FormalNodePtr> arguments,
                                       const uint32_t lloc, const uint32_t cloc);
 
+  const std::vector<FormalNodePtr> &arguments() const { return arguments_; }
+
   const std::string &id() const { return id_; }
 
   const std::string &returnTypeName() const { return returnTypeName_; }
-
-  const std::vector<FormalNodePtr> &arguments() const { return arguments_; }
 
 private:
   MethodNode(const std::string &id, const std::string &returnTypeName,

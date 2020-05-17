@@ -20,17 +20,28 @@ protected:
   Sink() = default;
 };
 
-/// \brief Class that implements a logger
-class Logger {
+class ILogger {
+
+public:
+  ILogger() = default;
+  ~ILogger() = default;
+
+  /// \brief Log a message
+  ///
+  /// \param[in] message message to log
+  virtual void logMessage(const LogMessage &message) const = 0;
+};
+
+/// \brief Class that implements the logger interface
+class Logger : public ILogger {
 
 public:
   Logger() = delete;
   Logger(Sink *sink, LogMessageSeverity severity);
 
-  /// \brief Log a message
-  ///
-  /// \param[in] message message to log
-  void logMessage(const LogMessage &message) const;
+  ~Logger() = default;
+
+  void logMessage(const LogMessage &message) const final override;
 
 private:
   std::unique_ptr<Sink> sink_;

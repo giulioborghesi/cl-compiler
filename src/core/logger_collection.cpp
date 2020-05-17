@@ -3,12 +3,11 @@
 
 namespace cool {
 
-std::shared_ptr<Logger>
-LoggerCollection::logger(const std::string &loggerName) const {
+ILogger *LoggerCollection::logger(const std::string &loggerName) const {
   if (!loggers_.count(loggerName)) {
     return nullptr;
   }
-  return loggers_.find(loggerName)->second;
+  return loggers_.find(loggerName)->second.get();
 }
 
 void LoggerCollection::logMessage(const LogMessage &message) const {
@@ -18,7 +17,7 @@ void LoggerCollection::logMessage(const LogMessage &message) const {
 }
 
 Status LoggerCollection::registerLogger(const std::string &loggerName,
-                                        std::shared_ptr<Logger> logger) {
+                                        std::shared_ptr<ILogger> logger) {
   if (loggers_.count(loggerName)) {
     return GenericError("Error: logger is already defined");
   }

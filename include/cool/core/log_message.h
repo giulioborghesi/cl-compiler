@@ -27,8 +27,8 @@ public:
   ///
   /// \warning For simplicity of implementation, this method assumes that the
   /// message format and the format arguments are correct. It is the
-  /// responsibility of the calling code to ensure that these preconditions are
-  /// satisfied
+  /// responsibility of the calling code to ensure that these preconditions
+  /// are satisfied
   ///
   /// \param[in] format debug message format
   /// \param[in] args format arguments
@@ -40,8 +40,8 @@ public:
   ///
   /// \warning For simplicity of implementation, this method assumes that the
   /// message format and the format arguments are correct. It is the
-  /// responsibility of the calling code to ensure that these preconditions are
-  /// satisfied
+  /// responsibility of the calling code to ensure that these preconditions
+  /// are satisfied
   ///
   /// \param[in] format error message format
   /// \param[in] args format arguments
@@ -59,8 +59,8 @@ private:
   ///
   /// \warning For simplicity of implementation, this method assumes that the
   /// message format and the format arguments are correct. It is the
-  /// responsibility of the calling code to ensure that these preconditions are
-  /// satisfied
+  /// responsibility of the calling code to ensure that these preconditions
+  /// are satisfied
   ///
   /// \param[in] format message format
   /// \param[in] severity message severity

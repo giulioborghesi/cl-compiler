@@ -10,6 +10,9 @@
 
 namespace cool {
 
+/// Forward declaration
+class LoggerCollection;
+
 /// Class that represents the context of a compiler pass / analysis
 class Context {
 
@@ -43,6 +46,11 @@ public:
   const IdentifierType currentClassID() const {
     return classRegistry_->typeID(currentClassName_);
   }
+
+  /// Get the logger
+  ///
+  /// \return a pointer to the logger
+  LoggerCollection *logger() const { return logger_.get(); }
 
   /// Get or create the method table for the currently active class
   ///
@@ -121,6 +129,7 @@ private:
 
   std::string currentClassName_;
   std::unique_ptr<ClassRegistry> classRegistry_;
+  std::shared_ptr<LoggerCollection> logger_;
 
   TableCollectionT<std::unique_ptr<SymbolTableT>> symbolTables_;
   TableCollectionT<std::unique_ptr<MethodTableT>> methodTables_;

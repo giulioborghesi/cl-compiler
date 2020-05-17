@@ -24,14 +24,14 @@ public:
   ///
   /// \return the location in the current line of the program text where the
   /// node is defined
-  uint32_t getLineLoc() const { return lloc_; }
+  uint32_t lineLoc() const { return lloc_; }
 
   /// Get the location in the current line of the program text where the node is
   /// defined
   ///
   /// \return the location in the current line of the program text where the
   /// node is defined
-  uint32_t getCharLoc() const { return cloc_; }
+  uint32_t charLoc() const { return cloc_; }
 
   /// Visit the node and execute the operation associated with the analysis pass
   ///
