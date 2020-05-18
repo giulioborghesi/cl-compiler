@@ -13,13 +13,11 @@ Context::Context(ClassRegistry *classRegistry,
     : classRegistry_(classRegistry), logger_(logger) {}
 
 template <typename T>
-T *Context::genericTable(TableCollectionT<std::unique_ptr<T>> &tables) {
+void Context::initializeGenericTable(
+    TableCollectionT<std::unique_ptr<T>> &tables) {
   const auto classID = classRegistry_->typeID(currentClassName_);
-  if (tables.count(classID)) {
-    return tables.find(classID)->second.get();
-  }
+  assert(tables.count(classID) == 0);
 
-  /// Table does not exist, create it
   tables.insert({classID, std::make_unique<T>()});
   auto table = tables.find(classID)->second.get();
 
@@ -30,13 +28,12 @@ T *Context::genericTable(TableCollectionT<std::unique_ptr<T>> &tables) {
     auto parentTable = tables.find(parentID)->second.get();
     table->setParentTable(parentTable);
   }
-  return table;
 }
 
-template Context::SymbolTableT *Context::genericTable<Context::SymbolTableT>(
+template void Context::initializeGenericTable<Context::SymbolTableT>(
     TableCollectionT<std::unique_ptr<Context::SymbolTableT>> &tables);
 
-template Context::MethodTableT *Context::genericTable<Context::MethodTableT>(
+template void Context::initializeGenericTable<Context::MethodTableT>(
     TableCollectionT<std::unique_ptr<Context::MethodTableT>> &tables);
 
 } // namespace cool

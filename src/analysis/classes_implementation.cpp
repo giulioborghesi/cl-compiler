@@ -11,6 +11,9 @@ namespace {
 
 /// \brief Helper function that compares the return types of two methods
 ///
+/// \note Two return types are considered equivalent if a. they are both
+/// SELF_TYPE or b. they refer to the same class
+///
 /// \param[in] lhs first return type to compare
 /// \param[in] rhs second return type to compare
 /// \return True if the return types are the same, false otherwise
@@ -59,22 +62,23 @@ Status ClassesImplementationPass::visit(Context *context, AttributeNode *node) {
 
   /// All good, insert symbol in table and return
   if (typeName == "SELF_TYPE") {
-    auto type = registry->toType(context->currentClassName(), true);
+    auto type = registry->toSelfType(context->currentClassName());
     symbolTable->addElement(node->id(), type);
   } else {
-    auto type = registry->toType(typeName, false);
+    auto type = registry->toType(typeName);
     symbolTable->addElement(node->id(), type);
   }
   return Status::Ok();
 }
 
 Status ClassesImplementationPass::visit(Context *context, ClassNode *node) {
-  /// Initialize class context and symbol table
-  auto *symbolTable = context->symbolTable();
+  /// Initialize class context, symbol table and method table
   context->setCurrentClassName(node->className());
+  context->initializeTables();
+  auto *symbolTable = context->symbolTable();
 
   /// Install self in symbol table
-  auto type = context->classRegistry()->toType(node->className(), true);
+  auto type = context->classRegistry()->toSelfType(node->className());
   symbolTable->addElement("self", type);
 
   /// Formal types of class attributes must be valid
@@ -107,7 +111,7 @@ Status ClassesImplementationPass::visit(Context *context, MethodNode *node) {
   if (methodTable->findKeyInScope(node->id())) {
     LOG_ERROR_MESSAGE_WITH_LOCATION(
         logger, node, "Method %s cannot be redefined", node->id().c_str());
-    methodImplementationOk = false;
+    return Status::Error();
   }
 
   /// Verify method formal parameters
@@ -128,31 +132,33 @@ Status ClassesImplementationPass::visit(Context *context, MethodNode *node) {
     const auto &typeName = argument->typeName();
     if (!registry->hasClass(typeName)) {
       methodImplementationOk = false;
-      LOG_ERROR_MESSAGE_WITH_LOCATION(logger, argument,
-                                      "Type %s of parameter %s is not declared",
-                                      typeName.c_str(), argument->id().c_str());
+      LOG_ERROR_MESSAGE_WITH_LOCATION(
+          logger, argument,
+          "Type %s of parameter %s in method %s is not declared",
+          typeName.c_str(), argument->id().c_str(), node->id().c_str());
       continue;
     }
 
     /// A parameter can only be used once in a method
     if (argsIds.count(argument->id())) {
       methodImplementationOk = false;
-      LOG_ERROR_MESSAGE_WITH_LOCATION(logger, argument,
-                                      "Parameter %s cannot be reused",
-                                      argument->id().c_str());
+      LOG_ERROR_MESSAGE_WITH_LOCATION(
+          logger, argument, "Parameter %s in method %s cannot be reused",
+          argument->id().c_str(), node->id().c_str());
       continue;
     }
 
     /// self is not a valid parameter
     if (argument->id() == "self") {
       methodImplementationOk = false;
-      LOG_ERROR_MESSAGE_WITH_LOCATION(logger, argument,
-                                      "self is not a valid parameter name");
+      LOG_ERROR_MESSAGE_WITH_LOCATION(
+          logger, argument, "'self' in method %s is not a valid parameter name",
+          node->id().c_str());
       continue;
     }
 
     /// No error detected, add argument to method parameters list
-    argsTypes.push_back(registry->toType(typeName, false));
+    argsTypes.push_back(registry->toType(typeName));
     argsIds.insert({argument->id()});
   }
 
@@ -161,12 +167,15 @@ Status ClassesImplementationPass::visit(Context *context, MethodNode *node) {
   const auto &returnTypeName = node->returnTypeName();
   if (returnTypeName == "SELF_TYPE") {
     const auto &typeName = context->currentClassName();
-    returnType = registry->toType(typeName, true);
+    returnType = registry->toSelfType(typeName);
   } else {
     if (!registry->hasClass(returnTypeName)) {
+      LOG_ERROR_MESSAGE_WITH_LOCATION(
+          logger, node, "Return type %s of method %s is not defined",
+          returnTypeName.c_str(), node->id().c_str());
       methodImplementationOk = false;
     } else {
-      returnType = registry->toType(returnTypeName, false);
+      returnType = registry->toType(returnTypeName);
     }
   }
 
@@ -182,20 +191,45 @@ Status ClassesImplementationPass::visit(Context *context, MethodNode *node) {
 
     /// Number of arguments must be the same
     if (parentRecord.argsCount() != argsTypes.size()) {
+      LOG_ERROR_MESSAGE_WITH_LOCATION(
+          logger, node,
+          "Method %s overrides a parent class method, but the number of "
+          "arguments is not the same. Expected %u arguments, found %lu",
+          node->id().c_str(), parentRecord.argsCount(), argsTypes.size());
       return Status::Error();
     }
 
     /// Arguments types must be the same
     for (size_t i = 0; i < parentRecord.argsCount(); ++i) {
       if (argsTypes[i].typeID != parentRecord.argsTypes()[i].typeID) {
+        methodImplementationOk = false;
+        LOG_ERROR_MESSAGE_WITH_LOCATION(
+            logger, node,
+            "Type of argument %s in method %s differs from parent method. "
+            "Expected %s, actual %s",
+            node->arguments()[i]->id().c_str(), node->id().c_str(),
+            registry->typeName(parentRecord.argsTypes()[i]).c_str(),
+            registry->typeName(argsTypes[i]).c_str());
         return Status::Error();
       }
     }
 
     /// Return types must be the same
     if (!SameReturnType(returnType, parentRecord.returnType())) {
-      return Status::Error();
+      methodImplementationOk = false;
+      LOG_ERROR_MESSAGE_WITH_LOCATION(
+          logger, node,
+          "Return type of method %s differs from parent method. Expected %s, "
+          "actual %s",
+          node->id().c_str(),
+          registry->typeName(parentRecord.returnType()).c_str(),
+          registry->typeName(returnType).c_str());
     }
+  }
+
+  /// If an error was detected, return
+  if (!methodImplementationOk) {
+    return Status::Error();
   }
 
   /// All good, add method signature to table and return

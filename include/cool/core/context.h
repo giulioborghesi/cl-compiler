@@ -50,6 +50,12 @@ public:
     return classRegistry_->typeID(currentClassName_);
   }
 
+  /// Initialize symbol and method tables
+  void initializeTables() {
+    initializeGenericTable(symbolTables_);
+    initializeGenericTable(methodTables_);
+  }
+
   /// Get the logger
   ///
   /// \return a pointer to the logger
@@ -58,7 +64,7 @@ public:
   /// Get or create the method table for the currently active class
   ///
   /// \return the method table for the currently active class
-  MethodTableT *methodTable() { return genericTable(methodTables_); }
+  MethodTableT *methodTable() { return methodTable(currentClassName_); }
 
   /// Get the method table for the specified class given its name
   ///
@@ -95,7 +101,7 @@ public:
   /// Get or create the symbol table for the currently active class
   ///
   /// \return the symbol table for the currently active class
-  SymbolTableT *symbolTable() { return genericTable(symbolTables_); }
+  SymbolTableT *symbolTable() { return symbolTable(currentClassName_); }
 
   /// Get the symbol table for the specified class
   ///
@@ -123,12 +129,11 @@ public:
   }
 
 private:
-  /// Ger or create a table for the currently active class
+  /// Initialize a table for the currently active class
   ///
   /// \param[in] tables tables collection
-  /// \return a table for the currently active class
   template <typename T>
-  T *genericTable(TableCollectionT<std::unique_ptr<T>> &tables);
+  void initializeGenericTable(TableCollectionT<std::unique_ptr<T>> &tables);
 
   std::string currentClassName_;
   std::unique_ptr<ClassRegistry> classRegistry_;

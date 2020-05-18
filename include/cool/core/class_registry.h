@@ -100,17 +100,35 @@ public:
     return it->second;
   }
 
-  /// Return an ExprType object given the class name and self attribute
+  /// Return an ExprType object given the class name
   ///
   /// \warning className must be a valid class in the program
   ///
-  /// \param[in] className class name, or name of containing class
-  /// \param[in] isSelf true if type is SELF_TYPE
+  /// \param[in] className class name
   /// \return an ExprType object
-  ExprType toType(const std::string &className, const bool isSelf) const {
-    assert(namesToIDs_.count(className) > 0);
-    const auto typeID = namesToIDs_.find(className)->second;
-    return ExprType{.typeID = typeID, .isSelf = isSelf};
+  ExprType toType(const std::string &className) const {
+    return toTypeImpl(className, false);
+  }
+
+  /// Return an ExprType object for SELF_TYPE given the containing class name
+  ///
+  /// \warning className must be a valid class in the program
+  ///
+  /// \param[in] className containing class name
+  /// \return an ExprType object
+  ExprType toSelfType(const std::string &className) const {
+    return toTypeImpl(className, true);
+  }
+
+  /// Return the type name associated with an ExprType object
+  ///
+  /// \param[in] exprType expression type
+  /// \return the type name associated with the expression type
+  std::string typeName(const ExprType &exprType) const {
+    if (exprType.isSelf) {
+      return "SELF_TYPE";
+    }
+    return this->className(exprType.typeID);
   }
 
 private:
@@ -128,6 +146,12 @@ private:
   /// \param[in] classID class ID
   /// \return the distance to the base class
   uint32_t distanceToRoot(const IdentifierType &classID) const;
+
+  ExprType toTypeImpl(const std::string &className, const bool isSelf) const {
+    assert(namesToIDs_.count(className) > 0);
+    const auto typeID = namesToIDs_.find(className)->second;
+    return ExprType{.typeID = typeID, .isSelf = isSelf};
+  }
 
   /// Dictionaries
   std::unordered_map<std::string, IdentifierType> namesToIDs_;
