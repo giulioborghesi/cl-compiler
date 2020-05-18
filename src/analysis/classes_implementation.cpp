@@ -1,6 +1,9 @@
 #include <cool/analysis/classes_implementation.h>
 #include <cool/core/context.h>
+#include <cool/core/logger_collection.h>
 #include <cool/ir/class.h>
+
+#include <unordered_set>
 
 namespace cool {
 
@@ -26,46 +29,53 @@ bool SameReturnType(const ExprType &lhs, const ExprType &rhs) {
 } // namespace
 
 Status ClassesImplementationPass::visit(Context *context, AttributeNode *node) {
-  /// Fetch class registry and symbol table
-  auto registry = context->classRegistry();
-  auto symbolTable = context->symbolTable();
+  /// Fetch class registry, logger and symbol table
+  auto *registry = context->classRegistry();
+  auto *logger = context->logger();
+  auto *symbolTable = context->symbolTable();
 
   /// Attribute id cannot be self
   if (node->id() == "self") {
-    return EmptyError();
+    LOG_ERROR_MESSAGE_WITH_LOCATION(logger, node,
+                                    "'self' is not a valid attribute name");
+    return Status::Error();
   }
 
   /// Attribute must not have been defined before or in parent classes
   if (symbolTable->findKeyInTable(node->id())) {
-    return EmptyError();
+    LOG_ERROR_MESSAGE_WITH_LOCATION(
+        logger, node, "Attribute %s cannot be redefined", node->id().c_str());
+    return Status::Error();
   }
 
   /// Attribute must be of valid type
   const auto typeName = node->typeName();
   if (typeName != "SELF_TYPE" && !registry->hasClass(typeName)) {
-    return EmptyError();
+    LOG_ERROR_MESSAGE_WITH_LOCATION(logger, node,
+                                    "Attribute %s has undefined type %s",
+                                    node->id().c_str(), typeName.c_str());
+    return Status::Error();
   }
 
   /// All good, insert symbol in table and return
   if (typeName == "SELF_TYPE") {
-    auto typeExpr = registry->typeExpression(context->currentClassName(), true);
-    symbolTable->addElement(node->id(), typeExpr);
+    auto type = registry->toType(context->currentClassName(), true);
+    symbolTable->addElement(node->id(), type);
   } else {
-    auto typeExpr = registry->typeExpression(typeName, false);
-    symbolTable->addElement(node->id(), typeExpr);
+    auto type = registry->toType(typeName, false);
+    symbolTable->addElement(node->id(), type);
   }
   return Status::Ok();
 }
 
 Status ClassesImplementationPass::visit(Context *context, ClassNode *node) {
   /// Initialize class context and symbol table
+  auto *symbolTable = context->symbolTable();
   context->setCurrentClassName(node->className());
-  auto symbolTable = context->symbolTable();
 
   /// Install self in symbol table
-  auto typeExpr =
-      context->classRegistry()->typeExpression(node->className(), true);
-  symbolTable->addElement("self", typeExpr);
+  auto type = context->classRegistry()->toType(node->className(), true);
+  symbolTable->addElement("self", type);
 
   /// Formal types of class attributes must be valid
   bool classesImplementationOk = true;
@@ -83,38 +93,67 @@ Status ClassesImplementationPass::visit(Context *context, ClassNode *node) {
       classesImplementationOk = false;
     }
   }
-
-  if (!classesImplementationOk) {
-    return EmptyError();
-  }
-  return Status::Ok();
+  return classesImplementationOk ? Status::Ok() : Status::Error();
 }
 
 Status ClassesImplementationPass::visit(Context *context, MethodNode *node) {
-  /// Fetch class registry and method table
-  auto registry = context->classRegistry();
-  auto methodTable = context->methodTable();
+  /// Fetch class registry, logger and method table
+  auto *registry = context->classRegistry();
+  auto *logger = context->logger();
+  auto *methodTable = context->methodTable();
 
-  /// Method cannot be redefined in class
+  /// Method cannot be defined multiple times
   bool methodImplementationOk = true;
   if (methodTable->findKeyInScope(node->id())) {
+    LOG_ERROR_MESSAGE_WITH_LOCATION(
+        logger, node, "Method %s cannot be redefined", node->id().c_str());
     methodImplementationOk = false;
   }
 
-  /// Formal arguments types must be defined and not SELF_TYPE
+  /// Verify method formal parameters
   std::vector<ExprType> argsTypes;
+  std::unordered_set<std::string> argsIds;
   for (auto argument : node->arguments()) {
+    /// The type of a parameter cannot be SELF_TYPE
     if (argument->typeName() == "SELF_TYPE") {
       methodImplementationOk = false;
+      LOG_ERROR_MESSAGE_WITH_LOCATION(
+          logger, argument,
+          "Type of parameter %s in method %s cannot be SELF_TYPE",
+          argument->id().c_str(), node->id().c_str());
       continue;
     }
 
+    /// The type of a parameter must be valid
     const auto &typeName = argument->typeName();
     if (!registry->hasClass(typeName)) {
       methodImplementationOk = false;
-    } else {
-      argsTypes.push_back(registry->typeExpression(typeName, false));
+      LOG_ERROR_MESSAGE_WITH_LOCATION(logger, argument,
+                                      "Type %s of parameter %s is not declared",
+                                      typeName.c_str(), argument->id().c_str());
+      continue;
     }
+
+    /// A parameter can only be used once in a method
+    if (argsIds.count(argument->id())) {
+      methodImplementationOk = false;
+      LOG_ERROR_MESSAGE_WITH_LOCATION(logger, argument,
+                                      "Parameter %s cannot be reused",
+                                      argument->id().c_str());
+      continue;
+    }
+
+    /// self is not a valid parameter
+    if (argument->id() == "self") {
+      methodImplementationOk = false;
+      LOG_ERROR_MESSAGE_WITH_LOCATION(logger, argument,
+                                      "self is not a valid parameter name");
+      continue;
+    }
+
+    /// No error detected, add argument to method parameters list
+    argsTypes.push_back(registry->toType(typeName, false));
+    argsIds.insert({argument->id()});
   }
 
   /// Return type must be defined or be SELF_TYPE
@@ -122,17 +161,18 @@ Status ClassesImplementationPass::visit(Context *context, MethodNode *node) {
   const auto &returnTypeName = node->returnTypeName();
   if (returnTypeName == "SELF_TYPE") {
     const auto &typeName = context->currentClassName();
-    returnType = registry->typeExpression(typeName, true);
+    returnType = registry->toType(typeName, true);
   } else {
     if (!registry->hasClass(returnTypeName)) {
       methodImplementationOk = false;
     } else {
-      returnType = registry->typeExpression(returnTypeName, false);
+      returnType = registry->toType(returnTypeName, false);
     }
   }
 
+  /// Stop if errors were detected
   if (!methodImplementationOk) {
-    return EmptyError();
+    return Status::Error();
   }
 
   /// Methods defined in parent classes must have identical signatures
@@ -142,19 +182,19 @@ Status ClassesImplementationPass::visit(Context *context, MethodNode *node) {
 
     /// Number of arguments must be the same
     if (parentRecord.argsCount() != argsTypes.size()) {
-      return EmptyError();
+      return Status::Error();
     }
 
     /// Arguments types must be the same
     for (size_t i = 0; i < parentRecord.argsCount(); ++i) {
       if (argsTypes[i].typeID != parentRecord.argsTypes()[i].typeID) {
-        return EmptyError();
+        return Status::Error();
       }
     }
 
     /// Return types must be the same
     if (!SameReturnType(returnType, parentRecord.returnType())) {
-      return EmptyError();
+      return Status::Error();
     }
   }
 
@@ -173,7 +213,7 @@ Status ClassesImplementationPass::visit(Context *context, ProgramNode *node) {
   }
 
   if (!classesImplementationOk) {
-    return EmptyError();
+    return GenericError("Error. Class arguments or methods contain errors");
   }
   return Status::Ok();
 }

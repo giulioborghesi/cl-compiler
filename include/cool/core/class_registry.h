@@ -100,8 +100,15 @@ public:
     return it->second;
   }
 
-  ExprType typeExpression(const std::string &className,
-                          const bool isSelf) const {
+  /// Return an ExprType object given the class name and self attribute
+  ///
+  /// \warning className must be a valid class in the program
+  ///
+  /// \param[in] className class name, or name of containing class
+  /// \param[in] isSelf true if type is SELF_TYPE
+  /// \return an ExprType object
+  ExprType toType(const std::string &className, const bool isSelf) const {
+    assert(namesToIDs_.count(className) > 0);
     const auto typeID = namesToIDs_.find(className)->second;
     return ExprType{.typeID = typeID, .isSelf = isSelf};
   }
