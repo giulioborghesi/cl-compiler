@@ -1,5 +1,6 @@
 #include <cool/analysis/type_check.h>
 #include <cool/core/context.h>
+#include <cool/core/logger_collection.h>
 #include <cool/ir/expr.h>
 
 #include <iostream>
@@ -8,12 +9,21 @@
 namespace cool {
 
 Status TypeCheckPass::visit(Context *context, AssignmentExprNode *node) {
+  auto *logger = context->logger();
+
   /// Variable must be present in symbol table
   const auto *symbolTable = context->symbolTable();
   if (!symbolTable->findKeyInTable(node->id())) {
-    return GenericError("Error: undefined variable");
+    LOG_ERROR_MESSAGE_WITH_LOCATION(logger, node, "Variable %s is not defined",
+                                    node->id().c_str());
+    return Status::Error();
   }
-  const auto idType = symbolTable->get(node->id());
+
+  /// Variable cannot be self
+  if (node->id() == "self") {
+    LOG_ERROR_MESSAGE_WITH_LOCATION(logger, node, "Cannot assign to 'self'");
+    return Status::Error();
+  }
 
   /// Type-check right hand side of assignment expression
   auto statusValue = node->rhsExpr()->visitNode(context, this);
@@ -21,11 +31,22 @@ Status TypeCheckPass::visit(Context *context, AssignmentExprNode *node) {
     return statusValue;
   }
 
+  /// Get the type of the identifier
+  const auto idType = symbolTable->get(node->id());
+
   /// Value type must be a subtype of id type
   const auto *registry = context->classRegistry();
   if (!registry->conformTo(node->rhsExpr()->type(), idType)) {
-    return GenericError("Error: value type is not a subtype of id type");
+    LOG_ERROR_MESSAGE_WITH_LOCATION(
+        logger, node,
+        "Type of right hand side expression evaluates to %s, which is not a "
+        "subtype of %s",
+        registry->typeName(node->rhsExpr()->type()).c_str(),
+        registry->typeName(idType).c_str());
+    return Status::Error();
   }
+
+  /// All good. Set node type and return
   node->setType(node->rhsExpr()->type());
   return Status::Ok();
 }
@@ -35,11 +56,15 @@ Status TypeCheckPass::visit(Context *context,
   const auto intTypeID = context->classRegistry()->typeID("Int");
   const ExprType returnType = ExprType{.typeID = intTypeID, .isSelf = false};
 
-  auto typeCheckF = [context](const auto &lhsTypeID, const auto &rhsTypeID) {
+  auto typeCheckF = [context, node](const auto &lhsTypeID,
+                                    const auto &rhsTypeID) {
     const auto intTypeID = context->classRegistry()->typeID("Int");
     if (lhsTypeID != intTypeID || rhsTypeID != intTypeID) {
-      return GenericError(
-          "Error: only integer operands allowed in arithmetic expressions");
+      auto *logger = context->logger();
+      LOG_ERROR_MESSAGE_WITH_LOCATION(
+          logger, node,
+          "Arithmetic expressions between non-integer types are not supported");
+      return Status::Error();
     }
     return Status::Ok();
   };
@@ -49,8 +74,7 @@ Status TypeCheckPass::visit(Context *context,
 
 Status TypeCheckPass::visit(Context *context,
                             BinaryExprNode<ComparisonOpID> *node) {
-  const auto boolTypeID = context->classRegistry()->typeID("Bool");
-  const ExprType returnType = ExprType{.typeID = boolTypeID, .isSelf = false};
+  const ExprType returnType = context->classRegistry()->toType("Bool");
 
   /// Allowed types in equality expression
   std::unordered_set<IdentifierType> types;
@@ -69,11 +93,20 @@ Status TypeCheckPass::visit(Context *context,
   };
 
   /// Type-check function for equality expressions
-  auto typeCheckE = [context, types](const auto &lhsTypeID,
-                                     const auto &rhsTypeID) {
+  auto typeCheckE = [context, node, types](const auto &lhsTypeID,
+                                           const auto &rhsTypeID) {
     if (types.count(lhsTypeID) || types.count(rhsTypeID)) {
       if (lhsTypeID != rhsTypeID) {
-        return GenericError("Error: incompatible types");
+        auto *registry = context->classRegistry();
+        auto *logger = context->logger();
+        LOG_ERROR_MESSAGE_WITH_LOCATION(
+            logger, node,
+            "Equality comparison only possible between objects of the same "
+            "type for Int, String and Bool. Types of objects compared are %s "
+            "and %s",
+            registry->className(lhsTypeID).c_str(),
+            registry->className(rhsTypeID).c_str());
+        return Status::Error();
       }
     }
     return Status::Ok();
@@ -100,9 +133,7 @@ Status TypeCheckPass::visit(Context *context, BlockExprNode *node) {
 
 Status TypeCheckPass::visit(Context *context, BooleanExprNode *node) {
   const auto *registry = context->classRegistry();
-  const auto boolTypeID = registry->typeID("Bool");
-
-  node->setType(ExprType{.typeID = boolTypeID, .isSelf = false});
+  node->setType(registry->toType("Bool"));
   return Status::Ok();
 }
 
@@ -186,8 +217,11 @@ Status TypeCheckPass::visit(Context *context, DispatchExprNode *node) {
 
 Status TypeCheckPass::visit(Context *context, IdExprNode *node) {
   auto *symbolTable = context->symbolTable();
+  auto *logger = context->logger();
   if (!symbolTable->findKeyInTable(node->id())) {
-    return GenericError("Error: undefined variable");
+    LOG_ERROR_MESSAGE_WITH_LOCATION(logger, node, "Variable %s is not defined",
+                                    node->id().c_str());
+    return Status::Error();
   }
   node->setType(symbolTable->get(node->id()));
   return Status::Ok();
@@ -215,9 +249,13 @@ Status TypeCheckPass::visit(Context *context, IfExprNode *node) {
   }
 
   /// If-expression type must be Bool
-  const auto boolTypeID = registry->typeID("Bool");
-  if (node->ifExpr()->type().typeID != boolTypeID) {
-    return GenericError("Error: if-expression type is not Bool");
+  if (node->ifExpr()->type() != registry->toType("Bool")) {
+    auto *logger = context->logger();
+    LOG_ERROR_MESSAGE_WITH_LOCATION(
+        logger, node->ifExpr(),
+        "Condition in if construct must be of Bool type. Actual type: %s",
+        registry->className(node->ifExpr()->type().typeID).c_str());
+    return Status::Error();
   }
 
   /// Compute expression type and return
@@ -300,16 +338,14 @@ Status TypeCheckPass::visit(Context *context, LetExprNode *node) {
 
 Status TypeCheckPass::visit(Context *context, LiteralExprNode<int32_t> *node) {
   const auto *registry = context->classRegistry();
-  const auto intTypeID = registry->typeID("Int");
-  node->setType(ExprType{.typeID = intTypeID, .isSelf = false});
+  node->setType(registry->toType("Int"));
   return Status::Ok();
 }
 
 Status TypeCheckPass::visit(Context *context,
                             LiteralExprNode<std::string> *node) {
   const auto *registry = context->classRegistry();
-  const auto stringTypeID = registry->typeID("String");
-  node->setType(ExprType{.typeID = stringTypeID, .isSelf = false});
+  node->setType(registry->toType("String"));
   return Status::Ok();
 }
 
@@ -318,19 +354,21 @@ Status TypeCheckPass::visit(Context *context, NewExprNode *node) {
 
   /// SELF_TYPE needs a special treatment
   if (node->typeName() == "SELF_TYPE") {
-    const auto typeID = context->currentClassID();
-    node->setType(ExprType{.typeID = typeID, .isSelf = true});
+    node->setType(registry->toSelfType(context->currentClassName()));
     return Status::Ok();
   }
 
   /// Type must be valid
   if (!registry->hasClass(node->typeName())) {
-    return GenericError("Error: undefined type in new expression");
+    auto *logger = context->logger();
+    LOG_ERROR_MESSAGE_WITH_LOCATION(logger, node,
+                                    "Type %s in new expression is not defined",
+                                    node->typeName().c_str());
+    return Status::Error();
   }
 
   /// Assign type to expression and return
-  const auto typeID = registry->typeID(node->typeName());
-  node->setType(ExprType{.typeID = typeID, .isSelf = false});
+  node->setType(registry->toType(node->typeName()));
   return Status::Ok();
 }
 
@@ -391,9 +429,13 @@ Status TypeCheckPass::visit(Context *context, WhileExprNode *node) {
 
   /// Type of loop condition must be bool
   const auto *registry = context->classRegistry();
-  const auto boolTypeID = registry->typeID("Bool");
-  if (node->loopCond()->type().typeID != boolTypeID) {
-    return GenericError("Error: while-cond expression is not Bool");
+  auto *logger = context->logger();
+  if (node->loopCond()->type() != registry->toType("Bool")) {
+    LOG_ERROR_MESSAGE_WITH_LOCATION(
+        logger, node->loopCond(),
+        "Loop condition must be of type Bool. Actual type: %s",
+        registry->typeName(node->loopCond()->type()).c_str());
+    return Status::Error();
   }
 
   /// Type-check loop body expression
@@ -403,8 +445,7 @@ Status TypeCheckPass::visit(Context *context, WhileExprNode *node) {
   }
 
   /// Type of while expression is Object
-  const auto objectTypeID = registry->typeID("Object");
-  node->setType(ExprType{.typeID = objectTypeID, .isSelf = false});
+  node->setType(registry->toType("Object"));
   return Status::Ok();
 }
 
@@ -413,7 +454,6 @@ Status
 TypeCheckPass::visitBinaryExpr(Context *context, BinaryExprNode<OpType> *node,
                                const ExprType &returnType, FuncT &&func) {
   const auto *registry = context->classRegistry();
-  const auto intTypeID = registry->typeID("Int");
 
   /// Type-check left subexpression
   auto statusLhs = node->lhsExpr()->visitNode(context, this);
@@ -441,9 +481,8 @@ TypeCheckPass::visitBinaryExpr(Context *context, BinaryExprNode<OpType> *node,
 }
 
 Status TypeCheckPass::visitIsVoidExpr(Context *context, UnaryExprNode *node) {
-  /// Assign Bool type to isvoid expression
-  const auto boolTypeID = context->classRegistry()->typeID("Bool");
-  node->setType(ExprType{.typeID = boolTypeID, .isSelf = false});
+  /// Assign Bool type to isvoid expression and return
+  node->setType(context->classRegistry()->toType("Bool"));
   return Status::Ok();
 }
 

@@ -1,1 +1,1 @@
-add_library(lib_ir STATIC class.cpp expr.cpp)
+add_library(lib_ir STATIC class.cpp common.cpp expr.cpp)

@@ -30,6 +30,9 @@ public:
     return logs_[idx];
   }
 
+  /// Reset the logged messages
+  void reset() { logs_.clear(); }
+
 private:
   std::vector<LogMessage> logs_;
 };
