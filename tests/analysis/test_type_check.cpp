@@ -1,3 +1,4 @@
+#include <cool/analysis/classes_implementation.h>
 #include <cool/analysis/type_check.h>
 #include <cool/core/class_registry.h>
 #include <cool/core/context.h>
@@ -17,6 +18,38 @@ namespace {
 
 /// Logger name
 const std::string LOGGER_NAME = "StringLogger";
+
+/// Alias for methods info type
+using MethodsInfoType = std::vector<
+    std::pair<std::string, std::vector<std::pair<std::string, std::string>>>>;
+
+/// Helper function to create a shared pointer to a class with methods
+///
+/// \param[in] className class name
+/// \param[in] parentName parent class name
+/// \param[in] methodsInfo list of method name / method parameters
+/// \param[in] methodsReturnTypes list of method return types
+/// \return a shared point to a class with methods
+ClassNodePtr
+MakeClassWithMethods(const std::string &className,
+                     const std::string &parentName,
+                     const MethodsInfoType &methodsInfo,
+                     const std::vector<std::string> &methodsReturnTypes) {
+  /// Create a vector of methods from a list of methods info
+  std::vector<GenericAttributeNodePtr> methods;
+  for (size_t i = 0; i < methodsInfo.size(); ++i) {
+    std::vector<FormalNodePtr> args;
+    for (auto &arg : methodsInfo[i].second) {
+      args.push_back(FormalNode::MakeFormalNode(arg.first, arg.second, 0, 0));
+    }
+
+    methods.push_back(MethodNode::MakeMethodNode(
+        methodsInfo[i].first, methodsReturnTypes[i], args, 0, 0));
+  }
+
+  /// Create and return the class
+  return ClassNode::MakeClassNode(className, parentName, methods, false, 0, 0);
+}
 
 /// Helper function to initialize a context for type checking
 std::unique_ptr<Context> MakeContextWithDefaultClasses() {
@@ -44,10 +77,36 @@ std::unique_ptr<Context> MakeContextWithDefaultClasses() {
     context->initializeTables();
   }
 
+  /// Add class with methods to context
+  auto methodsClassA = MakeClassWithMethods(
+      "Z", "A", {{"methodA", {{"b", "B"}}}, {"methodB", {{"d", "D"}}}},
+      {"SELF_TYPE", "B"});
+  context->classRegistry()->addClass(methodsClassA);
+  context->setCurrentClassName("Z");
+  context->initializeTables();
+
+  // Initialize method table
+  auto implementationPass = std::make_unique<ClassesImplementationPass>();
+  for (auto methodNode : methodsClassA->methods()) {
+    implementationPass->visit(context.get(), methodNode.get());
+  }
+
+  auto methodsClassB = MakeClassWithMethods(
+      "X", "Z", {{"methodA", {{"b", "B"}}}, {"methodB", {{"d", "D"}}}},
+      {"SELF_TYPE", "B"});
+  context->classRegistry()->addClass(methodsClassB);
+  context->setCurrentClassName("X");
+  context->initializeTables();
+
+  // Initialize method table
+  for (auto methodNode : methodsClassB->methods()) {
+    implementationPass->visit(context.get(), methodNode.get());
+  }
+
   /// Set A to current class and return
   context->setCurrentClassName("A");
   return context;
-}
+} // namespace
 
 /// Helper function to extract the logger from the semantic analysis context
 StringLogger *GetLogger(Context *context) {
@@ -322,6 +381,159 @@ TEST(TypeCheckTests, BooleanExprNodeTests) {
   }
 }
 
+/// DispatchExprNode
+TEST(TypeCheckTests, DispatchExprNode) {
+  /// Create context
+  auto context = MakeContextWithDefaultClasses();
+  auto *registry = context->classRegistry();
+
+  /// Create pass
+  auto typeCheckPass = std::make_unique<TypeCheckPass>();
+
+  /// Create caller node and register symbol
+  auto nodeC = IdExprNode::MakeIdExprNode("z", 0, 0);
+  context->symbolTable()->addElement("z", registry->toType("Z"));
+
+  /// Create parameter nodes and register symbol
+  auto nodeP1 = IdExprNode::MakeIdExprNode("p1", 0, 0);
+  auto nodeP2 = IdExprNode::MakeIdExprNode("p2", 0, 0);
+  context->symbolTable()->addElement("p1", registry->toType("B"));
+  context->symbolTable()->addElement("p2", registry->toType("D"));
+
+  /// Valid dispatch expression with SELF_TYPE return type
+  {
+    auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodA", nodeC,
+                                                        {nodeP1}, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), nodeM.get());
+    ASSERT_TRUE(status.isOk());
+    ASSERT_EQ(nodeM->type(), nodeC->type());
+  }
+
+  /// Valid dispatch expression with SELF_TYPE return type using this as
+  /// dispatch object
+  {
+    context->setCurrentClassName("Z");
+    auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodA", nullptr,
+                                                        {nodeP1}, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), nodeM.get());
+    ASSERT_TRUE(status.isOk());
+    ExprType expectedType{.typeID = nodeC->type().typeID, .isSelf = true};
+    ASSERT_EQ(nodeM->type(), expectedType);
+    context->setCurrentClassName("A");
+  }
+
+  /// Valid dispatch expression with return type other than SELF_TYPE
+  {
+    auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodB", nodeC,
+                                                        {nodeP2}, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), nodeM.get());
+    ASSERT_TRUE(status.isOk());
+    ASSERT_EQ(nodeM->type(), nodeP1->type());
+  }
+
+  /// Undefined method in dispatch object
+  {
+    auto *logger = GetLogger(context.get());
+    auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodC", nullptr,
+                                                        {nodeP1}, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), nodeM.get());
+    ASSERT_FALSE(status.isOk());
+    ASSERT_EQ(logger->loggedMessageCount(), 1);
+    ASSERT_EQ(logger->loggedMessage(0).message(),
+              "Error: line 0, column 0. Method methodC of class A has not been "
+              "defined");
+    logger->reset();
+  }
+
+  /// Undefined method in caller object
+  {
+    auto *logger = GetLogger(context.get());
+    auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodC", nodeC,
+                                                        {nodeP1}, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), nodeM.get());
+    ASSERT_FALSE(status.isOk());
+    ASSERT_EQ(logger->loggedMessageCount(), 1);
+    ASSERT_EQ(logger->loggedMessage(0).message(),
+              "Error: line 0, column 0. Method methodC of class Z has not been "
+              "defined");
+    logger->reset();
+  }
+
+  /// Undefined method in self dispatch object
+  {
+    auto *logger = GetLogger(context.get());
+    auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodC", nullptr,
+                                                        {nodeP1}, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), nodeM.get());
+    ASSERT_FALSE(status.isOk());
+    ASSERT_EQ(logger->loggedMessageCount(), 1);
+    ASSERT_EQ(logger->loggedMessage(0).message(),
+              "Error: line 0, column 0. Method methodC of class A has not been "
+              "defined");
+    logger->reset();
+  }
+
+  /// Incorrect number of parameters
+  {
+    auto *logger = GetLogger(context.get());
+    auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodA", nodeC,
+                                                        {nodeP1, nodeP2}, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), nodeM.get());
+    ASSERT_FALSE(status.isOk());
+    ASSERT_EQ(logger->loggedMessageCount(), 1);
+    ASSERT_EQ(logger->loggedMessage(0).message(),
+              "Error: line 0, column 0. Method methodA of class Z invoked with "
+              "an invalid number of arguments. Expected: 1, actual: 2");
+    logger->reset();
+  }
+
+  /// Incorrect number of parameters on self dispatch object
+  {
+    auto *logger = GetLogger(context.get());
+    context->setCurrentClassName("Z");
+    auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodA", nullptr,
+                                                        {nodeP1, nodeP2}, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), nodeM.get());
+    ASSERT_FALSE(status.isOk());
+    ASSERT_EQ(logger->loggedMessageCount(), 1);
+    ASSERT_EQ(logger->loggedMessage(0).message(),
+              "Error: line 0, column 0. Method methodA of class Z invoked with "
+              "an invalid number of arguments. Expected: 1, actual: 2");
+    logger->reset();
+    context->setCurrentClassName("A");
+  }
+
+  /// Parameter of incorrect type
+  {
+    auto *logger = GetLogger(context.get());
+    auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodA", nodeC,
+                                                        {nodeP2}, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), nodeM.get());
+    ASSERT_FALSE(status.isOk());
+    ASSERT_EQ(logger->loggedMessageCount(), 1);
+    ASSERT_EQ(logger->loggedMessage(0).message(),
+              "Error: line 0, column 0. Argument 1 of method methodA in class "
+              "Z is of invalid type. Expected: B, actual: D");
+    logger->reset();
+  }
+
+  /// Parameter of incorrect type on self dispatch object
+  {
+    context->setCurrentClassName("Z");
+    auto *logger = GetLogger(context.get());
+    auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodA", nodeC,
+                                                        {nodeP2}, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), nodeM.get());
+    ASSERT_FALSE(status.isOk());
+    ASSERT_EQ(logger->loggedMessageCount(), 1);
+    ASSERT_EQ(logger->loggedMessage(0).message(),
+              "Error: line 0, column 0. Argument 1 of method methodA in class "
+              "Z is of invalid type. Expected: B, actual: D");
+    logger->reset();
+    context->setCurrentClassName("A");
+  }
+}
+
 /// IdExprNode
 TEST(TypeCheckTests, IdExprNodeTests) {
   /// Create context
@@ -500,6 +712,166 @@ TEST(TypeCheckTests, NewExprNodeTests) {
         "Error: line 0, column 0. Type C in new expression is not defined");
     logger->reset();
   }
+}
+
+/// StaticDispatchExprNode
+TEST(TypeCheckTests, StaticDispatchExprNode) {
+  /// Create context
+  auto context = MakeContextWithDefaultClasses();
+  auto *registry = context->classRegistry();
+
+  /// Create pass
+  auto typeCheckPass = std::make_unique<TypeCheckPass>();
+
+  /// Create caller node and register symbol
+  auto nodeC = IdExprNode::MakeIdExprNode("x", 0, 0);
+  context->symbolTable()->addElement("x", registry->toType("X"));
+
+  /// Create parameter nodes and register symbol
+  auto nodeP1 = IdExprNode::MakeIdExprNode("p1", 0, 0);
+  auto nodeP2 = IdExprNode::MakeIdExprNode("p2", 0, 0);
+  context->symbolTable()->addElement("p1", registry->toType("B"));
+  context->symbolTable()->addElement("p2", registry->toType("D"));
+
+  /// Valid static dispatch expression with SELF_TYPE return type. Dispatch type
+  /// used is that of parent class
+  {
+    auto nodeM = StaticDispatchExprNode::MakeStaticDispatchExprNode(
+        "methodA", "Z", nodeC, {nodeP1}, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), nodeM.get());
+    ASSERT_TRUE(status.isOk());
+    ASSERT_EQ(nodeM->type(), nodeC->type());
+  }
+
+  /// Valid static dispatch expression with SELF_TYPE return type. Dispatch type
+  /// used is same as caller type
+  {
+    auto nodeM = StaticDispatchExprNode::MakeStaticDispatchExprNode(
+        "methodA", "X", nodeC, {nodeP1}, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), nodeM.get());
+    ASSERT_TRUE(status.isOk());
+    ASSERT_EQ(nodeM->type(), nodeC->type());
+  }
+
+  /// Valid static dispatch expression with return type other than SELF_TYPE
+  {
+    auto nodeM = StaticDispatchExprNode::MakeStaticDispatchExprNode(
+        "methodB", "Z", nodeC, {nodeP2}, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), nodeM.get());
+    ASSERT_TRUE(status.isOk());
+    ASSERT_EQ(nodeM->type(), nodeP1->type());
+  }
+
+  /// Caller type does not conform to dispatch type
+  {
+    auto *logger = GetLogger(context.get());
+    auto nodeM = StaticDispatchExprNode::MakeStaticDispatchExprNode(
+        "methodA", "B", nodeC, {nodeP1}, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), nodeM.get());
+    ASSERT_FALSE(status.isOk());
+    ASSERT_EQ(logger->loggedMessageCount(), 1);
+    ASSERT_EQ(logger->loggedMessage(0).message(),
+              "Error: line 0, column 0. Caller type X does not conform to "
+              "dispatch type B");
+    logger->reset();
+  }
+
+  /// Undefined method in dispatch object
+  /*  {
+      auto *logger = GetLogger(context.get());
+      auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodC", nullptr,
+                                                          {nodeP1}, 0, 0);
+      auto status = typeCheckPass->visit(context.get(), nodeM.get());
+      ASSERT_FALSE(status.isOk());
+      ASSERT_EQ(logger->loggedMessageCount(), 1);
+      ASSERT_EQ(logger->loggedMessage(0).message(),
+                "Error: line 0, column 0. Method methodC of class A has not been
+    " "defined"); logger->reset();
+    }
+
+    /// Undefined method in caller object
+    {
+      auto *logger = GetLogger(context.get());
+      auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodC", nodeC,
+                                                          {nodeP1}, 0, 0);
+      auto status = typeCheckPass->visit(context.get(), nodeM.get());
+      ASSERT_FALSE(status.isOk());
+      ASSERT_EQ(logger->loggedMessageCount(), 1);
+      ASSERT_EQ(logger->loggedMessage(0).message(),
+                "Error: line 0, column 0. Method methodC of class Z has not been
+    " "defined"); logger->reset();
+    }
+
+    /// Undefined method in self dispatch object
+    {
+      auto *logger = GetLogger(context.get());
+      auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodC", nullptr,
+                                                          {nodeP1}, 0, 0);
+      auto status = typeCheckPass->visit(context.get(), nodeM.get());
+      ASSERT_FALSE(status.isOk());
+      ASSERT_EQ(logger->loggedMessageCount(), 1);
+      ASSERT_EQ(logger->loggedMessage(0).message(),
+                "Error: line 0, column 0. Method methodC of class A has not been
+    " "defined"); logger->reset();
+    }
+
+    /// Incorrect number of parameters
+    {
+      auto *logger = GetLogger(context.get());
+      auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodA", nodeC,
+                                                          {nodeP1, nodeP2}, 0,
+    0); auto status = typeCheckPass->visit(context.get(), nodeM.get());
+      ASSERT_FALSE(status.isOk());
+      ASSERT_EQ(logger->loggedMessageCount(), 1);
+      ASSERT_EQ(logger->loggedMessage(0).message(),
+                "Error: line 0, column 0. Method methodA of class Z invoked with
+    " "an invalid number of arguments. Expected: 1, actual: 2");
+      logger->reset();
+    }
+
+    /// Incorrect number of parameters on self dispatch object
+    {
+      auto *logger = GetLogger(context.get());
+      context->setCurrentClassName("Z");
+      auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodA", nullptr,
+                                                          {nodeP1, nodeP2}, 0,
+    0); auto status = typeCheckPass->visit(context.get(), nodeM.get());
+      ASSERT_FALSE(status.isOk());
+      ASSERT_EQ(logger->loggedMessageCount(), 1);
+      ASSERT_EQ(logger->loggedMessage(0).message(),
+                "Error: line 0, column 0. Method methodA of class Z invoked with
+    " "an invalid number of arguments. Expected: 1, actual: 2");
+      logger->reset();
+      context->setCurrentClassName("A");
+    }
+
+    /// Parameter of incorrect type
+    {
+      auto *logger = GetLogger(context.get());
+      auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodA", nodeC,
+                                                          {nodeP2}, 0, 0);
+      auto status = typeCheckPass->visit(context.get(), nodeM.get());
+      ASSERT_FALSE(status.isOk());
+      ASSERT_EQ(logger->loggedMessageCount(), 1);
+      ASSERT_EQ(logger->loggedMessage(0).message(),
+                "Error: line 0, column 0. Argument 1 of method methodA in class
+    " "Z is of invalid type. Expected: B, actual: D"); logger->reset();
+    }
+
+    /// Parameter of incorrect type on self dispatch object
+    {
+      context->setCurrentClassName("Z");
+      auto *logger = GetLogger(context.get());
+      auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodA", nodeC,
+                                                          {nodeP2}, 0, 0);
+      auto status = typeCheckPass->visit(context.get(), nodeM.get());
+      ASSERT_FALSE(status.isOk());
+      ASSERT_EQ(logger->loggedMessageCount(), 1);
+      ASSERT_EQ(logger->loggedMessage(0).message(),
+                "Error: line 0, column 0. Argument 1 of method methodA in class
+    " "Z is of invalid type. Expected: B, actual: D"); logger->reset();
+      context->setCurrentClassName("A");
+    }*/
 }
 
 /// WhileExprNode

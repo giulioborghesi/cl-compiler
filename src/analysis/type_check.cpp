@@ -196,13 +196,6 @@ Status TypeCheckPass::visit(Context *context, DispatchExprNode *node) {
 
   auto findCallerType = [context, node]() -> ExprType {
     const auto classID = context->currentClassID();
-    if (!node->hasExpr() || node->expr()->type().typeID == classID) {
-      return ExprType{.typeID = classID, .isSelf = false};
-    }
-    return node->expr()->type();
-  };
-
-  auto findReturnType = [context, node]() -> ExprType {
     if (node->hasExpr()) {
       return node->expr()->type();
     }
@@ -211,8 +204,7 @@ Status TypeCheckPass::visit(Context *context, DispatchExprNode *node) {
 
   /// Determine type of calling expression and complete type-check
   const auto callerType = findCallerType();
-  const auto returnType = findReturnType();
-  return visitDispatchExpr(context, node, callerType, returnType);
+  return visitDispatchExpr(context, node, callerType, callerType);
 }
 
 Status TypeCheckPass::visit(Context *context, IdExprNode *node) {
@@ -373,6 +365,8 @@ Status TypeCheckPass::visit(Context *context, NewExprNode *node) {
 }
 
 Status TypeCheckPass::visit(Context *context, StaticDispatchExprNode *node) {
+  auto *logger = context->logger();
+
   /// Type-check expression
   auto statusExpr = node->expr()->visitNode(context, this);
   if (!statusExpr.isOk()) {
@@ -382,16 +376,27 @@ Status TypeCheckPass::visit(Context *context, StaticDispatchExprNode *node) {
   /// Dispatch type must exist
   const auto *registry = context->classRegistry();
   if (!registry->hasClass(node->callerClass())) {
-    return GenericError("Error: static dispatch type is not defined");
+    LOG_ERROR_MESSAGE_WITH_LOCATION(logger, node,
+                                    "Dispatch type %s is not defined",
+                                    node->callerClass().c_str());
+    return Status::Error();
   }
 
-  /// Compute caller type
-  const auto callerTypeID = registry->typeID(node->callerClass());
-  const auto callerType = ExprType{.typeID = callerTypeID, .isSelf = false};
+  /// Compute caller and dispatch types
+  const auto callerType = node->expr()->type();
+  const auto dispatchType = registry->toType(node->callerClass());
 
-  /// Compute return type and complete type-check
+  /// Caller type must conform to dispatch type
+  if (!registry->conformTo(callerType, dispatchType)) {
+    LOG_ERROR_MESSAGE_WITH_LOCATION(
+        logger, node, "Caller type %s does not conform to dispatch type %s",
+        registry->typeName(callerType).c_str(), node->callerClass().c_str());
+    return Status::Error();
+  }
+
+  /// Finalize type-check
   const auto returnType = node->expr()->type();
-  return visitDispatchExpr(context, node, callerType, returnType);
+  return visitDispatchExpr(context, node, dispatchType, callerType);
 }
 
 Status TypeCheckPass::visit(Context *context, UnaryExprNode *node) {
@@ -502,27 +507,44 @@ Status TypeCheckPass::visitNotOrCompExpr(Context *context, UnaryExprNode *node,
 
 template <typename DispatchExprT>
 Status TypeCheckPass::visitDispatchExpr(Context *context, DispatchExprT *node,
-                                        const ExprType callerType,
-                                        const ExprType returnType) {
+                                        const ExprType dispatchType,
+                                        const ExprType callerType) {
+  auto *logger = context->logger();
+  const auto *registry = context->classRegistry();
+
   /// Fetch method table
-  const auto *methodTable = context->methodTable(callerType.typeID);
+  const auto *methodTable = context->methodTable(dispatchType.typeID);
   if (!methodTable) {
-    return GenericError("Error: type not defined");
+    LOG_ERROR_MESSAGE_WITH_LOCATION(
+        logger, node, "Method table for class %s has not been defined",
+        registry->className(dispatchType.typeID).c_str());
+    return Status::Error();
   }
 
   /// Search for method record in table
   if (!methodTable->findKeyInTable(node->methodName())) {
-    return GenericError("Error: method not found");
+    LOG_ERROR_MESSAGE_WITH_LOCATION(
+        logger, node, "Method %s of class %s has not been defined",
+        node->methodName().c_str(),
+        registry->className(dispatchType.typeID).c_str());
+    return Status::Error();
   }
 
   /// Number of arguments and parameters must match
   const auto &methodRecord = methodTable->get(node->methodName());
   if (methodRecord.argsCount() != node->paramsCount()) {
-    return GenericError("Error: invalid number of arguments");
+    LOG_ERROR_MESSAGE_WITH_LOCATION(
+        logger, node,
+        "Method %s of class %s invoked with an invalid number of arguments. "
+        "Expected: %d, actual: %d",
+        node->methodName().c_str(),
+        registry->className(dispatchType.typeID).c_str(),
+        methodRecord.argsCount(), node->paramsCount());
+    return Status::Error();
   }
 
   /// Type-check each parameter
-  const auto *registry = context->classRegistry();
+  bool isOk = true;
   for (uint32_t i = 0; i < node->paramsCount(); ++i) {
     auto statusExpr = node->params()[i]->visitNode(context, this);
     if (!statusExpr.isOk()) {
@@ -531,22 +553,34 @@ Status TypeCheckPass::visitDispatchExpr(Context *context, DispatchExprT *node,
 
     if (!registry->conformTo(node->params()[i]->type(),
                              methodRecord.argsTypes()[i])) {
-      return GenericError("Error: invalid argument type");
+      LOG_ERROR_MESSAGE_WITH_LOCATION(
+          logger, node->params()[i],
+          "Argument %d of method %s in class %s is of invalid type. Expected: "
+          "%s, actual: %s",
+          i + 1, node->methodName().c_str(),
+          registry->className(dispatchType.typeID).c_str(),
+          registry->className(methodRecord.argsTypes()[i].typeID).c_str(),
+          registry->className(node->params()[i]->type().typeID).c_str());
+      isOk = false;
     }
   }
 
+  if (!isOk) {
+    return Status::Error();
+  }
+
   /// Set expression type and return
-  const auto formalReturnType = methodRecord.returnType();
-  if (formalReturnType.isSelf) {
-    node->setType(returnType);
+  const auto returnType = methodRecord.returnType();
+  if (returnType.isSelf) {
+    node->setType(callerType);
   } else {
-    node->setType(formalReturnType);
+    node->setType(returnType);
   }
   return Status::Ok();
 }
 
 template Status TypeCheckPass::visitDispatchExpr<DispatchExprNode>(
     Context *context, DispatchExprNode *node, const ExprType dispatchType,
-    const ExprType returnType);
+    const ExprType callerType);
 
 } // namespace cool
