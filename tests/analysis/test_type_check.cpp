@@ -381,6 +381,79 @@ TEST(TypeCheckTests, BooleanExprNodeTests) {
   }
 }
 
+/// CaseExprNode
+TEST(TypeCheckTests, CaseExprNodeTests) {
+  /// Create context
+  auto context = MakeContextWithDefaultClasses();
+  auto *registry = context->classRegistry();
+
+  /// Create pass
+  auto typeCheckPass = std::make_unique<TypeCheckPass>();
+
+  /// Create nodes to be used in type-checking
+  auto nodeA0 = IdExprNode::MakeIdExprNode("a0", 0, 0);
+  auto nodeB0 = IdExprNode::MakeIdExprNode("b0", 0, 0);
+  auto nodeD0 = IdExprNode::MakeIdExprNode("d0", 0, 0);
+  context->symbolTable()->addElement("a0", registry->toType("A"));
+  context->symbolTable()->addElement("b0", registry->toType("B"));
+  context->symbolTable()->addElement("d0", registry->toType("D"));
+
+  /// Create case node bindings
+  auto nodeA = IdExprNode::MakeIdExprNode("a", 0, 0);
+  auto nodeB = IdExprNode::MakeIdExprNode("b", 0, 0);
+  auto nodeD = IdExprNode::MakeIdExprNode("d", 0, 0);
+  auto bindingA = CaseBindingNode::MakeCaseBindingNode("a", "A", nodeA, 0, 0);
+  auto bindingB = CaseBindingNode::MakeCaseBindingNode("b", "B", nodeB, 0, 0);
+  auto bindingD = CaseBindingNode::MakeCaseBindingNode("d", "A", nodeD, 0, 0);
+
+  /// Type-check expression in which return type is equal to node type
+  {
+    auto node =
+        CaseExprNode::MakeCaseExprNode({bindingA, bindingB}, nodeA0, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), node.get());
+    ASSERT_TRUE(status.isOk());
+    ASSERT_EQ(node->type(), nodeA0->type());
+  }
+
+  /// Type-check expression in which return type is a subtype of node type
+  {
+    auto node =
+        CaseExprNode::MakeCaseExprNode({bindingA, bindingB}, nodeB0, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), node.get());
+    ASSERT_TRUE(status.isOk());
+    ASSERT_EQ(node->type(), nodeA0->type());
+  }
+
+  /// Type-check fails because case expressions types are not unique
+  {
+    auto *logger = GetLogger(context.get());
+    auto node =
+        CaseExprNode::MakeCaseExprNode({bindingA, bindingD}, nodeA0, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), node.get());
+    ASSERT_FALSE(status.isOk());
+    ASSERT_EQ(logger->loggedMessageCount(), 1);
+    ASSERT_EQ(
+        logger->loggedMessage(0).message(),
+        "Error: line 0, column 0. Types of case expressions must be unique");
+    logger->reset();
+  }
+
+  /// Type-check fails because expression does not conform to any case type
+  {
+    auto *logger = GetLogger(context.get());
+    auto node =
+        CaseExprNode::MakeCaseExprNode({bindingA, bindingB}, nodeD0, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), node.get());
+    ASSERT_FALSE(status.isOk());
+    ASSERT_EQ(logger->loggedMessageCount(), 1);
+    ASSERT_EQ(
+        logger->loggedMessage(0).message(),
+        "Error: line 0, column 0. Type of case expression does not conform "
+        "to any case statement type");
+    logger->reset();
+  }
+}
+
 /// DispatchExprNode
 TEST(TypeCheckTests, DispatchExprNode) {
   /// Create context
@@ -776,102 +849,18 @@ TEST(TypeCheckTests, StaticDispatchExprNode) {
     logger->reset();
   }
 
-  /// Undefined method in dispatch object
-  /*  {
-      auto *logger = GetLogger(context.get());
-      auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodC", nullptr,
-                                                          {nodeP1}, 0, 0);
-      auto status = typeCheckPass->visit(context.get(), nodeM.get());
-      ASSERT_FALSE(status.isOk());
-      ASSERT_EQ(logger->loggedMessageCount(), 1);
-      ASSERT_EQ(logger->loggedMessage(0).message(),
-                "Error: line 0, column 0. Method methodC of class A has not been
-    " "defined"); logger->reset();
-    }
-
-    /// Undefined method in caller object
-    {
-      auto *logger = GetLogger(context.get());
-      auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodC", nodeC,
-                                                          {nodeP1}, 0, 0);
-      auto status = typeCheckPass->visit(context.get(), nodeM.get());
-      ASSERT_FALSE(status.isOk());
-      ASSERT_EQ(logger->loggedMessageCount(), 1);
-      ASSERT_EQ(logger->loggedMessage(0).message(),
-                "Error: line 0, column 0. Method methodC of class Z has not been
-    " "defined"); logger->reset();
-    }
-
-    /// Undefined method in self dispatch object
-    {
-      auto *logger = GetLogger(context.get());
-      auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodC", nullptr,
-                                                          {nodeP1}, 0, 0);
-      auto status = typeCheckPass->visit(context.get(), nodeM.get());
-      ASSERT_FALSE(status.isOk());
-      ASSERT_EQ(logger->loggedMessageCount(), 1);
-      ASSERT_EQ(logger->loggedMessage(0).message(),
-                "Error: line 0, column 0. Method methodC of class A has not been
-    " "defined"); logger->reset();
-    }
-
-    /// Incorrect number of parameters
-    {
-      auto *logger = GetLogger(context.get());
-      auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodA", nodeC,
-                                                          {nodeP1, nodeP2}, 0,
-    0); auto status = typeCheckPass->visit(context.get(), nodeM.get());
-      ASSERT_FALSE(status.isOk());
-      ASSERT_EQ(logger->loggedMessageCount(), 1);
-      ASSERT_EQ(logger->loggedMessage(0).message(),
-                "Error: line 0, column 0. Method methodA of class Z invoked with
-    " "an invalid number of arguments. Expected: 1, actual: 2");
-      logger->reset();
-    }
-
-    /// Incorrect number of parameters on self dispatch object
-    {
-      auto *logger = GetLogger(context.get());
-      context->setCurrentClassName("Z");
-      auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodA", nullptr,
-                                                          {nodeP1, nodeP2}, 0,
-    0); auto status = typeCheckPass->visit(context.get(), nodeM.get());
-      ASSERT_FALSE(status.isOk());
-      ASSERT_EQ(logger->loggedMessageCount(), 1);
-      ASSERT_EQ(logger->loggedMessage(0).message(),
-                "Error: line 0, column 0. Method methodA of class Z invoked with
-    " "an invalid number of arguments. Expected: 1, actual: 2");
-      logger->reset();
-      context->setCurrentClassName("A");
-    }
-
-    /// Parameter of incorrect type
-    {
-      auto *logger = GetLogger(context.get());
-      auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodA", nodeC,
-                                                          {nodeP2}, 0, 0);
-      auto status = typeCheckPass->visit(context.get(), nodeM.get());
-      ASSERT_FALSE(status.isOk());
-      ASSERT_EQ(logger->loggedMessageCount(), 1);
-      ASSERT_EQ(logger->loggedMessage(0).message(),
-                "Error: line 0, column 0. Argument 1 of method methodA in class
-    " "Z is of invalid type. Expected: B, actual: D"); logger->reset();
-    }
-
-    /// Parameter of incorrect type on self dispatch object
-    {
-      context->setCurrentClassName("Z");
-      auto *logger = GetLogger(context.get());
-      auto nodeM = DispatchExprNode::MakeDispatchExprNode("methodA", nodeC,
-                                                          {nodeP2}, 0, 0);
-      auto status = typeCheckPass->visit(context.get(), nodeM.get());
-      ASSERT_FALSE(status.isOk());
-      ASSERT_EQ(logger->loggedMessageCount(), 1);
-      ASSERT_EQ(logger->loggedMessage(0).message(),
-                "Error: line 0, column 0. Argument 1 of method methodA in class
-    " "Z is of invalid type. Expected: B, actual: D"); logger->reset();
-      context->setCurrentClassName("A");
-    }*/
+  /// Dispatch type is not defined
+  {
+    auto *logger = GetLogger(context.get());
+    auto nodeM = StaticDispatchExprNode::MakeStaticDispatchExprNode(
+        "methodA", "F", nodeC, {nodeP1}, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), nodeM.get());
+    ASSERT_FALSE(status.isOk());
+    ASSERT_EQ(logger->loggedMessageCount(), 1);
+    ASSERT_EQ(logger->loggedMessage(0).message(),
+              "Error: line 0, column 0. Dispatch type F is not defined");
+    logger->reset();
+  }
 }
 
 /// WhileExprNode

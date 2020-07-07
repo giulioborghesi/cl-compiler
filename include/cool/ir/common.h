@@ -39,4 +39,17 @@ enum class UnaryOpID : uint8_t { IsVoid, Not, Complement };
 
 } // namespace cool
 
+namespace std {
+
+/// Hash function specialization for cool::ExprType
+template <> struct std::hash<cool::ExprType> {
+  std::size_t operator()(cool::ExprType const &type) const noexcept {
+    std::size_t h1 = std::hash<cool::IdentifierType>{}(type.typeID);
+    std::size_t h2 = std::hash<bool>{}(type.isSelf);
+    return h1 ^ (h2 << 1);
+  }
+};
+
+} // namespace std
+
 #endif

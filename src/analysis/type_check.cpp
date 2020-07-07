@@ -160,27 +160,53 @@ Status TypeCheckPass::visit(Context *context, CaseBindingNode *node) {
 }
 
 Status TypeCheckPass::visit(Context *context, CaseExprNode *node) {
-  const auto &cases = node->cases();
-
-  /// Process the first case and initialize the return type
-  auto statusFirstCase = cases[0]->visitNode(context, this);
-  if (!statusFirstCase.isOk()) {
-    return statusFirstCase;
-  }
-  ExprType exprType = cases[0]->expr()->type();
-
-  /// Process the remaining cases
   const auto *registry = context->classRegistry();
-  for (uint32_t i = 1; i < cases.size(); ++i) {
-    auto statusCurrCase = cases[i]->visitNode(context, this);
-    if (!statusCurrCase.isOk()) {
-      return statusCurrCase;
-    }
-    exprType =
-        registry->leastCommonAncestor(exprType, cases[i]->expr()->type());
+
+  /// Typecheck expression first
+  auto statusExpr = node->expr()->visitNode(context, this);
+  if (!statusExpr.isOk()) {
+    return statusExpr;
   }
 
-  /// No error encountered, set type of expression and return
+  /// Find the candidate return types if any
+  std::vector<ExprType> candidates;
+  std::unordered_set<ExprType> usedTypes;
+  const auto &caseNodes = node->cases();
+  for (auto caseNode : caseNodes) {
+    auto statusCase = caseNode->visitNode(context, this);
+    if (!statusCase.isOk()) {
+      return statusCase;
+    }
+
+    if (usedTypes.count(caseNode->expr()->type())) {
+      auto *logger = context->logger();
+      LOG_ERROR_MESSAGE_WITH_LOCATION(
+          logger, caseNode, "Types of case expressions must be unique");
+      return Status::Error();
+    }
+
+    usedTypes.insert(caseNode->expr()->type());
+    if (registry->conformTo(node->expr()->type(), caseNode->expr()->type())) {
+      candidates.push_back(caseNode->expr()->type());
+    }
+  }
+
+  /// If no match was found, return an error
+  if (candidates.size() == 0) {
+    auto *logger = context->logger();
+    LOG_ERROR_MESSAGE_WITH_LOCATION(logger, node,
+                                    "Type of case expression does not conform "
+                                    "to any case statement type");
+    return Status::Error();
+  }
+
+  /// Find the return type
+  ExprType exprType = candidates[0];
+  for (uint32_t i = 1; i < candidates.size(); ++i) {
+    exprType = registry->leastCommonAncestor(exprType, candidates[i]);
+  }
+
+  /// Set type of expression and return
   node->setType(exprType);
   return Status::Ok();
 }
