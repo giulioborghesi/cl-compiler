@@ -720,6 +720,99 @@ TEST(TypeCheckTests, IsVoidExprNodeTests) {
   ASSERT_EQ(node->type(), registry->toType("Bool"));
 }
 
+/// LetExprNode
+TEST(TypeCheckTests, LetExprNodeTests) {
+  /// Create context
+  auto context = MakeContextWithDefaultClasses();
+  auto *registry = context->classRegistry();
+
+  /// Create pass
+  auto typeCheckPass = std::make_unique<TypeCheckPass>();
+
+  /// Create nodes and register symbols
+  auto nodeA = IdExprNode::MakeIdExprNode("x1", 0, 0);
+  auto nodeB = IdExprNode::MakeIdExprNode("x2", 0, 0);
+  auto nodeC = IdExprNode::MakeIdExprNode("x3", 0, 0);
+  context->symbolTable()->addElement("x1", registry->toType("Int"));
+
+  auto nodeS1 = BinaryExprNode<ArithmeticOpID>::MakeBinaryExprNode(
+      nodeA, nodeB, ArithmeticOpID::Plus, 0, 0);
+  auto nodeS2 = BinaryExprNode<ArithmeticOpID>::MakeBinaryExprNode(
+      nodeB, nodeC, ArithmeticOpID::Plus, 0, 0);
+
+  /// Missing ID in binary expression defined in binding
+  {
+    auto letBindingNode =
+        LetBindingNode::MakeLetBindingNode("x2", "Int", nodeA, 0, 0);
+    auto letNode = LetExprNode::MakeLetExprNode({letBindingNode}, nodeS1, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), letNode.get());
+    ASSERT_TRUE(status.isOk());
+    ASSERT_EQ(letNode->type(), registry->toType("Int"));
+  }
+
+  /// Missing IDs in binary expression defined in bindings
+  {
+    auto letBindingNodeA =
+        LetBindingNode::MakeLetBindingNode("x2", "Int", nodeA, 0, 0);
+    auto letBindingNodeB =
+        LetBindingNode::MakeLetBindingNode("x3", "Int", nodeA, 0, 0);
+    auto letNode = LetExprNode::MakeLetExprNode(
+        {letBindingNodeA, letBindingNodeB}, nodeS2, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), letNode.get());
+    ASSERT_TRUE(status.isOk());
+    ASSERT_EQ(letNode->type(), registry->toType("Int"));
+  }
+
+  /// ID in second binding defined in first binding
+  {
+    auto letBindingNodeA =
+        LetBindingNode::MakeLetBindingNode("x3", "Int", nodeA, 0, 0);
+    auto letBindingNodeB =
+        LetBindingNode::MakeLetBindingNode("x2", "Int", nodeC, 0, 0);
+    auto letNode = LetExprNode::MakeLetExprNode(
+        {letBindingNodeA, letBindingNodeB}, nodeS1, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), letNode.get());
+    ASSERT_TRUE(status.isOk());
+    ASSERT_EQ(letNode->type(), registry->toType("Int"));
+  }
+
+  /// Incorrect bindings order
+  {
+    auto letBindingNodeA =
+        LetBindingNode::MakeLetBindingNode("x3", "Int", nodeA, 0, 0);
+    auto letBindingNodeB =
+        LetBindingNode::MakeLetBindingNode("x2", "Int", nodeC, 0, 0);
+    auto letNode = LetExprNode::MakeLetExprNode(
+        {letBindingNodeB, letBindingNodeA}, nodeS1, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), letNode.get());
+    ASSERT_FALSE(status.isOk());
+
+    /// Check error message
+    auto *logger = GetLogger(context.get());
+    ASSERT_FALSE(status.isOk());
+    ASSERT_EQ(logger->loggedMessageCount(), 1);
+    ASSERT_EQ(logger->loggedMessage(0).message(),
+              "Error: line 0, column 0. Variable x3 is not defined");
+    logger->reset();
+  }
+
+  /// ID in binary expression not defined
+  {
+    auto letBindingNode =
+        LetBindingNode::MakeLetBindingNode("x3", "Int", nodeA, 0, 0);
+    auto letNode = LetExprNode::MakeLetExprNode({letBindingNode}, nodeS1, 0, 0);
+    auto status = typeCheckPass->visit(context.get(), letNode.get());
+
+    /// Check error message
+    auto *logger = GetLogger(context.get());
+    ASSERT_FALSE(status.isOk());
+    ASSERT_EQ(logger->loggedMessageCount(), 1);
+    ASSERT_EQ(logger->loggedMessage(0).message(),
+              "Error: line 0, column 0. Variable x2 is not defined");
+    logger->reset();
+  }
+}
+
 /// LiteralExprNode
 TEST(TypeCheckTests, LiteralExprNodeTests) {
   /// Create context
