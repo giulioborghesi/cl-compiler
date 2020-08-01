@@ -11,6 +11,7 @@ namespace cool {
 /// Forward declarations
 class Context;
 class Pass;
+class CodegenPass;
 
 /// Base class for a node in the abstract syntax tree
 class Node {
@@ -39,6 +40,13 @@ public:
   /// \param[in] pass analysis pass
   /// \return Status::Ok() on success, an error message otherwise
   virtual Status visitNode(Context *context, Pass *pass) = 0;
+
+  /// Visit the node and generate code
+  ///
+  /// \param[in] context codegen context
+  /// \param[in] pass codengen pass
+  /// \return Status::Ok() on success, an error message otherwise
+  virtual Status generateCode(Context *context, CodegenPass *pass) = 0;
 
 protected:
   Node(const uint32_t lloc, const uint32_t cloc) : lloc_(lloc), cloc_(cloc) {}

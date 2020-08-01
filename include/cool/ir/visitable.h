@@ -2,6 +2,7 @@
 #define COOL_IR_VISITABLE_H
 
 #include <cool/analysis/pass.h>
+#include <cool/codegen/codegen.h>
 #include <cool/core/status.h>
 
 #include <utility>
@@ -15,6 +16,10 @@ public:
 
   Status visitNode(Context *context, Pass *pass) final override {
     return pass->visit(context, static_cast<Derived *>(this));
+  }
+
+  Status generateCode(Context *context, CodegenPass *pass) final override {
+    return pass->codegen(context, static_cast<Derived *>(this));
   }
 
 protected:
