@@ -30,6 +30,15 @@ void emit_addiu_instruction(const std::string &dstReg,
 void emit_bgtz_instruction(const std::string &reg, const std::string &label,
                            std::iostream *ios);
 
+/// Emit a MIPS instruction to branch when register contains a value less than
+/// or equal to zero
+///
+/// \param[in] reg register to compare
+/// \param[in] label jump label
+/// \param[out] ios output stream
+void emit_blez_instruction(const std::string &reg, const std::string &label,
+                           std::iostream *ios);
+
 /// Emit a MIPS jump instruction
 ///
 /// \param[in] label jump label
@@ -59,6 +68,14 @@ void emit_la_instruction(const std::string &dstReg, const std::string &label,
 /// \param[out] ios output stream
 void emit_lw_instruction(const std::string &dstReg, const std::string &baseReg,
                          const int32_t offset, std::iostream *ios);
+
+/// Emit a MIPS move instruction
+///
+/// \param[in] dstReg destination register
+/// \param[in] srcReg source register
+/// \param[out] ios output stream
+void emit_move_instruction(const std::string &dstReg, const std::string &srcReg,
+                           std::iostream *ios);
 
 /// Emit a MIPS instruction to store a word from a register into a specified
 /// memory location

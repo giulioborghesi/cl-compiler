@@ -12,6 +12,12 @@ static constexpr size_t REGS_WIDTH = 6;
 
 static const std::string INDENT = "    ";
 
+void emit_bg_instruction(const std::string &opcode, const std::string &reg,
+                         const std::string &label, std::iostream *ios) {
+  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << opcode
+         << std::setw(REGS_WIDTH) << reg << label << std::endl;
+}
+
 } // namespace
 
 void emit_addiu_instruction(const std::string &dstReg,
@@ -24,8 +30,12 @@ void emit_addiu_instruction(const std::string &dstReg,
 
 void emit_bgtz_instruction(const std::string &reg, const std::string &label,
                            std::iostream *ios) {
-  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << "bgtz"
-         << std::setw(REGS_WIDTH) << reg << label << std::endl;
+  emit_bg_instruction("bgtz", reg, label, ios);
+}
+
+void emit_blez_instruction(const std::string &reg, const std::string &label,
+                           std::iostream *ios) {
+  emit_bg_instruction("blez", reg, label, ios);
 }
 
 void emit_jump_instruction(const std::string &label, std::iostream *ios) {
@@ -48,6 +58,12 @@ void emit_la_instruction(const std::string &dstReg, const std::string &label,
                          std::iostream *ios) {
   (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << "la"
          << std::setw(REGS_WIDTH) << dstReg << label << std::endl;
+}
+
+void emit_move_instruction(const std::string &dstReg, const std::string &srcReg,
+                           std::iostream *ios) {
+  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << "move"
+         << std::setw(REGS_WIDTH) << dstReg << srcReg << std::endl;
 }
 
 void emit_sw_instruction(const std::string &srcReg, const std::string &baseReg,

@@ -27,9 +27,7 @@ public:
   Status codegen(Context *context, ProgramNode *node) { return Status::Ok(); }
 
   /// Expressions nodes
-  Status codegen(Context *context, AssignmentExprNode *node) {
-    return Status::Ok();
-  }
+  Status codegen(Context *context, AssignmentExprNode *node);
 
   Status codegen(Context *context, BinaryExprNode<ArithmeticOpID> *node);
 
@@ -59,11 +57,9 @@ public:
 
   Status codegen(Context *context, IfExprNode *node);
 
-  Status codegen(Context *context, LetBindingNode *node) {
-    return Status::Ok();
-  }
+  Status codegen(Context *context, LetBindingNode *node);
 
-  Status codegen(Context *context, LetExprNode *node) { return Status::Ok(); }
+  Status codegen(Context *context, LetExprNode *node);
 
   Status codegen(Context *context, LiteralExprNode<int32_t> *node) {
     return Status::Ok();
@@ -81,7 +77,7 @@ public:
 
   Status codegen(Context *context, UnaryExprNode *node) { return Status::Ok(); }
 
-  Status codegen(Context *context, WhileExprNode *node) { return Status::Ok(); }
+  Status codegen(Context *context, WhileExprNode *node);
 };
 
 } // namespace cool
