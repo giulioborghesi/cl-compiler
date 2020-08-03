@@ -203,6 +203,11 @@ public:
                                                 const uint32_t lloc,
                                                 const uint32_t cloc);
 
+  /// Return the binding label
+  ///
+  /// \return the binding label
+  const std::string& bindingLabel() {return bindingLabel_;}
+
   /// Return the identifier name
   ///
   /// \return the identifier name
@@ -218,12 +223,21 @@ public:
   /// \return a shared pointer to the expression node
   ExprNodePtr expr() const { return expr_; }
 
+  /// Set the binding label
+  ///
+  /// \param[in] bindingLabel binding label
+  void setBindingLabel(const std::string &bindingLabel) {
+    bindingLabel_ = bindingLabel;
+  }
+
 private:
   CaseBindingNode(const std::string &id, const std::string &typeName,
                   ExprNodePtr expr, const uint32_t lloc, const uint32_t cloc);
 
   const std::string id_;
   const std::string typeName_;
+
+  std::string bindingLabel_;
   const ExprNodePtr expr_;
 };
 

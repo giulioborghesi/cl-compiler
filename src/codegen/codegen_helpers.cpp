@@ -12,10 +12,16 @@ static constexpr size_t REGS_WIDTH = 6;
 
 static const std::string INDENT = "    ";
 
-void emit_bg_instruction(const std::string &opcode, const std::string &reg,
+void emit_bg_instruction(const std::string &mnemonic, const std::string &reg,
                          const std::string &label, std::iostream *ios) {
-  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << opcode
+  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << mnemonic
          << std::setw(REGS_WIDTH) << reg << label << std::endl;
+}
+
+void emit_jump_instruction(const std::string &mnemonic, const std::string &arg,
+                           std::iostream *ios) {
+  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << mnemonic << arg
+         << std::endl;
 }
 
 } // namespace
@@ -38,9 +44,13 @@ void emit_blez_instruction(const std::string &reg, const std::string &label,
   emit_bg_instruction("blez", reg, label, ios);
 }
 
-void emit_jump_instruction(const std::string &label, std::iostream *ios) {
-  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << "j" << label
-         << std::endl;
+void emit_jump_label_instruction(const std::string &label, std::iostream *ios) {
+  emit_jump_instruction("j", label, ios);
+}
+
+void emit_jump_register_instruction(const std::string &reg,
+                                    std::iostream *ios) {
+  emit_jump_instruction("jr", reg, ios);
 }
 
 void emit_label(const std::string &label, std::iostream *ios) {

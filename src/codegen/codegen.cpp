@@ -38,6 +38,25 @@ void GenerateCodeForDefaultObject(Context *context, const std::string &typeName,
   /// TODO: implement functionality
 }
 
+/// Helper function that stores the case jump address in register $a0
+void SelectCaseStatement(Context *context, CaseExprNode *node) {
+  /// TODO: implement functionality
+}
+
+/// Helper function that checks whether $a0 points to a void object and, if
+/// so, interrupt execution
+void TerminateExecutionIfVoid(Context *context) {
+  const std::string notVoidLabel;
+  emit_bgtz_instruction("$a0", notVoidLabel, nullptr);
+
+  /// $a0 points to a void object -- interrupt program execution
+  //  emit_li_instruction("$v0", 10, nullptr);
+  //  emit_syscall_instruction(nullptr);
+
+  /// Emit label for non-void instruction
+  emit_label(notVoidLabel, nullptr);
+}
+
 } // namespace
 
 Status CodegenPass::codegen(Context *context, BlockExprNode *node) {
@@ -97,6 +116,47 @@ Status CodegenPass::codegen(Context *context,
   return Status::Ok();
 }
 
+Status CodegenPass::codegen(Context *context, CaseBindingNode *node) {
+  /// TODO: update environment
+
+  /// Emit label
+  emit_label(node->bindingLabel(), nullptr);
+
+  /// Emit code for label
+  node->expr()->generateCode(context, this);
+
+  /// TODO: restore environment and return
+  return Status::Ok();
+}
+
+Status CodegenPass::codegen(Context *context, CaseExprNode *node) {
+  /// Evaluate case expression
+  node->expr()->generateCode(context, this);
+  push_accumulator_to_stack(nullptr);
+
+  /// Interrupt execution if case expression is void
+  TerminateExecutionIfVoid(context);
+
+  /// Select case statement. Interrupt execution if no case is found
+  SelectCaseStatement(context, node);
+  TerminateExecutionIfVoid(context);
+
+  /// Jump to case statement
+  emit_jump_register_instruction("$a0", nullptr);
+
+  /// Generate code for each case statement
+  const std::string endLabel;
+  for (auto binding : node->cases()) {
+    binding->generateCode(context, this);
+    emit_jump_label_instruction(endLabel, nullptr);
+  }
+
+  /// Emit end label, restore stack and return
+  emit_label(endLabel, nullptr);
+  emit_addiu_instruction("$sp", "$sp", WORD_SIZE, nullptr);
+  return Status::Ok();
+}
+
 Status CodegenPass::codegen(Context *context, IfExprNode *node) {
   /// Generate labels
   const std::string trueLabel;
@@ -111,7 +171,7 @@ Status CodegenPass::codegen(Context *context, IfExprNode *node) {
 
   /// Emit code for then expression
   node->thenExpr()->generateCode(context, this);
-  emit_jump_instruction(endLabel, nullptr);
+  emit_jump_label_instruction(endLabel, nullptr);
 
   /// Emit label for true branch
   emit_label(trueLabel, nullptr);
@@ -176,7 +236,7 @@ Status CodegenPass::codegen(Context *context, WhileExprNode *node) {
 
   /// Generate code for loop body and jump to start of loop
   node->loopBody()->generateCode(context, this);
-  emit_jump_instruction(loopStartLabel, nullptr);
+  emit_jump_label_instruction(loopStartLabel, nullptr);
 
   /// Emit label for end of loop construct
   emit_label(loopEndLabel, nullptr);

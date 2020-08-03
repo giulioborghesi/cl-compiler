@@ -34,7 +34,8 @@ BlockExprNode::MakeBlockExprNode(std::vector<ExprNodePtr> exprs,
 CaseBindingNode::CaseBindingNode(const std::string &id,
                                  const std::string &typeName, ExprNodePtr expr,
                                  const uint32_t lloc, const uint32_t cloc)
-    : ParentNode(lloc, cloc), id_(id), typeName_(typeName), expr_(expr) {}
+    : ParentNode(lloc, cloc), id_(id), typeName_(typeName), bindingLabel_(),
+      expr_(expr) {}
 
 CaseBindingNodePtr CaseBindingNode::MakeCaseBindingNode(
     const std::string &id, const std::string &typeName, ExprNodePtr expr,

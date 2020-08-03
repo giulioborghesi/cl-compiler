@@ -41,11 +41,9 @@ public:
     return Status::Ok();
   }
 
-  Status codegen(Context *context, CaseBindingNode *node) {
-    return Status::Ok();
-  }
+  Status codegen(Context *context, CaseBindingNode *node);
 
-  Status codegen(Context *context, CaseExprNode *node) { return Status::Ok(); }
+  Status codegen(Context *context, CaseExprNode *node);
 
   Status codegen(Context *context, DispatchExprNode *node) {
     return Status::Ok();

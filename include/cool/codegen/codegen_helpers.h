@@ -39,11 +39,17 @@ void emit_bgtz_instruction(const std::string &reg, const std::string &label,
 void emit_blez_instruction(const std::string &reg, const std::string &label,
                            std::iostream *ios);
 
-/// Emit a MIPS jump instruction
+/// Emit a MIPS jump instruction to jump to a label
 ///
 /// \param[in] label jump label
 /// \param[out] ios output stream
-void emit_jump_instruction(const std::string &label, std::iostream *ios);
+void emit_jump_label_instruction(const std::string &label, std::iostream *ios);
+
+/// Emit a MIPS jump instruction to jump to the address pointed by a register
+///
+/// \param[in] reg address register
+/// \param[out] ios output stream
+void emit_jump_register_instruction(const std::string &reg, std::iostream *ios);
 
 /// Emit a MIPS label
 ///
