@@ -31,15 +31,11 @@ public:
 
   Status codegen(Context *context, BinaryExprNode<ArithmeticOpID> *node);
 
-  Status codegen(Context *context, BinaryExprNode<ComparisonOpID> *node) {
-    return Status::Ok();
-  }
+  Status codegen(Context *context, BinaryExprNode<ComparisonOpID> *node);
 
   Status codegen(Context *context, BlockExprNode *node);
 
-  Status codegen(Context *context, BooleanExprNode *node) {
-    return Status::Ok();
-  }
+  Status codegen(Context *context, BooleanExprNode *node);
 
   Status codegen(Context *context, CaseBindingNode *node);
 
@@ -59,21 +55,17 @@ public:
 
   Status codegen(Context *context, LetExprNode *node);
 
-  Status codegen(Context *context, LiteralExprNode<int32_t> *node) {
-    return Status::Ok();
-  }
+  Status codegen(Context *context, LiteralExprNode<int32_t> *node);
 
-  Status codegen(Context *context, LiteralExprNode<std::string> *node) {
-    return Status::Ok();
-  }
+  Status codegen(Context *context, LiteralExprNode<std::string> *node);
 
-  Status codegen(Context *context, NewExprNode *node) { return Status::Ok(); }
+  Status codegen(Context *context, NewExprNode *node);
 
   Status codegen(Context *context, StaticDispatchExprNode *node) {
     return Status::Ok();
   }
 
-  Status codegen(Context *context, UnaryExprNode *node) { return Status::Ok(); }
+  Status codegen(Context *context, UnaryExprNode *node);
 
   Status codegen(Context *context, WhileExprNode *node);
 };

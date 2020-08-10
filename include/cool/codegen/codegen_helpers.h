@@ -8,6 +8,8 @@ namespace cool {
 
 static constexpr int32_t OBJECT_CONTENT_OFFSET = 8;
 static constexpr int32_t OBJECT_SIZE_OFFSET = 4;
+static constexpr int32_t OBJECT_CLASS_OFFSET = 0;
+static constexpr int32_t STRING_LENGTH_OFFSET = 8;
 static constexpr int32_t WORD_SIZE = 4;
 
 /// Emit a MIPS instruction to add a literal value to a register and store the
@@ -20,6 +22,15 @@ static constexpr int32_t WORD_SIZE = 4;
 void emit_addiu_instruction(const std::string &dstReg,
                             const std::string &srcReg, const int32_t value,
                             std::iostream *ios);
+
+/// Emit a MIPS instruction to branch when register contains a value equal
+/// to zero
+///
+/// \param[in] reg register to compare
+/// \param[in] label jump label
+/// \param[out] ios output stream
+void emit_beqz_instruction(const std::string &reg, const std::string &label,
+                           std::iostream *ios);
 
 /// Emit a MIPS instruction to branch when register contains a value greater
 /// than zero
@@ -38,6 +49,28 @@ void emit_bgtz_instruction(const std::string &reg, const std::string &label,
 /// \param[out] ios output stream
 void emit_blez_instruction(const std::string &reg, const std::string &label,
                            std::iostream *ios);
+
+/// Emit a MIPS instruction to branch when the result of a comparison between
+/// two integer values stored in a register is true
+///
+/// \param[in] mnemonic operation mnemonic
+/// \param[in] lhsReg left hand side register
+/// \param[in] rhsReg right hand side register
+/// \param[in] label jump label
+/// \param[out] ios output stream
+void emit_compare_and_jump_instruction(const std::string &mnemonic,
+                                       const std::string &lhsReg,
+                                       const std::string &rhsReg,
+                                       const std::string &label,
+                                       std::iostream *ios);
+
+/// Emit a MIPS jump instruction to jump to a label and store the return address
+/// in $ra
+///
+/// \param[in] label jump label
+/// \param[out] ios output stream
+void emit_jump_and_link_instruction(const std::string &label,
+                                    std::iostream *ios);
 
 /// Emit a MIPS jump instruction to jump to a label
 ///
@@ -63,6 +96,14 @@ void emit_label(const std::string &label, std::iostream *ios);
 /// \param[in] label address to load
 /// \param[out] ios output stream
 void emit_la_instruction(const std::string &dstReg, const std::string &label,
+                         std::iostream *ios);
+
+/// Emit a MIPS instruction to load an integer into a register
+///
+/// \param[in] dstReg destination register
+/// \param[in] value integer value
+/// \param[out] ios output stream
+void emit_li_instruction(const std::string &dstReg, const int32_t value,
                          std::iostream *ios);
 
 /// Emit a MIPS instruction to load a word into a register from a specified

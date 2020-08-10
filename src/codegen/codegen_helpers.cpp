@@ -34,6 +34,11 @@ void emit_addiu_instruction(const std::string &dstReg,
          << value << std::endl;
 }
 
+void emit_beqz_instruction(const std::string &reg, const std::string &label,
+                           std::iostream *ios) {
+  emit_bg_instruction("beqz", reg, label, ios);
+}
+
 void emit_bgtz_instruction(const std::string &reg, const std::string &label,
                            std::iostream *ios) {
   emit_bg_instruction("bgtz", reg, label, ios);
@@ -42,6 +47,16 @@ void emit_bgtz_instruction(const std::string &reg, const std::string &label,
 void emit_blez_instruction(const std::string &reg, const std::string &label,
                            std::iostream *ios) {
   emit_bg_instruction("blez", reg, label, ios);
+}
+
+void emit_compare_and_jump_instruction(const std::string &mnemonic,
+                                       const std::string &lhsReg,
+                                       const std::string &rhsReg,
+                                       const std::string &label,
+                                       std::iostream *ios) {
+  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << mnemonic
+         << std::setw(REGS_WIDTH) << lhsReg << std::setw(REGS_WIDTH) << rhsReg
+         << label << std::endl;
 }
 
 void emit_jump_label_instruction(const std::string &label, std::iostream *ios) {
@@ -53,8 +68,25 @@ void emit_jump_register_instruction(const std::string &reg,
   emit_jump_instruction("jr", reg, ios);
 }
 
+void emit_jump_and_link_instruction(const std::string &label,
+                                    std::iostream *ios) {
+  emit_jump_instruction("jal", label, ios);
+}
+
 void emit_label(const std::string &label, std::iostream *ios) {
   (*ios) << label << ":" << std::endl;
+}
+
+void emit_la_instruction(const std::string &dstReg, const std::string &label,
+                         std::iostream *ios) {
+  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << "la"
+         << std::setw(REGS_WIDTH) << dstReg << label << std::endl;
+}
+
+void emit_li_instruction(const std::string &dstReg, const int32_t value,
+                         std::iostream *ios) {
+  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << "li"
+         << std::setw(REGS_WIDTH) << dstReg << value << std::endl;
 }
 
 void emit_lw_instruction(const std::string &dstReg, const std::string &baseReg,
@@ -62,12 +94,6 @@ void emit_lw_instruction(const std::string &dstReg, const std::string &baseReg,
   (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << "lw"
          << std::setw(REGS_WIDTH) << dstReg << offset << "(" << baseReg << ")"
          << std::endl;
-}
-
-void emit_la_instruction(const std::string &dstReg, const std::string &label,
-                         std::iostream *ios) {
-  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << "la"
-         << std::setw(REGS_WIDTH) << dstReg << label << std::endl;
 }
 
 void emit_move_instruction(const std::string &dstReg, const std::string &srcReg,
