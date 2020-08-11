@@ -83,6 +83,13 @@ void emit_la_instruction(const std::string &dstReg, const std::string &label,
          << std::setw(REGS_WIDTH) << dstReg << label << std::endl;
 }
 
+void emit_lb_instruction(const std::string &dstReg, const std::string &baseReg,
+                         const int32_t offset, std::iostream *ios) {
+  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << "lb"
+         << std::setw(REGS_WIDTH) << dstReg << offset << "(" << baseReg << ")"
+         << std::endl;
+}
+
 void emit_li_instruction(const std::string &dstReg, const int32_t value,
                          std::iostream *ios) {
   (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << "li"

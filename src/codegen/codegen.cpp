@@ -119,6 +119,16 @@ std::string GetMnemonicFromOpType(const ComparisonOpID opID) {
   return opID == ComparisonOpID::LessThan ? "blt" : "ble";
 }
 
+/// Helper function that returns the length of a string. The pointer to the
+/// string is expected to be stored in the accumulator register
+///
+/// \param[in] context Codegen context
+/// \param[out] ios output stream
+void GetStringLength(Context *context, std::iostream *ios) {
+  emit_lw_instruction("$t0", "$a0", STRING_LENGTH_OFFSET, ios);
+  emit_lw_instruction("$a0", "$t0", OBJECT_CONTENT_OFFSET, ios);
+}
+
 /// Helper function that returns a pointer to a default object for the specified
 /// class in $a0. For classes other than built-in classes, $a0 will contain a
 /// void pointer
@@ -201,13 +211,6 @@ void TerminateExecutionIfVoid(Context *context) {
 
 } // namespace
 
-Status CodegenPass::codegen(Context *context, BlockExprNode *node) {
-  for (auto expr : node->exprs()) {
-    expr->generateCode(context, this);
-  }
-  return Status::Ok();
-}
-
 Status CodegenPass::codegen(Context *context, AssignmentExprNode *node) {
   /// Evaluate right hand side expression
   node->rhsExpr()->generateCode(context, this);
@@ -260,6 +263,13 @@ Status CodegenPass::codegen(Context *context,
   return Status::Ok();
 }
 
+Status CodegenPass::codegen(Context *context, BlockExprNode *node) {
+  for (auto expr : node->exprs()) {
+    expr->generateCode(context, this);
+  }
+  return Status::Ok();
+}
+
 Status CodegenPass::codegen(Context *context,
                             BinaryExprNode<ComparisonOpID> *node) {
   /// Evaluate lhs and rhs expressions
@@ -294,12 +304,72 @@ Status CodegenPass::codegen(Context *context,
       CreateObjectFromProto(context, "bool_const1", "Bool_init", ios);
 
       emit_label(falseLabel, ios);
+      emit_addiu_instruction("$sp", "$sp", 2 * WORD_SIZE, nullptr);
       return;
     }
 
     /// Compare strings
     if (className == "String") {
-      // TODO: compare strings
+      /// Get length of first string
+      emit_lw_instruction("$a0", "$sp", 2 * WORD_SIZE, nullptr);
+      GetStringLength(context, nullptr);
+      push_accumulator_to_stack(nullptr);
+
+      /// Get length of second string
+      emit_lw_instruction("$a0", "$sp", 2 * WORD_SIZE, nullptr);
+      GetStringLength(context, nullptr);
+
+      /// Compare length and return false if not string
+      const std::string checkEndLabel;
+      const std::string sameLengthLabel;
+
+      /// Compare lengths. If there is a length mismatch, return False
+      emit_lw_instruction("$t0", "$sp", WORD_SIZE, nullptr);
+      emit_compare_and_jump_instruction("beq", "$a0", "$t0", sameLengthLabel,
+                                        nullptr);
+
+      CreateObjectFromProto(context, "Bool_const0", "Bool_init", nullptr);
+      emit_jump_label_instruction(checkEndLabel, nullptr);
+
+      /// Lengths are the same. Compare each characters in the two strings
+      emit_label(sameLengthLabel, nullptr);
+
+      const std::string loopStartLabel;
+      const std::string sameStringLabel;
+
+      /// Evaluate string start addresses
+      emit_lw_instruction("$t0", "$sp", 2 * WORD_SIZE, nullptr);
+      emit_addiu_instruction("$t0", "$t0", STRING_CONTENT_OFFSET, nullptr);
+      emit_lw_instruction("$t1", "$sp", 3 * WORD_SIZE, nullptr);
+      emit_addiu_instruction("$t1", "$t1", STRING_CONTENT_OFFSET, nullptr);
+
+      /// Evaluate string end address
+      emit_lw_instruction("$t2", "$sp", WORD_SIZE, nullptr);
+      emit_three_registers_instruction("addu", "$t2", "$t0", "$t2", nullptr);
+
+      /// Compare the strings character by character
+      emit_label(loopStartLabel, nullptr);
+      emit_compare_and_jump_instruction("beq", "$t1", "$t2", sameStringLabel,
+                                        nullptr);
+      emit_lb_instruction("$t3", "$t0", 0, nullptr);
+      emit_lb_instruction("$t4", "$t1", 0, nullptr);
+
+      emit_addiu_instruction("$t0", "$t0", 1, nullptr);
+      emit_addiu_instruction("$t1", "$t1", 1, nullptr);
+      emit_compare_and_jump_instruction("beq", "$t3", "$t4", loopStartLabel,
+                                        nullptr);
+
+      /// Strings content differ. Return false
+      CreateObjectFromProto(context, "Bool_const0", "Bool_init", nullptr);
+      emit_jump_label_instruction(checkEndLabel, nullptr);
+
+      /// Strings are the same. Return true
+      emit_label(sameStringLabel, nullptr);
+      CreateObjectFromProto(context, "Bool_const1", "Bool_init", nullptr);
+      emit_label(checkEndLabel, nullptr);
+
+      /// Restore stack and return
+      emit_addiu_instruction("$sp", "$sp", 3 * WORD_SIZE, nullptr);
       return;
     }
 
@@ -318,6 +388,7 @@ Status CodegenPass::codegen(Context *context,
     CreateObjectFromProto(context, "bool_const1", "Bool_init", ios);
 
     emit_label(falseLabel, ios);
+    emit_addiu_instruction("$sp", "$sp", 2 * WORD_SIZE, nullptr);
   };
 
   auto funcLessThanOrEq = [context, node](std::iostream *ios) {

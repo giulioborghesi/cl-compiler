@@ -10,6 +10,7 @@ static constexpr int32_t OBJECT_CONTENT_OFFSET = 8;
 static constexpr int32_t OBJECT_SIZE_OFFSET = 4;
 static constexpr int32_t OBJECT_CLASS_OFFSET = 0;
 static constexpr int32_t STRING_LENGTH_OFFSET = 8;
+static constexpr int32_t STRING_CONTENT_OFFSET = 12;
 static constexpr int32_t WORD_SIZE = 4;
 
 /// Emit a MIPS instruction to add a literal value to a register and store the
@@ -97,6 +98,15 @@ void emit_label(const std::string &label, std::iostream *ios);
 /// \param[out] ios output stream
 void emit_la_instruction(const std::string &dstReg, const std::string &label,
                          std::iostream *ios);
+
+/// Emit a MIPS instruction to load a byte into a register
+///
+/// \param[in] dstReg destination register
+/// \param[in] baseReg base register
+/// \param[in] offset memory offset
+/// \param[out] ios output stream
+void emit_lb_instruction(const std::string &dstReg, const std::string &baseReg,
+                         const int32_t offset, std::iostream *ios);
 
 /// Emit a MIPS instruction to load an integer into a register
 ///
