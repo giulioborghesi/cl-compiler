@@ -22,7 +22,7 @@ public:
 
   Status codegen(Context *context, FormalNode *node) { return Status::Ok(); }
 
-  Status codegen(Context *context, MethodNode *node) { return Status::Ok(); }
+  Status codegen(Context *context, MethodNode *node);
 
   Status codegen(Context *context, ProgramNode *node) { return Status::Ok(); }
 

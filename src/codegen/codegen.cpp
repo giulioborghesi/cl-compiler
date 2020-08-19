@@ -1,6 +1,7 @@
 #include <cool/codegen/codegen.h>
 #include <cool/codegen/codegen_helpers.h>
 #include <cool/core/context.h>
+#include <cool/ir/class.h>
 #include <cool/ir/expr.h>
 
 namespace cool {
@@ -11,11 +12,26 @@ namespace {
 void CreateObjectFromProto(Context *context, const std::string &protoLabel,
                            const std::string &initLabel, std::iostream *ios);
 
+/// Helper function to copy an object and initialize it
+void CopyAndInitializeObject(Context *context, const std::string &initLabel,
+                             std::iostream *ios) {
+  /// Create a copy of the object and store it on the stack
+  emit_jump_and_link_instruction("Object.copy", ios);
+  push_accumulator_to_stack(ios);
+
+  /// Initialize object
+  emit_jump_and_link_instruction(initLabel, ios);
+
+  /// Store address of new object in accumulator register and restore stack
+  emit_lw_instruction("$a0", "$sp", WORD_SIZE, ios);
+  emit_addiu_instruction("$sp", "$sp", WORD_SIZE, ios);
+}
+
 /// Helper function to create an integer object storing a given int value
 ///
 /// \param[in] context Codegen context
 /// \param[in] value value of Int object
-/// \param[in] ios output stream
+/// \param[out] ios output stream
 void CreateIntObject(Context *context, const int32_t value,
                      std::iostream *ios) {
   CreateObjectFromProto(context, "Int_protObj", "Int_init", ios);
@@ -23,6 +39,72 @@ void CreateIntObject(Context *context, const int32_t value,
 
   /// Update Int value and return
   emit_sw_instruction("$t0", "$a0", OBJECT_CONTENT_OFFSET, ios);
+}
+
+/// Helper function to create a string object storing a literal string
+///
+/// \param[in] context Codegen context
+/// \param[in] literalProto string literal proto label
+/// \param[in] stringLength string length
+/// \param[out] ios output stream
+void CreateStringObject(Context *context, const std::string &literalProto,
+                        const size_t stringLength, std::iostream *ios) {
+  /// Copy literal prototype and store it on stack
+  CreateObjectFromProto(context, literalProto, "String_init", ios);
+  push_accumulator_to_stack(ios);
+
+  /// Create Int value for string length
+  CreateIntObject(context, stringLength, ios);
+  push_accumulator_to_stack(ios);
+
+  /// Store string object in a0 and update string length
+  emit_lw_instruction("$a0", "$sp", 2 * WORD_SIZE, ios);
+  emit_lw_instruction("$t0", "$sp", WORD_SIZE, ios);
+  emit_sw_instruction("$t0", "$a0", STRING_LENGTH_OFFSET, ios);
+
+  /// Restore stack
+  emit_addiu_instruction("$sp", "$sp", 2 * WORD_SIZE, ios);
+}
+
+/// Helper function to create a string object for the name of an object class
+///
+/// \param[in] context Codegen context
+/// \param[out] ios output stream
+void CreateStringObjectForClassName(Context *context, std::iostream *ios) {
+  /// Store prototype object on the stack
+  push_accumulator_to_stack(ios);
+
+  /// Store prototype object address into $a0
+  emit_lw_instruction("$t0", "$a0", CLASS_ID_OFFSET, ios);
+  emit_la_instruction("$a0", "_Class_names_", ios);
+  emit_three_registers_instruction("addu", "$a0", "$a0", "$t0", ios);
+  emit_lw_instruction("$a0", "$a0", 0, ios);
+
+  /// Copy prototype object and initialize it
+  CopyAndInitializeObject(context, "String_init", ios);
+  push_accumulator_to_stack(ios);
+
+  /// Create default Int value to store string length
+  CreateObjectFromProto(context, "Int_proObj", "Int_init", ios);
+  push_accumulator_to_stack(ios);
+
+  /// Store string object length in $a0
+  emit_lw_instruction("$t0", "$sp", 3 * WORD_SIZE, ios);
+  emit_lw_instruction("$t0", "$t0", CLASS_ID_OFFSET, ios);
+  emit_la_instruction("$a0", "_Class_names_length_", ios);
+  emit_three_registers_instruction("addu", "$a0", "$a0", "$t0", ios);
+  emit_lw_instruction("$a0", "$a0", 0, ios);
+
+  /// Update string length in Integer object
+  emit_lw_instruction("$t0", "$sp", WORD_SIZE, ios);
+  emit_sw_instruction("$a0", "$t0", OBJECT_CONTENT_OFFSET, ios);
+
+  /// Store string object in a0 and update string length
+  emit_lw_instruction("$a0", "$sp", 2 * WORD_SIZE, ios);
+  emit_sw_instruction("$t0", "$a0", STRING_LENGTH_OFFSET, ios);
+
+  /// Restore stack
+  emit_addiu_instruction("$sp", "$sp", 3 * WORD_SIZE, ios);
 }
 
 /// Helper function to create a copy of an object given the labels for its
@@ -38,16 +120,8 @@ void CreateObjectFromProto(Context *context, const std::string &protoLabel,
   /// Load address of prototype object into $a0
   emit_la_instruction("$a0", protoLabel, ios);
 
-  /// Create a copy of the prototype object and store it on the stack
-  emit_jump_and_link_instruction("Object.copy", ios);
-  push_accumulator_to_stack(ios);
-
-  /// Initialize object
-  emit_jump_and_link_instruction(initLabel, ios);
-
-  /// Store address of new object in accumulator register and restore stack
-  emit_lw_instruction("$a0", "$sp", WORD_SIZE, ios);
-  emit_addiu_instruction("$sp", "$sp", WORD_SIZE, ios);
+  /// Copy the object and initialize it
+  CopyAndInitializeObject(context, initLabel, ios);
 }
 
 /// Helper function to create a copy of an object given its unique identifyer.
@@ -74,31 +148,11 @@ void CreateObjectFromTypeID(Context *context, const IdentifierType classID,
   /// Load address of init function into $t1 and initialize object
   emit_la_instruction("$t1", "Init_table", ios);
   emit_three_registers_instruction("addu", "$t1", "$t0", "$t1", ios);
-  emit_jump_and_link_instruction(
-      "$t1", ios); // TODO: use jalr instead of jal - refactor this code
+  emit_jump_and_link_register_instruction("$t1", ios);
 
   /// Store address of new object in accumulator register and restore stack
   emit_lw_instruction("$a0", "$sp", WORD_SIZE, ios);
   emit_addiu_instruction("$sp", "$sp", WORD_SIZE, ios);
-}
-
-/// Helper function that stores in register $a0 the address where the pointer to
-/// the object identified by an identifier is stored
-///
-/// \param[in] context Codegen context
-/// \param[in] id identifier name
-/// \param[out] ios output stream
-void FetchObjectPointerLocationFromID(Context *context, const std::string &id,
-                                      std::iostream *ios) {
-  /*  if (symbolInfo.isAttribute) {
-      emit_lw_instruction("$t1", "$fp", 0, nullptr);
-      emit_la_instruction("$a0", "$t1", symbolInfo.offset, nullptr);
-    } else {
-      emit_la_instruction("$a0", "$fp", symbolInfo.offset, nullptr);
-    }
-  */
-
-  /// TODO: implement functionality - look at skeleton above
 }
 
 std::string GetMnemonicFromOpType(const ArithmeticOpID opID) {
@@ -143,14 +197,14 @@ void GenerateCodeForDefaultObject(Context *context, const std::string &typeName,
 
 /// Helper function that stores the case jump address in register $a0
 void SelectCaseStatement(Context *context, CaseExprNode *node) {
-  /// Load object address into $t0
-  emit_lw_instruction("$t0", "$sp", WORD_SIZE, nullptr);
+  /// Copy object address into $t0
+  emit_move_instruction("$t0", "$a0", nullptr);
 
-  /// Initialize global counter to INT_MAX and accumulator to 0
-  // emit_li_instruction("$a0", 0, nullptr);
-  // emit_li_instruction("$t4", INT_MAX, nullptr);
+  /// Initialize global counter to INT_MAX and accumulator to void
+  emit_move_instruction("$a0", "$zero", nullptr);
+  emit_li_instruction("$t4", INT_MAX, nullptr);
 
-  /// Loop over the cases
+  /// Loop over each of the cases
   for (auto caseBinding : node->cases()) {
     /// Generate end of loop labels
     const std::string endLoop;
@@ -165,29 +219,34 @@ void SelectCaseStatement(Context *context, CaseExprNode *node) {
     emit_lw_instruction("$t2", "$t2", OBJECT_CLASS_OFFSET, nullptr);
 
     /// Initialize per-class counter
-    // emit_li_instruction("$t3", 0, nullptr);
+    emit_li_instruction("$t3", 0, nullptr);
 
     /// Start loop
     const std::string startLoop;
     emit_label(startLoop, nullptr);
 
-    /// Go to next case statement if ancestor class not found
-    // emit_bltz_instruction("$t1", endLoop, nullptr);
+    /// Go to next case statement if -1 has been reached
+    emit_bltz_instruction("$t1", endLoop, nullptr);
 
-    /// If ancestor class found, check whether it is the closest found so far
-    // emit_beq_instruction("$t1", "$t2", mayUpdateAccumulator, nullptr);
+    /// If current class is valid, check whether it is the closest found so far
+    emit_compare_and_jump_instruction("beq", "$t1", "$t2", mayUpdateAccumulator,
+                                      nullptr);
 
-    /// Fetch next ancestor and iterate
-    emit_addiu_instruction("$t3", "$t3", 0, nullptr);
+    /// Update counter
+    emit_addiu_instruction("$t3", "$t3", 1, nullptr);
 
-    /// Jump to loop start
+    /// Fetch ancestor class ID and jump to start of loop
+    emit_la_instruction("$t5", "_Class_ancestors", nullptr);
+    emit_three_registers_instruction("addu", "$t1", "$t1", "$t5", nullptr);
+    emit_lw_instruction("$t1", "$t1", 0, nullptr);
     emit_jump_label_instruction(startLoop, nullptr);
 
     /// Check whether ancestor found is the closest
     emit_label(mayUpdateAccumulator, nullptr);
-    //    emit_bgt_instruction("$t3", "$t4", endLoop);
+    emit_compare_and_jump_instruction("bgt", "$t3", "$t4", endLoop, nullptr);
 
-    /// Ancestor found is the closest so far, update accumulator
+    /// Class found is closest so far, update accumulator and global counter
+    emit_move_instruction("$t4", "$t3", nullptr);
     emit_la_instruction("$a0", caseBinding->bindingLabel(), nullptr);
 
     /// End of loop label
@@ -197,13 +256,15 @@ void SelectCaseStatement(Context *context, CaseExprNode *node) {
 
 /// Helper function that checks whether $a0 points to a void object and, if
 /// so, interrupt execution
-void TerminateExecutionIfVoid(Context *context) {
+template <typename FuncT>
+void TerminateExecutionIfVoid(Context *context, FuncT func,
+                              std::iostream *ios) {
+  /// Check whether object is void or not
   const std::string notVoidLabel;
   emit_bgtz_instruction("$a0", notVoidLabel, nullptr);
 
-  /// $a0 points to a void object -- interrupt program execution
-  //  emit_li_instruction("$v0", 10, nullptr);
-  //  emit_syscall_instruction(nullptr);
+  /// Object is void
+  func();
 
   /// Emit label for non-void instruction
   emit_label(notVoidLabel, nullptr);
@@ -214,17 +275,17 @@ void TerminateExecutionIfVoid(Context *context) {
 Status CodegenPass::codegen(Context *context, AssignmentExprNode *node) {
   /// Evaluate right hand side expression
   node->rhsExpr()->generateCode(context, this);
-  push_accumulator_to_stack(nullptr);
 
-  /// Fetch location of object pointer given variable ID
-  FetchObjectPointerLocationFromID(context, node->id(), nullptr);
-
-  /// Update object pointed by variable
-  emit_lw_instruction("$t1", "$sp", WORD_SIZE, nullptr);
-  emit_sw_instruction("$t1", "$a0", 0, nullptr);
+  /// Update object. TODO: finalize fetching object
+  auto symbolTable = context->symbolTable();
+  if (true) {
+    emit_lw_instruction("$t0", "$fp", 0, nullptr);
+    emit_sw_instruction("$a0", "$t0", 0, nullptr);
+  } else {
+    emit_sw_instruction("$a0", "$fp", 0, nullptr);
+  }
 
   /// Pop stack and return
-  emit_addiu_instruction("$sp", "$sp", WORD_SIZE, nullptr);
   return Status::Ok();
 }
 
@@ -258,7 +319,7 @@ Status CodegenPass::codegen(Context *context,
   emit_lw_instruction("$t0", "$sp", WORD_SIZE, nullptr);
   emit_sw_instruction("$t0", "$a0", OBJECT_CONTENT_OFFSET, nullptr);
 
-  /// Pop stack and return
+  /// Restore stack and return
   emit_addiu_instruction("$sp", "$sp", 4 * WORD_SIZE, nullptr);
   return Status::Ok();
 }
@@ -293,17 +354,17 @@ Status CodegenPass::codegen(Context *context,
       emit_lw_instruction("$t1", "$sp", WORD_SIZE, ios);
       emit_lw_instruction("$t1", "$t1", OBJECT_CONTENT_OFFSET, ios);
 
+      const std::string endLabel;
       const std::string trueLabel;
-      const std::string falseLabel;
 
       emit_compare_and_jump_instruction("beq", "$t0", "$t1", trueLabel, ios);
       CreateObjectFromProto(context, "bool_const0", "Bool_init", ios);
-      emit_jump_label_instruction(falseLabel, ios);
+      emit_jump_label_instruction(endLabel, ios);
 
       emit_label(trueLabel, ios);
       CreateObjectFromProto(context, "bool_const1", "Bool_init", ios);
 
-      emit_label(falseLabel, ios);
+      emit_label(endLabel, ios);
       emit_addiu_instruction("$sp", "$sp", 2 * WORD_SIZE, nullptr);
       return;
     }
@@ -431,15 +492,22 @@ Status CodegenPass::codegen(Context *context, BooleanExprNode *node) {
 }
 
 Status CodegenPass::codegen(Context *context, CaseBindingNode *node) {
-  /// TODO: update environment
-
   /// Emit label
   emit_label(node->bindingLabel(), nullptr);
 
-  /// Emit code for label
+  /// Update object
+  auto symbolTable = context->symbolTable();
+  if (/*symbolTable->get(node->id()).isAttribute  /// TODO: implement*/ true) {
+    emit_lw_instruction("$t0", "$fp", 0, nullptr);
+    emit_sw_instruction("$a0", "$t0", 0, nullptr);
+  } else {
+    emit_sw_instruction("$a0", "$fp", 0, nullptr);
+  }
+
+  /// Emit code for case
   node->expr()->generateCode(context, this);
 
-  /// TODO: restore environment and return
+  /// Restore stack and return
   return Status::Ok();
 }
 
@@ -449,14 +517,32 @@ Status CodegenPass::codegen(Context *context, CaseExprNode *node) {
   push_accumulator_to_stack(nullptr);
 
   /// Interrupt execution if case expression is void
-  TerminateExecutionIfVoid(context);
+  auto voidExprError = [context, node]() {
+    const size_t fileNameLength = 0; /// TODO: compute from context
+    CreateStringObject(context, "_String_filename", fileNameLength, nullptr);
+    emit_li_instruction("$t1", node->lineLoc(), nullptr);
+    emit_jump_label_instruction("_case_abort2", nullptr);
+  };
+  TerminateExecutionIfVoid(context, voidExprError, nullptr);
 
-  /// Select case statement. Interrupt execution if no case is found
+  /// Select case statement
   SelectCaseStatement(context, node);
-  TerminateExecutionIfVoid(context);
+  push_accumulator_to_stack(nullptr);
 
-  /// Jump to case statement
-  emit_jump_register_instruction("$a0", nullptr);
+  /// Interrupt execution if case not found
+  auto noCaseError = [context, node]() {
+    emit_lw_instruction("$a0", "$fp", 2 * WORD_SIZE, nullptr);
+    CreateStringObjectForClassName(context, nullptr);
+    emit_jump_label_instruction("_case_abort", nullptr);
+  };
+  TerminateExecutionIfVoid(context, noCaseError, nullptr);
+
+  /// Load object for case expression into $a0 and case label into $t0
+  emit_lw_instruction("$a0", "$sp", 2 * WORD_SIZE, nullptr);
+  emit_lw_instruction("$t0", "$sp", WORD_SIZE, nullptr);
+
+  /// Jump to case label
+  emit_jump_register_instruction("$t0", nullptr);
 
   /// Generate code for each case statement
   const std::string endLabel;
@@ -467,28 +553,28 @@ Status CodegenPass::codegen(Context *context, CaseExprNode *node) {
 
   /// Emit end label, restore stack and return
   emit_label(endLabel, nullptr);
-  emit_addiu_instruction("$sp", "$sp", WORD_SIZE, nullptr);
+  emit_addiu_instruction("$sp", "$sp", 2 * WORD_SIZE, nullptr);
   return Status::Ok();
 }
 
 Status CodegenPass::codegen(Context *context, IfExprNode *node) {
   /// Generate labels
-  const std::string trueLabel;
+  const std::string falseLabel;
   const std::string endLabel;
 
   /// Emit code for if expression
   node->ifExpr()->generateCode(context, this);
 
-  /// Load boolean value. Branch if true
-  emit_lw_instruction("$t0", "$a0", OBJECT_CONTENT_OFFSET, nullptr);
-  emit_bgtz_instruction("$t0", trueLabel, nullptr);
+  /// Load boolean value. Branch if false
+  emit_lw_instruction("$t0", "$a0", BOOL_CONTENT_OFFSET, nullptr);
+  emit_beqz_instruction("$t0", falseLabel, nullptr);
 
   /// Emit code for then expression
   node->thenExpr()->generateCode(context, this);
   emit_jump_label_instruction(endLabel, nullptr);
 
   /// Emit label for true branch
-  emit_label(trueLabel, nullptr);
+  emit_label(falseLabel, nullptr);
 
   /// Emit code for else expression
   node->elseExpr()->generateCode(context, this);
@@ -506,10 +592,6 @@ Status CodegenPass::codegen(Context *context, LetBindingNode *node) {
     GenerateCodeForDefaultObject(context, node->typeName(), nullptr);
   }
 
-  /// Store pointer to object in stack
-  push_accumulator_to_stack(nullptr);
-
-  /// TODO: update environment with location of new variable
   return Status::Ok();
 }
 
@@ -521,41 +603,75 @@ Status CodegenPass::codegen(Context *context, LiteralExprNode<int32_t> *node) {
 
 Status CodegenPass::codegen(Context *context,
                             LiteralExprNode<std::string> *node) {
-  /// Copy prototype object and initialize it
   const std::string label;
-  CreateObjectFromProto(context, label, "String_init", nullptr);
-  push_accumulator_to_stack(nullptr);
-
-  /// Create Int value for string length
-  CreateIntObject(context, node->value().length(), nullptr);
-  push_accumulator_to_stack(nullptr);
-
-  /// Update string length and return
-  emit_lw_instruction("$a0", "$sp", 2 * WORD_SIZE, nullptr);
-  emit_lw_instruction("$t0", "$sp", WORD_SIZE, nullptr);
-  emit_sw_instruction("$t0", "$a0", STRING_LENGTH_OFFSET, nullptr);
+  CreateStringObject(context, label, node->value().length(), nullptr);
   return Status::Ok();
 }
 
 Status CodegenPass::codegen(Context *context, LetExprNode *node) {
-
-  auto unwindStackAndEnvironment = [&](const uint32_t nCount) {
-    emit_addiu_instruction("$sp", "$sp", nCount * WORD_SIZE, nullptr);
-    for (uint32_t iCount = 0; iCount < nCount; ++iCount) {
-      /// TODO: implement logic to unwind nested environments
-    }
-  };
-
   /// Generate code for let bindings
+  auto symbolTable = context->symbolTable();
   for (auto binding : node->bindings()) {
+
+    /// Enter new scope
+    symbolTable->enterScope();
+
+    /// Generate code for binding
     binding->generateCode(context, this);
+
+    /// Update symbol table (TODO) and push accumulator to stack
+    push_accumulator_to_stack(nullptr);
   }
 
   /// Generate code for main let expression
   node->expr()->generateCode(context, this);
 
-  /// Unwind stack and environment
-  unwindStackAndEnvironment(node->bindings().size());
+  /// Unwind environment
+  const size_t nCount = node->bindings().size();
+  for (size_t iCount = 0; iCount < nCount; ++iCount) {
+    symbolTable->exitScope();
+  }
+
+  /// Restore stack and return
+  emit_addiu_instruction("$sp", "$sp", nCount * WORD_SIZE, nullptr);
+  return Status::Ok();
+}
+
+Status CodegenPass::codegen(Context *context, MethodNode *node) {
+  /// Fetch symbol table
+  auto symbolTable = context->symbolTable();
+  symbolTable->enterScope();
+
+  /// Store accumulator, return address and frame pointer on stack
+  emit_sw_instruction("$a0", "$sp", 0, nullptr);
+  emit_sw_instruction("$ra", "$sp", WORD_SIZE, nullptr);
+  emit_sw_instruction("$fp", "$sp", 2 * WORD_SIZE, nullptr);
+
+  /// Update frame pointer and stack
+  emit_move_instruction("$fp", "$sp", nullptr);
+  emit_addiu_instruction("$sp", "$sp", -3 * WORD_SIZE, nullptr);
+
+  /// Update environment
+  const size_t nArgs = node->arguments().size();
+  for (size_t iArg = 0; iArg < nArgs; ++iArg) {
+    //    symbolTable->addElement(node->arguments()[iArg]->id(), {.isAttribute =
+    //    false, .position=-(iArg + 1)});
+  }
+  //  symbolTable->addElement("self", {.isAttribute = false, .position = 0});
+
+  /// Generate code for method
+  //  node->body()->generateCode(context, this);
+
+  /// Restore return address and frame pointer
+  emit_lw_instruction("$ra", "$fp", WORD_SIZE, nullptr);
+  emit_lw_instruction("$fp", "$fp", 2 * WORD_SIZE, nullptr);
+
+  /// Restore stack and jump to return address
+  emit_addiu_instruction("$sp", "$sp", (3 + nArgs) * WORD_SIZE, nullptr);
+  emit_jump_register_instruction("$ra", nullptr);
+
+  /// Restore symbol table and return
+  symbolTable->exitScope();
   return Status::Ok();
 }
 
@@ -632,8 +748,8 @@ Status CodegenPass::codegen(Context *context, WhileExprNode *node) {
 
   /// Evaluate loop condition and branch if needed
   node->loopCond()->generateCode(context, this);
-  emit_lw_instruction("$t0", "$a0", OBJECT_CONTENT_OFFSET, nullptr);
-  emit_blez_instruction("$t0", loopEndLabel, nullptr);
+  emit_lw_instruction("$t0", "$a0", BOOL_CONTENT_OFFSET, nullptr);
+  emit_beqz_instruction("$t0", loopEndLabel, nullptr);
 
   /// Generate code for loop body and jump to start of loop
   node->loopBody()->generateCode(context, this);

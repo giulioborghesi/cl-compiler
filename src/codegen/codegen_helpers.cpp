@@ -49,6 +49,11 @@ void emit_blez_instruction(const std::string &reg, const std::string &label,
   emit_bg_instruction("blez", reg, label, ios);
 }
 
+void emit_bltz_instruction(const std::string &reg, const std::string &label,
+                           std::iostream *ios) {
+  emit_bg_instruction("bltz", reg, label, ios);
+}
+
 void emit_compare_and_jump_instruction(const std::string &mnemonic,
                                        const std::string &lhsReg,
                                        const std::string &rhsReg,
@@ -71,6 +76,11 @@ void emit_jump_register_instruction(const std::string &reg,
 void emit_jump_and_link_instruction(const std::string &label,
                                     std::iostream *ios) {
   emit_jump_instruction("jal", label, ios);
+}
+
+void emit_jump_and_link_register_instruction(const std::string &dstReg,
+                                             std::iostream *ios) {
+  emit_jump_instruction("jalr", dstReg, ios);
 }
 
 void emit_label(const std::string &label, std::iostream *ios) {

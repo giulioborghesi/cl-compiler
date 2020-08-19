@@ -6,6 +6,8 @@
 
 namespace cool {
 
+static constexpr int32_t BOOL_CONTENT_OFFSET = 8;
+static constexpr int32_t CLASS_ID_OFFSET = 4;
 static constexpr int32_t OBJECT_CONTENT_OFFSET = 8;
 static constexpr int32_t OBJECT_SIZE_OFFSET = 4;
 static constexpr int32_t OBJECT_CLASS_OFFSET = 0;
@@ -51,6 +53,15 @@ void emit_bgtz_instruction(const std::string &reg, const std::string &label,
 void emit_blez_instruction(const std::string &reg, const std::string &label,
                            std::iostream *ios);
 
+/// Emit a MIPS instruction to branch when register contains a value less than
+/// zero
+///
+/// \param[in] reg register to compare
+/// \param[in] label jump label
+/// \param[out] ios output stream
+void emit_bltz_instruction(const std::string &reg, const std::string &label,
+                           std::iostream *ios);
+
 /// Emit a MIPS instruction to branch when the result of a comparison between
 /// two integer values stored in a register is true
 ///
@@ -72,6 +83,14 @@ void emit_compare_and_jump_instruction(const std::string &mnemonic,
 /// \param[out] ios output stream
 void emit_jump_and_link_instruction(const std::string &label,
                                     std::iostream *ios);
+
+/// Emit a MIPS jump instruction to jump to the address stored in a register and
+/// store the return address in $ra
+///
+/// \param[in] dstReg destination register
+/// \param[out] ios output stream
+void emit_jump_and_link_register_instruction(const std::string &dstReg,
+                                             std::iostream *ios);
 
 /// Emit a MIPS jump instruction to jump to a label
 ///
