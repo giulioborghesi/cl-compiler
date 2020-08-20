@@ -155,6 +155,34 @@ void CreateObjectFromTypeID(Context *context, const IdentifierType classID,
   emit_addiu_instruction("$sp", "$sp", WORD_SIZE, ios);
 }
 
+template <typename NodeT, typename FuncT>
+Status DispatchMethodImpl(Context *context, CodegenPass *pass, NodeT *node,
+                          FuncT func) {
+  /// Evaluate parameters
+  for (auto param : node->params()) {
+    param->generateCode(context, pass);
+    push_accumulator_to_stack(nullptr);
+  }
+
+  /// Evaluate expresssion
+  if (node->expr() != nullptr) {
+    node->expr()->generateCode(context, pass);
+  } else {
+    emit_lw_instruction("$a0", "$fp", 0, nullptr);
+  }
+
+  /// Fetch method table address
+  func();
+
+  /// Fetch method address
+  const size_t methodPosition = 0; /// TODO: fetch method position from table
+  emit_addiu_instruction("$t0", "$t0", methodPosition, nullptr);
+
+  /// Jump and link and return
+  emit_jump_and_link_instruction("$t0", nullptr);
+  return Status::Ok();
+}
+
 std::string GetMnemonicFromOpType(const ArithmeticOpID opID) {
   switch (opID) {
   case ArithmeticOpID::Plus:
@@ -557,6 +585,17 @@ Status CodegenPass::codegen(Context *context, CaseExprNode *node) {
   return Status::Ok();
 }
 
+Status CodegenPass::codegen(Context *context, DispatchExprNode *node) {
+  /// Function to fetch method table address
+  auto fetchMethodAddress = []() {
+    emit_la_instruction("$t0", "_Class_method_table", nullptr);
+    emit_lw_instruction("$t1", "$a0", OBJECT_CLASS_OFFSET, nullptr);
+    emit_three_registers_instruction("addu", "$t0", "$t0", "$t1", nullptr);
+  };
+
+  return DispatchMethodImpl(context, this, node, fetchMethodAddress);
+}
+
 Status CodegenPass::codegen(Context *context, IfExprNode *node) {
   /// Generate labels
   const std::string falseLabel;
@@ -638,6 +677,15 @@ Status CodegenPass::codegen(Context *context, LetExprNode *node) {
 }
 
 Status CodegenPass::codegen(Context *context, MethodNode *node) {
+  /// Fetch number of arguments
+  const size_t nArgs = node->arguments().size();
+
+  /// If method is a built-in method, just restore the stack and return
+  if (!node->body()) {
+    emit_addiu_instruction("$sp", "$sp", nArgs * WORD_SIZE, nullptr);
+    return Status::Ok();
+  }
+
   /// Fetch symbol table
   auto symbolTable = context->symbolTable();
   symbolTable->enterScope();
@@ -652,15 +700,14 @@ Status CodegenPass::codegen(Context *context, MethodNode *node) {
   emit_addiu_instruction("$sp", "$sp", -3 * WORD_SIZE, nullptr);
 
   /// Update environment
-  const size_t nArgs = node->arguments().size();
   for (size_t iArg = 0; iArg < nArgs; ++iArg) {
     //    symbolTable->addElement(node->arguments()[iArg]->id(), {.isAttribute =
     //    false, .position=-(iArg + 1)});
   }
   //  symbolTable->addElement("self", {.isAttribute = false, .position = 0});
 
-  /// Generate code for method
-  //  node->body()->generateCode(context, this);
+  /// Generate code for method body
+  node->body()->generateCode(context, this);
 
   /// Restore return address and frame pointer
   emit_lw_instruction("$ra", "$fp", WORD_SIZE, nullptr);
@@ -689,6 +736,18 @@ Status CodegenPass::codegen(Context *context, NewExprNode *node) {
   }
 
   return Status::Ok();
+}
+
+Status CodegenPass::codegen(Context *context, StaticDispatchExprNode *node) {
+  /// Function to fetch method table address
+  auto fetchMethodAddress = [context, node]() {
+    auto classRegistry = context->classRegistry();
+    const size_t classID = classRegistry->typeID(node->callerClass());
+    emit_la_instruction("$t0", "_Class_method_table", nullptr);
+    emit_addiu_instruction("$t0", "$t0", classID, nullptr);
+  };
+
+  return DispatchMethodImpl(context, this, node, fetchMethodAddress);
 }
 
 Status CodegenPass::codegen(Context *context, UnaryExprNode *node) {

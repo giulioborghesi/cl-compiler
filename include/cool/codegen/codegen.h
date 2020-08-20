@@ -41,9 +41,7 @@ public:
 
   Status codegen(Context *context, CaseExprNode *node);
 
-  Status codegen(Context *context, DispatchExprNode *node) {
-    return Status::Ok();
-  }
+  Status codegen(Context *context, DispatchExprNode *node);
 
   Status codegen(Context *context, ExprNode *node) { return Status::Ok(); }
 
@@ -61,9 +59,7 @@ public:
 
   Status codegen(Context *context, NewExprNode *node);
 
-  Status codegen(Context *context, StaticDispatchExprNode *node) {
-    return Status::Ok();
-  }
+  Status codegen(Context *context, StaticDispatchExprNode *node);
 
   Status codegen(Context *context, UnaryExprNode *node);
 
