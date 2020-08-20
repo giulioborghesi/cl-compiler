@@ -115,18 +115,18 @@ AttributeNodePtr AttributeNode::MakeAttributeNode(const std::string &id,
 
 /// MethodNode
 MethodNode::MethodNode(const std::string &id, const std::string &returnTypeName,
-                       std::vector<FormalNodePtr> arguments,
+                       std::vector<FormalNodePtr> arguments, ExprNodePtr body,
                        const uint32_t lloc, const uint32_t cloc)
     : ParentNode(lloc, cloc), id_(id), returnTypeName_(returnTypeName),
-      arguments_(std::move(arguments)) {}
+      arguments_(std::move(arguments)), body_(body) {}
 
 MethodNodePtr MethodNode::MakeMethodNode(const std::string &id,
                                          const std::string &returnTypeName,
                                          std::vector<FormalNodePtr> arguments,
-                                         const uint32_t lloc,
+                                         ExprNodePtr body, const uint32_t lloc,
                                          const uint32_t cloc) {
-  return MethodNodePtr(
-      new MethodNode(id, returnTypeName, std::move(arguments), lloc, cloc));
+  return MethodNodePtr(new MethodNode(id, returnTypeName, std::move(arguments),
+                                      body, lloc, cloc));
 }
 
 /// FormalNode

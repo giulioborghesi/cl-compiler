@@ -166,9 +166,12 @@ public:
   static MethodNodePtr MakeMethodNode(const std::string &id,
                                       const std::string &returnTypeName,
                                       std::vector<FormalNodePtr> arguments,
-                                      const uint32_t lloc, const uint32_t cloc);
+                                      ExprNodePtr body, const uint32_t lloc,
+                                      const uint32_t cloc);
 
   const std::vector<FormalNodePtr> &arguments() const { return arguments_; }
+
+  ExprNodePtr body() const { return body_; }
 
   const std::string &id() const { return id_; }
 
@@ -176,12 +179,13 @@ public:
 
 private:
   MethodNode(const std::string &id, const std::string &returnTypeName,
-             std::vector<FormalNodePtr> arguments, const uint32_t lloc,
-             const uint32_t cloc);
+             std::vector<FormalNodePtr> arguments, ExprNodePtr body,
+             const uint32_t lloc, const uint32_t cloc);
 
   const std::string id_;
   const std::string returnTypeName_;
   const std::vector<FormalNodePtr> arguments_;
+  const ExprNodePtr body_;
 };
 
 class FormalNode : public Visitable<Node, FormalNode> {

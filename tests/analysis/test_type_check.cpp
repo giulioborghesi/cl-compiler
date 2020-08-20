@@ -44,7 +44,7 @@ MakeClassWithMethods(const std::string &className,
     }
 
     methods.push_back(MethodNode::MakeMethodNode(
-        methodsInfo[i].first, methodsReturnTypes[i], args, 0, 0));
+        methodsInfo[i].first, methodsReturnTypes[i], args, nullptr, 0, 0));
   }
 
   /// Create and return the class

@@ -229,7 +229,7 @@ feature: OBJECT_ID_TOKEN ':' CLASS_ID_TOKEN {
     }
 | OBJECT_ID_TOKEN '(' formals ')' ':' CLASS_ID_TOKEN '{' expr '}' {
         $$ = cool::MethodNode::MakeMethodNode(
-            $1, $6, $3, @1.first_line, @1.first_column
+            $1, $6, $3, $8, @1.first_line, @1.first_column
         );
     }
 ;
@@ -461,9 +461,9 @@ std::vector<cool::ClassNodePtr> InstallBuiltInClasses(std::vector<cool::ClassNod
     {
         std::vector<cool::FormalNodePtr> emptyArgs;
         std::vector<cool::GenericAttributeNodePtr> attrs;
-        attrs.push_back(cool::MethodNode::MakeMethodNode("abort", "Object", emptyArgs, 0, 0));
-        attrs.push_back(cool::MethodNode::MakeMethodNode("copy", "SELF_TYPE", emptyArgs, 0, 0));
-        attrs.push_back(cool::MethodNode::MakeMethodNode("type_name", "String", emptyArgs, 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("abort", "Object", emptyArgs, nullptr, 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("copy", "SELF_TYPE", emptyArgs, nullptr, 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("type_name", "String", emptyArgs, nullptr, 0, 0));
         targetClasses.push_back(cool::ClassNode::MakeClassNode("Object", "", attrs, true, 0, 0));
     }
 
@@ -480,16 +480,16 @@ std::vector<cool::ClassNodePtr> InstallBuiltInClasses(std::vector<cool::ClassNod
         std::vector<cool::GenericAttributeNodePtr> attrs;
 
         /// Methods with no arguments first
-        attrs.push_back(cool::MethodNode::MakeMethodNode("in_string", "String", args, 0, 0));
-        attrs.push_back(cool::MethodNode::MakeMethodNode("in_int", "Int", args, 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("in_string", "String", args, nullptr, 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("in_int", "Int", args, nullptr, 0, 0));
 
         /// Remaining methods
         args.push_back(cool::FormalNode::MakeFormalNode("x", "String", 0, 0));
-        attrs.push_back(cool::MethodNode::MakeMethodNode("out_string", "SELF_TYPE", args, 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("out_string", "SELF_TYPE", args, nullptr, 0, 0));
 
         args.pop_back();
         args.push_back(cool::FormalNode::MakeFormalNode("x", "Int", 0, 0));
-        attrs.push_back(cool::MethodNode::MakeMethodNode("out_int", "SELF_TYPE", args, 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("out_int", "SELF_TYPE", args, nullptr, 0, 0));
 
         /// Install class
         targetClasses.push_back(cool::ClassNode::MakeClassNode("IO", "Object", attrs, true, 0, 0));
@@ -501,16 +501,16 @@ std::vector<cool::ClassNodePtr> InstallBuiltInClasses(std::vector<cool::ClassNod
         std::vector<cool::GenericAttributeNodePtr> attrs;
 
         /// Method with no arguments first
-        attrs.push_back(cool::MethodNode::MakeMethodNode("length", "Int", args, 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("length", "Int", args, nullptr, 0, 0));
 
         /// Remaining methods
         args.push_back(cool::FormalNode::MakeFormalNode("s", "String", 0, 0));
-        attrs.push_back(cool::MethodNode::MakeMethodNode("concat", "String", args, 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("concat", "String", args, nullptr, 0, 0));
 
         args.pop_back();
         args.push_back(cool::FormalNode::MakeFormalNode("i", "Int", 0, 0));
         args.push_back(cool::FormalNode::MakeFormalNode("l", "Int", 0, 0));
-        attrs.push_back(cool::MethodNode::MakeMethodNode("substr", "String", args, 0, 0));
+        attrs.push_back(cool::MethodNode::MakeMethodNode("substr", "String", args, nullptr, 0, 0));
 
         /// Install class
         targetClasses.push_back(cool::ClassNode::MakeClassNode("String", "Object", attrs, true, 0, 0));
