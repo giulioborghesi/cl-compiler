@@ -119,6 +119,13 @@ void emit_move_instruction(const std::string &dstReg, const std::string &srcReg,
          << std::setw(REGS_WIDTH) << dstReg << srcReg << std::endl;
 }
 
+void emit_sll_instruction(const std::string &dstReg, const std::string &srcReg,
+                          const size_t bits, std::iostream *ios) {
+  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << "sll"
+         << std::setw(REGS_WIDTH) << dstReg << std::setw(REGS_WIDTH) << srcReg
+         << bits << std::endl;
+}
+
 void emit_sw_instruction(const std::string &srcReg, const std::string &baseReg,
                          const int32_t offset, std::iostream *ios) {
   (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << "sw"

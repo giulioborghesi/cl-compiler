@@ -5,6 +5,8 @@
 #include <cool/ir/common.h>
 #include <cool/ir/fwd.h>
 
+#include <iostream>
+
 namespace cool {
 
 /// Forward declaration
@@ -16,54 +18,68 @@ public:
   CodegenPass() = default;
 
   /// Program, class and attributes nodes
-  Status codegen(Context *context, AttributeNode *node) { return Status::Ok(); }
+  Status codegen(Context *context, AttributeNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, ClassNode *node) { return Status::Ok(); }
+  Status codegen(Context *context, ClassNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, FormalNode *node) { return Status::Ok(); }
+  Status codegen(Context *context, FormalNode *node, std::iostream *ios) {
+    return Status::Ok();
+  }
 
-  Status codegen(Context *context, MethodNode *node);
+  Status codegen(Context *context, MethodNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, ProgramNode *node) { return Status::Ok(); }
+  Status codegen(Context *context, ProgramNode *node, std::iostream *ios) {
+    return Status::Ok();
+  }
 
   /// Expressions nodes
-  Status codegen(Context *context, AssignmentExprNode *node);
+  Status codegen(Context *context, AssignmentExprNode *node,
+                 std::iostream *ios);
 
-  Status codegen(Context *context, BinaryExprNode<ArithmeticOpID> *node);
+  Status codegen(Context *context, BinaryExprNode<ArithmeticOpID> *node,
+                 std::iostream *ios);
 
-  Status codegen(Context *context, BinaryExprNode<ComparisonOpID> *node);
+  Status codegen(Context *context, BinaryExprNode<ComparisonOpID> *node,
+                 std::iostream *ios);
 
-  Status codegen(Context *context, BlockExprNode *node);
+  Status codegen(Context *context, BlockExprNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, BooleanExprNode *node);
+  Status codegen(Context *context, BooleanExprNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, CaseBindingNode *node);
+  Status codegen(Context *context, CaseBindingNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, CaseExprNode *node);
+  Status codegen(Context *context, CaseExprNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, DispatchExprNode *node);
+  Status codegen(Context *context, DispatchExprNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, ExprNode *node) { return Status::Ok(); }
+  Status codegen(Context *context, ExprNode *node, std::iostream *ios) {
+    return Status::Ok();
+  }
 
-  Status codegen(Context *context, IdExprNode *node) { return Status::Ok(); }
+  Status codegen(Context *context, IdExprNode *node, std::iostream *ios) {
+    return Status::Ok();
+  }
 
-  Status codegen(Context *context, IfExprNode *node);
+  Status codegen(Context *context, IfExprNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, LetBindingNode *node);
+  Status codegen(Context *context, LetBindingNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, LetExprNode *node);
+  Status codegen(Context *context, LetExprNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, LiteralExprNode<int32_t> *node);
+  Status codegen(Context *context, LiteralExprNode<int32_t> *node,
+                 std::iostream *ios);
 
-  Status codegen(Context *context, LiteralExprNode<std::string> *node);
+  Status codegen(Context *context, LiteralExprNode<std::string> *node,
+                 std::iostream *ios);
 
-  Status codegen(Context *context, NewExprNode *node);
+  Status codegen(Context *context, NewExprNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, StaticDispatchExprNode *node);
+  Status codegen(Context *context, StaticDispatchExprNode *node,
+                 std::iostream *ios);
 
-  Status codegen(Context *context, UnaryExprNode *node);
+  Status codegen(Context *context, UnaryExprNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, WhileExprNode *node);
+  Status codegen(Context *context, WhileExprNode *node, std::iostream *ios);
 };
 
 } // namespace cool

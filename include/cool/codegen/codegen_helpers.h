@@ -153,6 +153,16 @@ void emit_lw_instruction(const std::string &dstReg, const std::string &baseReg,
 void emit_move_instruction(const std::string &dstReg, const std::string &srcReg,
                            std::iostream *ios);
 
+/// Emit a MIPS instruction to shift the bits of a register to the left by bits
+/// positions and store the result into a specified register
+///
+/// \param[in] dstReg destination register
+/// \param[in] srcReg source register
+/// \param[in] bits bits to shift
+/// \param[out] ios output stream
+void emit_sll_instruction(const std::string &dstReg, const std::string &srcReg,
+                          const size_t bits, std::iostream *ios);
+
 /// Emit a MIPS instruction to store a word from a register into a specified
 /// memory location
 ///

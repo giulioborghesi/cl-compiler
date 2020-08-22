@@ -5,6 +5,7 @@
 #include <cool/codegen/codegen.h>
 #include <cool/core/status.h>
 
+#include <iostream>
 #include <utility>
 
 namespace cool {
@@ -18,8 +19,9 @@ public:
     return pass->visit(context, static_cast<Derived *>(this));
   }
 
-  Status generateCode(Context *context, CodegenPass *pass) final override {
-    return pass->codegen(context, static_cast<Derived *>(this));
+  Status generateCode(Context *context, CodegenPass *pass,
+                      std::iostream *ios) final override {
+    return pass->codegen(context, static_cast<Derived *>(this), ios);
   }
 
 protected:
