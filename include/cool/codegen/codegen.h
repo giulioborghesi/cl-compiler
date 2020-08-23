@@ -10,7 +10,7 @@
 namespace cool {
 
 /// Forward declaration
-class Context;
+class CodegenContext;
 
 class CodegenPass {
 
@@ -18,66 +18,80 @@ public:
   CodegenPass() = default;
 
   /// Program, class and attributes nodes
-  Status codegen(Context *context, AttributeNode *node, std::iostream *ios);
+  Status codegen(CodegenContext *context, AttributeNode *node,
+                 std::iostream *ios);
 
-  Status codegen(Context *context, ClassNode *node, std::iostream *ios);
+  Status codegen(CodegenContext *context, ClassNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, FormalNode *node, std::iostream *ios) {
+  Status codegen(CodegenContext *context, FormalNode *node,
+                 std::iostream *ios) {
     return Status::Ok();
   }
 
-  Status codegen(Context *context, MethodNode *node, std::iostream *ios);
+  Status codegen(CodegenContext *context, MethodNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, ProgramNode *node, std::iostream *ios);
+  Status codegen(CodegenContext *context, ProgramNode *node,
+                 std::iostream *ios);
 
   /// Expressions nodes
-  Status codegen(Context *context, AssignmentExprNode *node,
+  Status codegen(CodegenContext *context, AssignmentExprNode *node,
                  std::iostream *ios);
 
-  Status codegen(Context *context, BinaryExprNode<ArithmeticOpID> *node,
+  Status codegen(CodegenContext *context, BinaryExprNode<ArithmeticOpID> *node,
                  std::iostream *ios);
 
-  Status codegen(Context *context, BinaryExprNode<ComparisonOpID> *node,
+  Status codegen(CodegenContext *context, BinaryExprNode<ComparisonOpID> *node,
                  std::iostream *ios);
 
-  Status codegen(Context *context, BlockExprNode *node, std::iostream *ios);
+  Status codegen(CodegenContext *context, BlockExprNode *node,
+                 std::iostream *ios);
 
-  Status codegen(Context *context, BooleanExprNode *node, std::iostream *ios);
+  Status codegen(CodegenContext *context, BooleanExprNode *node,
+                 std::iostream *ios);
 
-  Status codegen(Context *context, CaseBindingNode *node, std::iostream *ios);
+  Status codegen(CodegenContext *context, CaseBindingNode *node,
+                 std::iostream *ios);
 
-  Status codegen(Context *context, CaseExprNode *node, std::iostream *ios);
+  Status codegen(CodegenContext *context, CaseExprNode *node,
+                 std::iostream *ios);
 
-  Status codegen(Context *context, DispatchExprNode *node, std::iostream *ios);
+  Status codegen(CodegenContext *context, DispatchExprNode *node,
+                 std::iostream *ios);
 
-  Status codegen(Context *context, ExprNode *node, std::iostream *ios) {
+  Status codegen(CodegenContext *context, ExprNode *node, std::iostream *ios) {
     return Status::Ok();
   }
 
-  Status codegen(Context *context, IdExprNode *node, std::iostream *ios) {
+  Status codegen(CodegenContext *context, IdExprNode *node,
+                 std::iostream *ios) {
     return Status::Ok();
   }
 
-  Status codegen(Context *context, IfExprNode *node, std::iostream *ios);
+  Status codegen(CodegenContext *context, IfExprNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, LetBindingNode *node, std::iostream *ios);
-
-  Status codegen(Context *context, LetExprNode *node, std::iostream *ios);
-
-  Status codegen(Context *context, LiteralExprNode<int32_t> *node,
+  Status codegen(CodegenContext *context, LetBindingNode *node,
                  std::iostream *ios);
 
-  Status codegen(Context *context, LiteralExprNode<std::string> *node,
+  Status codegen(CodegenContext *context, LetExprNode *node,
                  std::iostream *ios);
 
-  Status codegen(Context *context, NewExprNode *node, std::iostream *ios);
-
-  Status codegen(Context *context, StaticDispatchExprNode *node,
+  Status codegen(CodegenContext *context, LiteralExprNode<int32_t> *node,
                  std::iostream *ios);
 
-  Status codegen(Context *context, UnaryExprNode *node, std::iostream *ios);
+  Status codegen(CodegenContext *context, LiteralExprNode<std::string> *node,
+                 std::iostream *ios);
 
-  Status codegen(Context *context, WhileExprNode *node, std::iostream *ios);
+  Status codegen(CodegenContext *context, NewExprNode *node,
+                 std::iostream *ios);
+
+  Status codegen(CodegenContext *context, StaticDispatchExprNode *node,
+                 std::iostream *ios);
+
+  Status codegen(CodegenContext *context, UnaryExprNode *node,
+                 std::iostream *ios);
+
+  Status codegen(CodegenContext *context, WhileExprNode *node,
+                 std::iostream *ios);
 };
 
 } // namespace cool

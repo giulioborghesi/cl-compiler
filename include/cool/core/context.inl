@@ -1,19 +1,17 @@
-
-#include <cool/core/context.h>
-#include <cool/core/logger_collection.h>
-#include <cool/ir/class.h>
-
 namespace cool {
 
-Context::Context(ClassRegistry *classRegistry)
+template <typename SymbolTableT, typename MethodTableT>
+Context<SymbolTableT, MethodTableT>::Context(ClassRegistry *classRegistry)
     : classRegistry_(classRegistry), logger_(nullptr) {}
 
-Context::Context(ClassRegistry *classRegistry,
-                 std::shared_ptr<LoggerCollection> logger)
+template <typename SymbolTableT, typename MethodTableT>
+Context<SymbolTableT, MethodTableT>::Context(
+    ClassRegistry *classRegistry, std::shared_ptr<LoggerCollection> logger)
     : classRegistry_(classRegistry), logger_(logger) {}
 
+template <typename SymbolTableT, typename MethodTableT>
 template <typename T>
-void Context::initializeGenericTable(
+void Context<SymbolTableT, MethodTableT>::initializeGenericTable(
     TableCollectionT<std::unique_ptr<T>> &tables) {
   const auto classID = classRegistry_->typeID(currentClassName_);
   assert(tables.count(classID) == 0);
@@ -29,11 +27,5 @@ void Context::initializeGenericTable(
     table->setParentTable(parentTable);
   }
 }
-
-template void Context::initializeGenericTable<Context::SymbolTableT>(
-    TableCollectionT<std::unique_ptr<Context::SymbolTableT>> &tables);
-
-template void Context::initializeGenericTable<Context::MethodTableT>(
-    TableCollectionT<std::unique_ptr<Context::MethodTableT>> &tables);
 
 } // namespace cool

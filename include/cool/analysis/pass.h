@@ -11,7 +11,7 @@
 namespace cool {
 
 // Forward declaration
-class Context;
+class AnalysisContext;
 
 class Pass {
 
@@ -20,100 +20,104 @@ public:
   virtual ~Pass() = default;
 
   /// Program, class and attributes nodes
-  virtual Status visit(Context *context, AttributeNode *node) {
+  virtual Status visit(AnalysisContext *context, AttributeNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, ClassNode *node) {
+  virtual Status visit(AnalysisContext *context, ClassNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, FormalNode *node) {
+  virtual Status visit(AnalysisContext *context, FormalNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, MethodNode *node) {
+  virtual Status visit(AnalysisContext *context, MethodNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, ProgramNode *node) {
+  virtual Status visit(AnalysisContext *context, ProgramNode *node) {
     return Status::Ok();
   }
 
   /// Expressions nodes
-  virtual Status visit(Context *context, AssignmentExprNode *node) {
+  virtual Status visit(AnalysisContext *context, AssignmentExprNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, BinaryExprNode<ArithmeticOpID> *node) {
+  virtual Status visit(AnalysisContext *context,
+                       BinaryExprNode<ArithmeticOpID> *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, BinaryExprNode<ComparisonOpID> *node) {
+  virtual Status visit(AnalysisContext *context,
+                       BinaryExprNode<ComparisonOpID> *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, BlockExprNode *node) {
+  virtual Status visit(AnalysisContext *context, BlockExprNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, BooleanExprNode *node) {
+  virtual Status visit(AnalysisContext *context, BooleanExprNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, CaseBindingNode *node) {
+  virtual Status visit(AnalysisContext *context, CaseBindingNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, CaseExprNode *node) {
+  virtual Status visit(AnalysisContext *context, CaseExprNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, DispatchExprNode *node) {
+  virtual Status visit(AnalysisContext *context, DispatchExprNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, ExprNode *node) {
+  virtual Status visit(AnalysisContext *context, ExprNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, IdExprNode *node) {
+  virtual Status visit(AnalysisContext *context, IdExprNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, IfExprNode *node) {
+  virtual Status visit(AnalysisContext *context, IfExprNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, LetBindingNode *node) {
+  virtual Status visit(AnalysisContext *context, LetBindingNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, LetExprNode *node) {
+  virtual Status visit(AnalysisContext *context, LetExprNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, LiteralExprNode<int32_t> *node) {
+  virtual Status visit(AnalysisContext *context,
+                       LiteralExprNode<int32_t> *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, LiteralExprNode<std::string> *node) {
+  virtual Status visit(AnalysisContext *context,
+                       LiteralExprNode<std::string> *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, NewExprNode *node) {
+  virtual Status visit(AnalysisContext *context, NewExprNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, StaticDispatchExprNode *node) {
+  virtual Status visit(AnalysisContext *context, StaticDispatchExprNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, UnaryExprNode *node) {
+  virtual Status visit(AnalysisContext *context, UnaryExprNode *node) {
     return Status::Ok();
   }
 
-  virtual Status visit(Context *context, WhileExprNode *node) {
+  virtual Status visit(AnalysisContext *context, WhileExprNode *node) {
     return Status::Ok();
   }
 };

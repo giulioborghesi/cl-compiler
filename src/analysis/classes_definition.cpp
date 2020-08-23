@@ -1,5 +1,5 @@
+#include <cool/analysis/analysis_context.h>
 #include <cool/analysis/classes_definition.h>
-#include <cool/core/context.h>
 #include <cool/core/logger_collection.h>
 #include <cool/ir/class.h>
 
@@ -11,7 +11,8 @@
 
 namespace cool {
 
-Status ClassesDefinitionPass::visit(Context *context, ProgramNode *node) {
+Status ClassesDefinitionPass::visit(AnalysisContext *context,
+                                    ProgramNode *node) {
   bool classesDefinitionOk = true;
   auto *registry = context->classRegistry();
   auto *logger = context->logger();

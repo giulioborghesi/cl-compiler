@@ -11,13 +11,13 @@ public:
   ClassesImplementationPass() = default;
   ~ClassesImplementationPass() final override = default;
 
-  Status visit(Context *context, AttributeNode *node) final override;
+  Status visit(AnalysisContext *context, AttributeNode *node) final override;
 
-  Status visit(Context *context, ClassNode *node) final override;
+  Status visit(AnalysisContext *context, ClassNode *node) final override;
 
-  Status visit(Context *context, MethodNode *node) final override;
+  Status visit(AnalysisContext *context, MethodNode *node) final override;
 
-  Status visit(Context *context, ProgramNode *node) final override;
+  Status visit(AnalysisContext *context, ProgramNode *node) final override;
 };
 
 } // namespace cool

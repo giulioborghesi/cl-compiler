@@ -1,7 +1,7 @@
+#include <cool/analysis/analysis_context.h>
 #include <cool/analysis/classes_implementation.h>
 #include <cool/analysis/type_check.h>
 #include <cool/core/class_registry.h>
-#include <cool/core/context.h>
 #include <cool/core/logger_collection.h>
 #include <cool/ir/class.h>
 #include <cool/ir/expr.h>
@@ -52,12 +52,12 @@ MakeClassWithMethods(const std::string &className,
 }
 
 /// Helper function to initialize a context for type checking
-std::unique_ptr<Context> MakeContextWithDefaultClasses() {
+std::unique_ptr<AnalysisContext> MakeContextWithDefaultClasses() {
   std::shared_ptr<LoggerCollection> logger =
       std::make_shared<LoggerCollection>();
   /// Create context
   logger->registerLogger(LOGGER_NAME, std::make_shared<StringLogger>());
-  auto context = std::make_unique<Context>(new ClassRegistry(), logger);
+  auto context = std::make_unique<AnalysisContext>(new ClassRegistry(), logger);
 
   /// Add object class to context
   std::vector<GenericAttributeNodePtr> attributes;
@@ -109,7 +109,7 @@ std::unique_ptr<Context> MakeContextWithDefaultClasses() {
 } // namespace
 
 /// Helper function to extract the logger from the semantic analysis context
-StringLogger *GetLogger(Context *context) {
+StringLogger *GetLogger(AnalysisContext *context) {
   auto *logger = context->logger()->logger(LOGGER_NAME);
   return dynamic_cast<StringLogger *>(logger);
 }

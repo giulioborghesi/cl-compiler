@@ -1,5 +1,5 @@
+#include <cool/analysis/analysis_context.h>
 #include <cool/analysis/classes_implementation.h>
-#include <cool/core/context.h>
 #include <cool/core/logger_collection.h>
 #include <cool/ir/class.h>
 
@@ -31,7 +31,8 @@ bool SameReturnType(const ExprType &lhs, const ExprType &rhs) {
 
 } // namespace
 
-Status ClassesImplementationPass::visit(Context *context, AttributeNode *node) {
+Status ClassesImplementationPass::visit(AnalysisContext *context,
+                                        AttributeNode *node) {
   /// Fetch class registry, logger and symbol table
   auto *registry = context->classRegistry();
   auto *logger = context->logger();
@@ -71,7 +72,8 @@ Status ClassesImplementationPass::visit(Context *context, AttributeNode *node) {
   return Status::Ok();
 }
 
-Status ClassesImplementationPass::visit(Context *context, ClassNode *node) {
+Status ClassesImplementationPass::visit(AnalysisContext *context,
+                                        ClassNode *node) {
   /// Initialize class context, symbol table and method table
   context->setCurrentClassName(node->className());
   context->initializeTables();
@@ -100,7 +102,8 @@ Status ClassesImplementationPass::visit(Context *context, ClassNode *node) {
   return classesImplementationOk ? Status::Ok() : Status::Error();
 }
 
-Status ClassesImplementationPass::visit(Context *context, MethodNode *node) {
+Status ClassesImplementationPass::visit(AnalysisContext *context,
+                                        MethodNode *node) {
   /// Fetch class registry, logger and method table
   auto *registry = context->classRegistry();
   auto *logger = context->logger();
@@ -237,7 +240,8 @@ Status ClassesImplementationPass::visit(Context *context, MethodNode *node) {
   return Status::Ok();
 }
 
-Status ClassesImplementationPass::visit(Context *context, ProgramNode *node) {
+Status ClassesImplementationPass::visit(AnalysisContext *context,
+                                        ProgramNode *node) {
   bool classesImplementationOk = true;
   for (auto classNode : node->classes()) {
     auto status = classNode->visitNode(context, this);

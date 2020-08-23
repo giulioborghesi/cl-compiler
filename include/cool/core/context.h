@@ -1,9 +1,7 @@
 #ifndef COOL_CORE_CONTEXT_H
 #define COOL_CORE_CONTEXT_H
 
-#include <cool/analysis/method_record.h>
 #include <cool/core/class_registry.h>
-#include <cool/core/symbol_table.h>
 #include <cool/ir/common.h>
 
 #include <memory>
@@ -14,14 +12,7 @@ namespace cool {
 class LoggerCollection;
 
 /// Class that represents the context of a compiler pass / analysis
-class Context {
-
-  using KeyT = std::string;
-  using ValueT = ExprType;
-  using SymbolTableT = SymbolTable<KeyT, ValueT>;
-
-  using MethodValueT = MethodRecord;
-  using MethodTableT = SymbolTable<KeyT, MethodValueT>;
+template <typename SymbolTableT, typename MethodTableT> class Context {
 
   template <typename T>
   using TableCollectionT = std::unordered_map<IdentifierType, T>;
@@ -32,6 +23,8 @@ public:
 
   Context(ClassRegistry *classRegistry,
           std::shared_ptr<LoggerCollection> logger);
+
+  ~Context() = default;
 
   /// Get the class registry
   ///
@@ -146,3 +139,5 @@ private:
 } // namespace cool
 
 #endif
+
+#include <cool/core/context.inl>

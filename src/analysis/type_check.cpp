@@ -1,5 +1,5 @@
 #include <cool/analysis/type_check.h>
-#include <cool/core/context.h>
+#include <cool/analysis/analysis_context.h>
 #include <cool/core/logger_collection.h>
 #include <cool/ir/expr.h>
 
@@ -8,7 +8,8 @@
 
 namespace cool {
 
-Status TypeCheckPass::visit(Context *context, AssignmentExprNode *node) {
+Status TypeCheckPass::visit(AnalysisContext *context,
+                            AssignmentExprNode *node) {
   auto *logger = context->logger();
 
   /// Variable must be present in symbol table
@@ -51,7 +52,7 @@ Status TypeCheckPass::visit(Context *context, AssignmentExprNode *node) {
   return Status::Ok();
 }
 
-Status TypeCheckPass::visit(Context *context,
+Status TypeCheckPass::visit(AnalysisContext *context,
                             BinaryExprNode<ArithmeticOpID> *node) {
   const auto intTypeID = context->classRegistry()->typeID("Int");
   const ExprType returnType = ExprType{.typeID = intTypeID, .isSelf = false};
@@ -72,7 +73,7 @@ Status TypeCheckPass::visit(Context *context,
   return visitBinaryExpr(context, node, returnType, typeCheckF);
 }
 
-Status TypeCheckPass::visit(Context *context,
+Status TypeCheckPass::visit(AnalysisContext *context,
                             BinaryExprNode<ComparisonOpID> *node) {
   const ExprType returnType = context->classRegistry()->toType("Bool");
 
@@ -118,7 +119,7 @@ Status TypeCheckPass::visit(Context *context,
   return visitBinaryExpr(context, node, returnType, typeCheckC);
 }
 
-Status TypeCheckPass::visit(Context *context, BlockExprNode *node) {
+Status TypeCheckPass::visit(AnalysisContext *context, BlockExprNode *node) {
   for (auto &subNode : node->exprs()) {
     auto status = subNode->visitNode(context, this);
     if (!status.isOk()) {
@@ -131,13 +132,13 @@ Status TypeCheckPass::visit(Context *context, BlockExprNode *node) {
   return Status::Ok();
 }
 
-Status TypeCheckPass::visit(Context *context, BooleanExprNode *node) {
+Status TypeCheckPass::visit(AnalysisContext *context, BooleanExprNode *node) {
   const auto *registry = context->classRegistry();
   node->setType(registry->toType("Bool"));
   return Status::Ok();
 }
 
-Status TypeCheckPass::visit(Context *context, CaseBindingNode *node) {
+Status TypeCheckPass::visit(AnalysisContext *context, CaseBindingNode *node) {
   const auto *registry = context->classRegistry();
   auto *symbolTable = context->symbolTable();
   symbolTable->enterScope();
@@ -159,7 +160,7 @@ Status TypeCheckPass::visit(Context *context, CaseBindingNode *node) {
   return statusExpr;
 }
 
-Status TypeCheckPass::visit(Context *context, CaseExprNode *node) {
+Status TypeCheckPass::visit(AnalysisContext *context, CaseExprNode *node) {
   const auto *registry = context->classRegistry();
 
   /// Typecheck expression first
@@ -211,7 +212,7 @@ Status TypeCheckPass::visit(Context *context, CaseExprNode *node) {
   return Status::Ok();
 }
 
-Status TypeCheckPass::visit(Context *context, DispatchExprNode *node) {
+Status TypeCheckPass::visit(AnalysisContext *context, DispatchExprNode *node) {
   /// Type-check expression if it exists
   if (node->hasExpr()) {
     auto statusExpr = node->expr()->visitNode(context, this);
@@ -233,7 +234,7 @@ Status TypeCheckPass::visit(Context *context, DispatchExprNode *node) {
   return visitDispatchExpr(context, node, callerType, callerType);
 }
 
-Status TypeCheckPass::visit(Context *context, IdExprNode *node) {
+Status TypeCheckPass::visit(AnalysisContext *context, IdExprNode *node) {
   auto *symbolTable = context->symbolTable();
   auto *logger = context->logger();
   if (!symbolTable->findKeyInTable(node->id())) {
@@ -245,7 +246,7 @@ Status TypeCheckPass::visit(Context *context, IdExprNode *node) {
   return Status::Ok();
 }
 
-Status TypeCheckPass::visit(Context *context, IfExprNode *node) {
+Status TypeCheckPass::visit(AnalysisContext *context, IfExprNode *node) {
   const auto *registry = context->classRegistry();
 
   /// Type-check if-expression
@@ -283,7 +284,7 @@ Status TypeCheckPass::visit(Context *context, IfExprNode *node) {
   return Status::Ok();
 }
 
-Status TypeCheckPass::visit(Context *context, LetBindingNode *node) {
+Status TypeCheckPass::visit(AnalysisContext *context, LetBindingNode *node) {
   auto *registry = context->classRegistry();
   auto *symbolTable = context->symbolTable();
 
@@ -319,7 +320,7 @@ Status TypeCheckPass::visit(Context *context, LetBindingNode *node) {
   return symbolTable->addElement(node->id(), bindingType);
 }
 
-Status TypeCheckPass::visit(Context *context, LetExprNode *node) {
+Status TypeCheckPass::visit(AnalysisContext *context, LetExprNode *node) {
   auto *symbolTable = context->symbolTable();
 
   /// Helper function to unwind the symbol table
@@ -354,20 +355,21 @@ Status TypeCheckPass::visit(Context *context, LetExprNode *node) {
   return Status::Ok();
 }
 
-Status TypeCheckPass::visit(Context *context, LiteralExprNode<int32_t> *node) {
+Status TypeCheckPass::visit(AnalysisContext *context,
+                            LiteralExprNode<int32_t> *node) {
   const auto *registry = context->classRegistry();
   node->setType(registry->toType("Int"));
   return Status::Ok();
 }
 
-Status TypeCheckPass::visit(Context *context,
+Status TypeCheckPass::visit(AnalysisContext *context,
                             LiteralExprNode<std::string> *node) {
   const auto *registry = context->classRegistry();
   node->setType(registry->toType("String"));
   return Status::Ok();
 }
 
-Status TypeCheckPass::visit(Context *context, NewExprNode *node) {
+Status TypeCheckPass::visit(AnalysisContext *context, NewExprNode *node) {
   const auto *registry = context->classRegistry();
 
   /// SELF_TYPE needs a special treatment
@@ -390,7 +392,8 @@ Status TypeCheckPass::visit(Context *context, NewExprNode *node) {
   return Status::Ok();
 }
 
-Status TypeCheckPass::visit(Context *context, StaticDispatchExprNode *node) {
+Status TypeCheckPass::visit(AnalysisContext *context,
+                            StaticDispatchExprNode *node) {
   auto *logger = context->logger();
 
   /// Type-check expression
@@ -425,7 +428,7 @@ Status TypeCheckPass::visit(Context *context, StaticDispatchExprNode *node) {
   return visitDispatchExpr(context, node, dispatchType, callerType);
 }
 
-Status TypeCheckPass::visit(Context *context, UnaryExprNode *node) {
+Status TypeCheckPass::visit(AnalysisContext *context, UnaryExprNode *node) {
   /// Type-check subexpression
   auto statusExpr = node->expr()->visitNode(context, this);
   if (!statusExpr.isOk()) {
@@ -451,7 +454,7 @@ Status TypeCheckPass::visit(Context *context, UnaryExprNode *node) {
   return Status::Ok();
 }
 
-Status TypeCheckPass::visit(Context *context, WhileExprNode *node) {
+Status TypeCheckPass::visit(AnalysisContext *context, WhileExprNode *node) {
   /// Type-check loop condition expression
   auto statusLoopCond = node->loopCond()->visitNode(context, this);
   if (!statusLoopCond.isOk()) {
@@ -481,9 +484,10 @@ Status TypeCheckPass::visit(Context *context, WhileExprNode *node) {
 }
 
 template <typename OpType, typename FuncT>
-Status
-TypeCheckPass::visitBinaryExpr(Context *context, BinaryExprNode<OpType> *node,
-                               const ExprType &returnType, FuncT &&func) {
+Status TypeCheckPass::visitBinaryExpr(AnalysisContext *context,
+                                      BinaryExprNode<OpType> *node,
+                                      const ExprType &returnType,
+                                      FuncT &&func) {
   const auto *registry = context->classRegistry();
 
   /// Type-check left subexpression
@@ -511,13 +515,15 @@ TypeCheckPass::visitBinaryExpr(Context *context, BinaryExprNode<OpType> *node,
   return Status::Ok();
 }
 
-Status TypeCheckPass::visitIsVoidExpr(Context *context, UnaryExprNode *node) {
+Status TypeCheckPass::visitIsVoidExpr(AnalysisContext *context,
+                                      UnaryExprNode *node) {
   /// Assign Bool type to isvoid expression and return
   node->setType(context->classRegistry()->toType("Bool"));
   return Status::Ok();
 }
 
-Status TypeCheckPass::visitNotOrCompExpr(Context *context, UnaryExprNode *node,
+Status TypeCheckPass::visitNotOrCompExpr(AnalysisContext *context,
+                                         UnaryExprNode *node,
                                          const std::string &expectedType) {
   const auto expectedTypeID = context->classRegistry()->typeID(expectedType);
 
@@ -532,7 +538,8 @@ Status TypeCheckPass::visitNotOrCompExpr(Context *context, UnaryExprNode *node,
 }
 
 template <typename DispatchExprT>
-Status TypeCheckPass::visitDispatchExpr(Context *context, DispatchExprT *node,
+Status TypeCheckPass::visitDispatchExpr(AnalysisContext *context,
+                                        DispatchExprT *node,
                                         const ExprType dispatchType,
                                         const ExprType callerType) {
   auto *logger = context->logger();
@@ -606,7 +613,7 @@ Status TypeCheckPass::visitDispatchExpr(Context *context, DispatchExprT *node,
 }
 
 template Status TypeCheckPass::visitDispatchExpr<DispatchExprNode>(
-    Context *context, DispatchExprNode *node, const ExprType dispatchType,
-    const ExprType callerType);
+    AnalysisContext *context, DispatchExprNode *node,
+    const ExprType dispatchType, const ExprType callerType);
 
 } // namespace cool

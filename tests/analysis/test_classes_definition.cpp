@@ -1,5 +1,5 @@
+#include <cool/analysis/analysis_context.h>
 #include <cool/analysis/classes_definition.h>
-#include <cool/core/context.h>
 #include <cool/core/logger_collection.h>
 #include <cool/ir/class.h>
 
@@ -17,16 +17,16 @@ namespace {
 const std::string LOGGER_NAME = "StringLogger";
 
 /// Helper function to initialize a context for semantic analysis
-std::unique_ptr<Context> MakeContext() {
+std::unique_ptr<AnalysisContext> MakeContext() {
   std::shared_ptr<LoggerCollection> logger =
       std::make_shared<LoggerCollection>();
   logger->registerLogger(LOGGER_NAME, std::make_shared<StringLogger>());
 
-  return std::make_unique<Context>(new ClassRegistry(), logger);
+  return std::make_unique<AnalysisContext>(new ClassRegistry(), logger);
 }
 
 /// Helper function to extract the logger from the semantic analysis context
-StringLogger *GetLogger(Context *context) {
+StringLogger *GetLogger(AnalysisContext *context) {
   auto *logger = context->logger()->logger(LOGGER_NAME);
   return dynamic_cast<StringLogger *>(logger);
 }

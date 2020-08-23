@@ -9,9 +9,10 @@
 namespace cool {
 
 /// Forward declarations
-class Context;
+class AnalysisContext;
+class CodegenContext;
 class Pass;
-class CodegenPass;
+class CodegenBasePass;
 
 /// Base class for a node in the abstract syntax tree
 class Node {
@@ -39,7 +40,7 @@ public:
   /// \param[in] context pass context
   /// \param[in] pass analysis pass
   /// \return Status::Ok() on success, an error message otherwise
-  virtual Status visitNode(Context *context, Pass *pass) = 0;
+  virtual Status visitNode(AnalysisContext *context, Pass *pass) = 0;
 
   /// Visit the node and generate code
   ///
@@ -47,7 +48,7 @@ public:
   /// \param[in] pass codengen pass
   /// \param[out] ios output stream
   /// \return Status::Ok() on success, an error message otherwise
-  virtual Status generateCode(Context *context, CodegenPass *pass,
+  virtual Status generateCode(CodegenContext *context, CodegenBasePass *pass,
                               std::iostream *ios) = 0;
 
 protected:

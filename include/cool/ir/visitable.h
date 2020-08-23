@@ -2,7 +2,7 @@
 #define COOL_IR_VISITABLE_H
 
 #include <cool/analysis/pass.h>
-#include <cool/codegen/codegen.h>
+#include <cool/codegen/codegen_base.h>
 #include <cool/core/status.h>
 
 #include <iostream>
@@ -15,11 +15,11 @@ template <typename Base, typename Derived> class Visitable : public Base {
 public:
   virtual ~Visitable() = default;
 
-  Status visitNode(Context *context, Pass *pass) final override {
+  Status visitNode(AnalysisContext *context, Pass *pass) final override {
     return pass->visit(context, static_cast<Derived *>(this));
   }
 
-  Status generateCode(Context *context, CodegenPass *pass,
+  Status generateCode(CodegenContext *context, CodegenBasePass *pass,
                       std::iostream *ios) final override {
     return pass->codegen(context, static_cast<Derived *>(this), ios);
   }
