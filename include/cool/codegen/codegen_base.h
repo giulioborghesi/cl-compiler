@@ -1,5 +1,5 @@
-#ifndef COOL_CODEGEN_BASE_H
-#define COOL_CODEGEN_BASE_H
+#ifndef COOL_CODEGEN_CODEGEN_BASE_H
+#define COOL_CODEGEN_CODEGEN_BASE_H
 
 #include <cool/core/status.h>
 #include <cool/ir/common.h>

@@ -1,6 +1,6 @@
 #include <cool/codegen/codegen.h>
+#include <cool/codegen/codegen_context.h>
 #include <cool/codegen/codegen_helpers.h>
-#include <cool/core/context.h>
 #include <cool/ir/class.h>
 #include <cool/ir/expr.h>
 
@@ -11,10 +11,11 @@ namespace cool {
 namespace {
 
 /// \brief Forward declarations
-void CreateObjectFromProto(Context *context, const std::string &protoLabel,
+void CreateObjectFromProto(CodegenContext *context,
+                           const std::string &protoLabel,
                            const std::string &initLabel, std::iostream *ios);
 
-void GetStringLength(Context *context, std::iostream *ios);
+void GetStringLength(CodegenContext *context, std::iostream *ios);
 
 /// \brief Helper function to compare two objects of type Int or Bool
 ///
@@ -23,7 +24,7 @@ void GetStringLength(Context *context, std::iostream *ios);
 ///
 /// \param[in] context Codegen context
 /// \param[out] ios output stream
-void CompareBoolAndIntObjects(Context *context, std::iostream *ios) {
+void CompareBoolAndIntObjects(CodegenContext *context, std::iostream *ios) {
   /// Store lhs value in $t0
   emit_lw_instruction("$t0", "$sp", WORD_SIZE, ios);
   emit_lw_instruction("$t0", "$t0", OBJECT_CONTENT_OFFSET, ios);
@@ -55,7 +56,7 @@ void CompareBoolAndIntObjects(Context *context, std::iostream *ios) {
 ///
 /// \param[in] context Codegen context
 /// \param[out] ios output stream
-void CompareObjects(Context *context, std::iostream *ios) {
+void CompareObjects(CodegenContext *context, std::iostream *ios) {
   /// Store lhs object address in register $t0
   emit_lw_instruction("$t0", "$sp", WORD_SIZE, ios);
 
@@ -83,7 +84,7 @@ void CompareObjects(Context *context, std::iostream *ios) {
 ///
 /// \param[in] context Codegen context
 /// \param[out] ios output stream
-void CompareStringObjects(Context *context, std::iostream *ios) {
+void CompareStringObjects(CodegenContext *context, std::iostream *ios) {
   /// Store arguments in register $a0 on the stack
   push_accumulator_to_stack(ios);
 
@@ -177,8 +178,8 @@ std::string ComputeMethodKey(MethodNodePtr node) {
 /// \param[in] context Codegen context
 /// \param[in] initLabel label to initialization code
 /// \param[out] ios output stream
-void CopyAndInitializeObject(Context *context, const std::string &initLabel,
-                             std::iostream *ios) {
+void CopyAndInitializeObject(CodegenContext *context,
+                             const std::string &initLabel, std::iostream *ios) {
   /// Create a copy of the object and store it on the stack
   emit_jump_and_link_instruction("Object.copy", ios);
 
@@ -191,7 +192,7 @@ void CopyAndInitializeObject(Context *context, const std::string &initLabel,
 /// \param[in] context Codegen context
 /// \param[in] value value of Int object
 /// \param[out] ios output stream
-void CreateIntObject(Context *context, const int32_t value,
+void CreateIntObject(CodegenContext *context, const int32_t value,
                      std::iostream *ios) {
   CreateObjectFromProto(context, "Int_protObj", "Int_init", ios);
   emit_li_instruction("$t0", value, ios);
@@ -206,7 +207,8 @@ void CreateIntObject(Context *context, const int32_t value,
 /// \param[in] literalProto string literal proto label
 /// \param[in] stringLength string length
 /// \param[out] ios output stream
-void CreateStringObject(Context *context, const std::string &literalProto,
+void CreateStringObject(CodegenContext *context,
+                        const std::string &literalProto,
                         const size_t stringLength, std::iostream *ios) {
   /// Copy literal prototype and store it on stack
   CreateObjectFromProto(context, literalProto, "String_init", ios);
@@ -228,7 +230,8 @@ void CreateStringObject(Context *context, const std::string &literalProto,
 ///
 /// \param[in] context Codegen context
 /// \param[out] ios output stream
-void CreateStringObjectForClassName(Context *context, std::iostream *ios) {
+void CreateStringObjectForClassName(CodegenContext *context,
+                                    std::iostream *ios) {
   /// Store prototype object on the stack
   push_accumulator_to_stack(ios);
 
@@ -273,7 +276,8 @@ void CreateStringObjectForClassName(Context *context, std::iostream *ios) {
 /// \param[in] protoLabel prototype object label
 /// \param[in] initLabel object init label
 /// \param[out] ios output stream
-void CreateObjectFromProto(Context *context, const std::string &protoLabel,
+void CreateObjectFromProto(CodegenContext *context,
+                           const std::string &protoLabel,
                            const std::string &initLabel, std::iostream *ios) {
   /// Load address of prototype object into $a0
   emit_la_instruction("$a0", protoLabel, ios);
@@ -291,7 +295,7 @@ void CreateObjectFromProto(Context *context, const std::string &protoLabel,
 ///
 /// \param[in] context Codegen context
 /// \param[out] ios output stream
-void CreateObjectFromTypeID(Context *context, std::iostream *ios) {
+void CreateObjectFromTypeID(CodegenContext *context, std::iostream *ios) {
   /// Compute offsets in prototype and init tables
   emit_sll_instruction("$a0", "$a0", 2, ios);
 
@@ -322,8 +326,9 @@ void CreateObjectFromTypeID(Context *context, std::iostream *ios) {
 /// \param[in] fetchTableAddress unction to fetch method table address
 /// dispatch-specific code \param[out] ios output stream
 template <typename NodeT, typename FuncT>
-Status GenerateDispatchCode(Context *context, CodegenPass *pass, NodeT *node,
-                            FuncT fetchTableAddress, std::iostream *ios) {
+Status GenerateDispatchCode(CodegenContext *context, CodegenPass *pass,
+                            NodeT *node, FuncT fetchTableAddress,
+                            std::iostream *ios) {
   /// Evaluate parameters
   for (auto param : node->params()) {
     param->generateCode(context, pass, ios);
@@ -382,7 +387,7 @@ std::string GetMnemonicFromOpType(const ComparisonOpID opID) {
 ///
 /// \param[in] context Codegen context
 /// \param[out] ios output stream
-void GetStringLength(Context *context, std::iostream *ios) {
+void GetStringLength(CodegenContext *context, std::iostream *ios) {
   emit_lw_instruction("$t0", "$a0", STRING_LENGTH_OFFSET, ios);
   emit_lw_instruction("$a0", "$t0", OBJECT_CONTENT_OFFSET, ios);
 }
@@ -393,7 +398,7 @@ void GetStringLength(Context *context, std::iostream *ios) {
 /// \param[in] context Codegen context
 /// \param[in] node Case expression node
 /// \param[out] ios output stream
-void SelectCaseStatement(Context *context, CaseExprNode *node,
+void SelectCaseStatement(CodegenContext *context, CaseExprNode *node,
                          std::iostream *ios) {
   /// Fetch class registry
   auto registry = context->classRegistry();
@@ -463,7 +468,7 @@ void SelectCaseStatement(Context *context, CaseExprNode *node,
 /// \param[in] errorFunc Functor / lambda to generate error handling code
 /// \param[out] ios output stream
 template <typename FuncT>
-void TerminateExecutionIfVoid(Context *context, FuncT errorFunc,
+void TerminateExecutionIfVoid(CodegenContext *context, FuncT errorFunc,
                               std::iostream *ios) {
   /// Check whether object is void or not
   const std::string notVoidLabel;
@@ -479,7 +484,7 @@ void TerminateExecutionIfVoid(Context *context, FuncT errorFunc,
 } // namespace
 
 /// TODO: read ID location from symbol table
-Status CodegenPass::codegen(Context *context, AssignmentExprNode *node,
+Status CodegenPass::codegen(CodegenContext *context, AssignmentExprNode *node,
                             std::iostream *ios) {
   /// Generate code for right hand side expression
   node->rhsExpr()->generateCode(context, this, ios);
@@ -500,7 +505,7 @@ Status CodegenPass::codegen(Context *context, AssignmentExprNode *node,
 }
 
 /// TODO: read attribute position from context
-Status CodegenPass::codegen(Context *context, AttributeNode *node,
+Status CodegenPass::codegen(CodegenContext *context, AttributeNode *node,
                             std::iostream *ios) {
   /// Fetch symbol table
   auto symbolTable = context->symbolTable();
@@ -520,7 +525,7 @@ Status CodegenPass::codegen(Context *context, AttributeNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(Context *context,
+Status CodegenPass::codegen(CodegenContext *context,
                             BinaryExprNode<ArithmeticOpID> *node,
                             std::iostream *ios) {
   /// Evaluate left and right hand side expressions
@@ -553,7 +558,7 @@ Status CodegenPass::codegen(Context *context,
 }
 
 /// DONE
-Status CodegenPass::codegen(Context *context,
+Status CodegenPass::codegen(CodegenContext *context,
                             BinaryExprNode<ComparisonOpID> *node,
                             std::iostream *ios) {
   /// Evaluate lhs and rhs expressions
@@ -617,7 +622,7 @@ Status CodegenPass::codegen(Context *context,
 }
 
 /// DONE
-Status CodegenPass::codegen(Context *context, BlockExprNode *node,
+Status CodegenPass::codegen(CodegenContext *context, BlockExprNode *node,
                             std::iostream *ios) {
   for (auto expr : node->exprs()) {
     expr->generateCode(context, this, ios);
@@ -626,7 +631,7 @@ Status CodegenPass::codegen(Context *context, BlockExprNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(Context *context, BooleanExprNode *node,
+Status CodegenPass::codegen(CodegenContext *context, BooleanExprNode *node,
                             std::iostream *ios) {
   const std::string protoLabel = node->value() ? "bool_const1" : "bool_const0";
   CreateObjectFromProto(context, protoLabel, "Bool_init", ios);
@@ -634,7 +639,7 @@ Status CodegenPass::codegen(Context *context, BooleanExprNode *node,
 }
 
 /// TODO: update symbol table with case ID
-Status CodegenPass::codegen(Context *context, CaseBindingNode *node,
+Status CodegenPass::codegen(CodegenContext *context, CaseBindingNode *node,
                             std::iostream *ios) {
   /// Emit label
   const std::string bindingLabel;
@@ -656,7 +661,7 @@ Status CodegenPass::codegen(Context *context, CaseBindingNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(Context *context, CaseExprNode *node,
+Status CodegenPass::codegen(CodegenContext *context, CaseExprNode *node,
                             std::iostream *ios) {
   /// Evaluate case expression
   node->expr()->generateCode(context, this, ios);
@@ -703,7 +708,7 @@ Status CodegenPass::codegen(Context *context, CaseExprNode *node,
   return Status::Ok();
 }
 
-Status CodegenPass::codegen(Context *context, ClassNode *node,
+Status CodegenPass::codegen(CodegenContext *context, ClassNode *node,
                             std::iostream *ios) {
   /// Initialize symbol and method tables
   context->setCurrentClassName(node->className());
@@ -799,7 +804,7 @@ Status CodegenPass::codegen(Context *context, ClassNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(Context *context, DispatchExprNode *node,
+Status CodegenPass::codegen(CodegenContext *context, DispatchExprNode *node,
                             std::iostream *ios) {
   /// Function to fetch method table address
   auto fetchMethodAddress = [ios]() {
@@ -813,7 +818,7 @@ Status CodegenPass::codegen(Context *context, DispatchExprNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(Context *context, IfExprNode *node,
+Status CodegenPass::codegen(CodegenContext *context, IfExprNode *node,
                             std::iostream *ios) {
   /// Generate labels
   const std::string falseLabel;
@@ -842,14 +847,15 @@ Status CodegenPass::codegen(Context *context, IfExprNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(Context *context, LiteralExprNode<int32_t> *node,
+Status CodegenPass::codegen(CodegenContext *context,
+                            LiteralExprNode<int32_t> *node,
                             std::iostream *ios) {
   CreateIntObject(context, node->value(), ios);
   return Status::Ok();
 }
 
 /// DONE
-Status CodegenPass::codegen(Context *context,
+Status CodegenPass::codegen(CodegenContext *context,
                             LiteralExprNode<std::string> *node,
                             std::iostream *ios) {
   const std::string stringProto;
@@ -858,7 +864,7 @@ Status CodegenPass::codegen(Context *context,
 }
 
 /// DONE
-Status CodegenPass::codegen(Context *context, LetBindingNode *node,
+Status CodegenPass::codegen(CodegenContext *context, LetBindingNode *node,
                             std::iostream *ios) {
   /// Generate code for right hand side expression
   if (node->hasExpr()) {
@@ -879,7 +885,7 @@ Status CodegenPass::codegen(Context *context, LetBindingNode *node,
 }
 
 /// TODO: update symbol table with let bindings
-Status CodegenPass::codegen(Context *context, LetExprNode *node,
+Status CodegenPass::codegen(CodegenContext *context, LetExprNode *node,
                             std::iostream *ios) {
   /// Fetch symbol table
   auto symbolTable = context->symbolTable();
@@ -912,7 +918,7 @@ Status CodegenPass::codegen(Context *context, LetExprNode *node,
 }
 
 /// TODO: update symbol table with method arguments
-Status CodegenPass::codegen(Context *context, MethodNode *node,
+Status CodegenPass::codegen(CodegenContext *context, MethodNode *node,
                             std::iostream *ios) {
   /// Store number of arguments in local variable
   const size_t nArgs = node->arguments().size();
@@ -962,7 +968,7 @@ Status CodegenPass::codegen(Context *context, MethodNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(Context *context, NewExprNode *node,
+Status CodegenPass::codegen(CodegenContext *context, NewExprNode *node,
                             std::iostream *ios) {
   /// Get class name
   auto registry = context->classRegistry();
@@ -981,7 +987,7 @@ Status CodegenPass::codegen(Context *context, NewExprNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(Context *context, ProgramNode *node,
+Status CodegenPass::codegen(CodegenContext *context, ProgramNode *node,
                             std::iostream *ios) {
   for (auto classNode : node->classes()) {
     classNode->generateCode(context, this, ios);
@@ -990,8 +996,8 @@ Status CodegenPass::codegen(Context *context, ProgramNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(Context *context, StaticDispatchExprNode *node,
-                            std::iostream *ios) {
+Status CodegenPass::codegen(CodegenContext *context,
+                            StaticDispatchExprNode *node, std::iostream *ios) {
   /// Function to fetch method table address
   auto fetchTableAddress = [context, node, ios]() {
     auto classRegistry = context->classRegistry();
@@ -1004,7 +1010,7 @@ Status CodegenPass::codegen(Context *context, StaticDispatchExprNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(Context *context, UnaryExprNode *node,
+Status CodegenPass::codegen(CodegenContext *context, UnaryExprNode *node,
                             std::iostream *ios) {
   /// Generate code for the unary expression
   node->expr()->generateCode(context, this, ios);
@@ -1053,7 +1059,7 @@ Status CodegenPass::codegen(Context *context, UnaryExprNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(Context *context, WhileExprNode *node,
+Status CodegenPass::codegen(CodegenContext *context, WhileExprNode *node,
                             std::iostream *ios) {
   /// Generate labels
   const std::string loopStartLabel;

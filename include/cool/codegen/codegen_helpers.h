@@ -1,5 +1,5 @@
-#ifndef COOL_CODEGEN_HELPERS_H
-#define COOL_CODEGEN_HELPERS_H
+#ifndef COOL_CODEGEN_CODEGEN_HELPERS_H
+#define COOL_CODEGEN_CODEGEN_HELPERS_H
 
 #include <iostream>
 #include <string>

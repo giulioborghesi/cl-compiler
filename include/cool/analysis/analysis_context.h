@@ -1,5 +1,5 @@
-#ifndef COOL_ANALYSIS_CONTEXT_H
-#define COOL_ANALYSIS_CONTEXT_H
+#ifndef COOL_ANALYSIS_ANALYSIS_CONTEXT_H
+#define COOL_ANALYSIS_ANALYSIS_CONTEXT_H
 
 #include <cool/analysis/method_record.h>
 #include <cool/core/context.h>
