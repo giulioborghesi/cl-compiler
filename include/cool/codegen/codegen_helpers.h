@@ -10,7 +10,6 @@ static constexpr int32_t BOOL_CONTENT_OFFSET = 8;
 static constexpr int32_t CLASS_ID_OFFSET = 4;
 static constexpr int32_t OBJECT_CONTENT_OFFSET = 8;
 static constexpr int32_t OBJECT_SIZE_OFFSET = 4;
-static constexpr int32_t OBJECT_CLASS_OFFSET = 0;
 static constexpr int32_t STRING_LENGTH_OFFSET = 8;
 static constexpr int32_t STRING_CONTENT_OFFSET = 12;
 static constexpr int32_t WORD_SIZE = 4;

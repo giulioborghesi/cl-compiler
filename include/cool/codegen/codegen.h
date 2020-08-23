@@ -28,9 +28,7 @@ public:
 
   Status codegen(Context *context, MethodNode *node, std::iostream *ios);
 
-  Status codegen(Context *context, ProgramNode *node, std::iostream *ios) {
-    return Status::Ok();
-  }
+  Status codegen(Context *context, ProgramNode *node, std::iostream *ios);
 
   /// Expressions nodes
   Status codegen(Context *context, AssignmentExprNode *node,

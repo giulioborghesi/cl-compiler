@@ -67,4 +67,17 @@ void SymbolTable<KeyT, ValueT>::exitScope() {
   nestedTables_.pop_back();
 }
 
+template <typename KeyT, typename ValueT>
+size_t SymbolTable<KeyT, ValueT>::count() const {
+  size_t count = 0;
+  for (auto it = nestedTables_.rbegin(); it != nestedTables_.rend(); ++it) {
+    count += it->size();
+  }
+
+  if (parentTable_) {
+    return count + parentTable_->count();
+  }
+  return count;
+}
+
 } // namespace cool

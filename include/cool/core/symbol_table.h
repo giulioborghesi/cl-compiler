@@ -62,6 +62,11 @@ public:
   /// \return the value associated with the given key.
   const ValueT &get(const KeyT &key) const;
 
+  /// Return the number of keys stored in the nested symbol tables
+  ///
+  /// \return the number of keys stored in the nested symbol table
+  size_t count() const;
+
 private:
   std::vector<std::unordered_map<KeyT, ValueT>> nestedTables_;
   SymbolTable *parentTable_;
