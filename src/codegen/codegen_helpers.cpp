@@ -143,9 +143,4 @@ void emit_three_registers_instruction(const std::string &mnemonic,
          << reg2 << std::endl;
 }
 
-void push_accumulator_to_stack(std::iostream *ios) {
-  emit_sw_instruction("$ra", "$sp", 0, ios);
-  emit_addiu_instruction("$sp", "$sp", -4, ios);
-}
-
 } // namespace cool

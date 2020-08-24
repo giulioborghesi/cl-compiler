@@ -4,18 +4,25 @@
 #include <cool/core/context.h>
 #include <cool/core/symbol_table.h>
 
+#include <sstream>
+
 namespace cool {
 
 /// \brief Helper struct to store the information needed about an identifier in
 /// a codegen context
 struct IdentifierCodegenInfo {
-  bool isAttribute = false;
-  int32_t position = 0;
+  const bool isAttribute = false;
+  const int32_t position = -1;
   IdentifierCodegenInfo(bool inpIsAttribute, const int32_t inpPosition)
       : isAttribute(inpIsAttribute), position(inpPosition) {}
 };
 
-struct MethodCodegenInfo {};
+/// \brief Helper struct to store the information needed about a method in a
+/// codegen context
+struct MethodCodegenInfo {
+  const int32_t position = -1;
+  MethodCodegenInfo(const int32_t inpPosition) : position(inpPosition) {}
+};
 
 class CodegenContext
     : public Context<SymbolTable<std::string, IdentifierCodegenInfo>,
@@ -30,29 +37,44 @@ public:
                  std::shared_ptr<LoggerCollection> logger)
       : Context(classRegistry, logger) {}
 
-  /// Increment stack size by count elements
+  /// \brief Generate a label
+  ///
+  /// \note The generated label will be appended with an integer representing
+  /// the number of same-prefix labels generated so far
+  ///
+  /// \param[in] prefix label prefix
+  /// \return a new label with the given prefix
+  std::string generateLabel(const std::string &prefix) {
+    std::stringstream label;
+    label << prefix << "_" << labels_.count(prefix);
+    labels_[prefix] += 1;
+    return label.str();
+  }
+
+  /// \brief Increment stack size by count elements
   ///
   /// \param[in] count size to add to stack size
-  void incrementStackSize(const size_t count) { stackSize_ += count; }
+  void incrementStackSize(const int32_t count) { stackSize_ += count; }
 
-  /// Decrement stack size by count elements
+  /// \brief Decrement stack size by count elements
   ///
   /// \param[in] count size to subtract from stack size
-  void decrementStackSize(const size_t count) {
+  void decrementStackSize(const int32_t count) {
     assert(count >= stackSize_);
     stackSize_ -= count;
   }
 
-  /// Reset the stack size to zero
+  /// \brief Reset the stack size to zero
   void resetStackSize() { stackSize_ = 0; }
 
-  /// Get the stack size
+  /// \brief Get the stack size
   ///
   /// \return the stack size
-  size_t stackSize() const { return stackSize_; }
+  int32_t stackSize() const { return stackSize_; }
 
 private:
-  size_t stackSize_;
+  int32_t stackSize_;
+  std::unordered_map<std::string, size_t> labels_;
 };
 
 } // namespace cool

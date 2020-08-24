@@ -56,10 +56,7 @@ public:
   Status codegen(CodegenContext *context, DispatchExprNode *node,
                  std::iostream *ios) final override;
 
-  //  Status codegen(CodegenContext *context, IdExprNode *node,
-  //                 std::iostream *ios) {
-  //    return Status::Ok();
-  //  }
+  Status codegen(CodegenContext *context, IdExprNode *node, std::iostream *ios);
 
   Status codegen(CodegenContext *context, IfExprNode *node,
                  std::iostream *ios) final override;

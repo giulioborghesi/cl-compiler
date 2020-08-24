@@ -35,13 +35,6 @@ TEST(CodegenHelpers, BasicTests) {
     emit_sw_instruction("$t1", "$r1", 1023, &ss);
     ASSERT_EQ(ss.str(), "    sw    $t1   1023($r1)\n");
   }
-
-  /// Test helper to push accumulator
-  {
-    std::stringstream ss;
-    push_accumulator_to_stack(&ss);
-    ASSERT_EQ(ss.str(), "    sw    $ra   0($sp)\n    addiu $sp   $sp   -4\n");
-  }
 }
 
 } // namespace cool

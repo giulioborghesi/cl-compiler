@@ -185,12 +185,6 @@ void emit_three_registers_instruction(const std::string &mnemonic,
                                       const std::string &reg2,
                                       std::iostream *ios);
 
-/// Emit a sequence of MIPS instruction to push the accumulator to stack and
-/// update the stack pointer
-///
-/// \param[out] ios output stream
-void push_accumulator_to_stack(std::iostream *ios);
-
 } // namespace cool
 
 #endif
