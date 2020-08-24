@@ -438,21 +438,6 @@ TEST(TypeCheckTests, CaseExprNodeTests) {
         "Error: line 0, column 0. Types of case expressions must be unique");
     logger->reset();
   }
-
-  /// Type-check fails because expression does not conform to any case type
-  {
-    auto *logger = GetLogger(context.get());
-    auto node =
-        CaseExprNode::MakeCaseExprNode({bindingA, bindingB}, nodeD0, 0, 0);
-    auto status = typeCheckPass->visit(context.get(), node.get());
-    ASSERT_FALSE(status.isOk());
-    ASSERT_EQ(logger->loggedMessageCount(), 1);
-    ASSERT_EQ(
-        logger->loggedMessage(0).message(),
-        "Error: line 0, column 0. Type of case expression does not conform "
-        "to any case statement type");
-    logger->reset();
-  }
 }
 
 /// DispatchExprNode

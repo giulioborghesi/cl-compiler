@@ -191,6 +191,7 @@ Status TypeCheckPass::visit(AnalysisContext *context, CaseBindingNode *node) {
 }
 
 Status TypeCheckPass::visit(AnalysisContext *context, CaseExprNode *node) {
+  /// Fetch class registry
   const auto *registry = context->classRegistry();
 
   /// Typecheck expression first
@@ -199,8 +200,7 @@ Status TypeCheckPass::visit(AnalysisContext *context, CaseExprNode *node) {
     return statusExpr;
   }
 
-  /// Find the candidate return types if any
-  std::vector<ExprType> candidates;
+  /// No duplicate case allowed
   std::unordered_set<ExprType> usedTypes;
   const auto &caseNodes = node->cases();
   for (auto caseNode : caseNodes) {
@@ -217,24 +217,13 @@ Status TypeCheckPass::visit(AnalysisContext *context, CaseExprNode *node) {
     }
 
     usedTypes.insert(caseNode->expr()->type());
-    if (registry->conformTo(node->expr()->type(), caseNode->expr()->type())) {
-      candidates.push_back(caseNode->expr()->type());
-    }
   }
 
-  /// If no match was found, return an error
-  if (candidates.size() == 0) {
-    auto *logger = context->logger();
-    LOG_ERROR_MESSAGE_WITH_LOCATION(logger, node,
-                                    "Type of case expression does not conform "
-                                    "to any case statement type");
-    return Status::Error();
-  }
-
-  /// Find the return type
-  ExprType exprType = candidates[0];
-  for (uint32_t i = 1; i < candidates.size(); ++i) {
-    exprType = registry->leastCommonAncestor(exprType, candidates[i]);
+  /// Compute the return type
+  ExprType exprType = caseNodes[0]->expr()->type();
+  for (uint32_t i = 1; i < caseNodes.size(); ++i) {
+    ExprType caseType = caseNodes[i]->expr()->type();
+    exprType = registry->leastCommonAncestor(exprType, caseType);
   }
 
   /// Set type of expression and return
