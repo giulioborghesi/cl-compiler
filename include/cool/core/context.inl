@@ -1,12 +1,12 @@
 namespace cool {
 
 template <typename SymbolTableT, typename MethodTableT>
-Context<SymbolTableT, MethodTableT>::Context(ClassRegistry *classRegistry)
+Context<SymbolTableT, MethodTableT>::Context(std::shared_ptr<ClassRegistry> classRegistry)
     : classRegistry_(classRegistry), logger_(nullptr) {}
 
 template <typename SymbolTableT, typename MethodTableT>
 Context<SymbolTableT, MethodTableT>::Context(
-    ClassRegistry *classRegistry, std::shared_ptr<LoggerCollection> logger)
+    std::shared_ptr<ClassRegistry> classRegistry, std::shared_ptr<LoggerCollection> logger)
     : classRegistry_(classRegistry), logger_(logger) {}
 
 template <typename SymbolTableT, typename MethodTableT>

@@ -30,10 +30,10 @@ class CodegenContext
 
 public:
   CodegenContext() = delete;
-  explicit CodegenContext(ClassRegistry *classRegistry)
+  explicit CodegenContext(std::shared_ptr<ClassRegistry> classRegistry)
       : Context(classRegistry) {}
 
-  CodegenContext(ClassRegistry *classRegistry,
+  CodegenContext(std::shared_ptr<ClassRegistry> classRegistry,
                  std::shared_ptr<LoggerCollection> logger)
       : Context(classRegistry, logger) {}
 

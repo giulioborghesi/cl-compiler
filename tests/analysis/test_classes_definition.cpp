@@ -22,7 +22,8 @@ std::unique_ptr<AnalysisContext> MakeContext() {
       std::make_shared<LoggerCollection>();
   logger->registerLogger(LOGGER_NAME, std::make_shared<StringLogger>());
 
-  return std::make_unique<AnalysisContext>(new ClassRegistry(), logger);
+  return std::make_unique<AnalysisContext>(std::make_shared<ClassRegistry>(),
+                                           logger);
 }
 
 /// Helper function to extract the logger from the semantic analysis context

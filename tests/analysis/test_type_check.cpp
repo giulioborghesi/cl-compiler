@@ -57,7 +57,8 @@ std::unique_ptr<AnalysisContext> MakeContextWithDefaultClasses() {
       std::make_shared<LoggerCollection>();
   /// Create context
   logger->registerLogger(LOGGER_NAME, std::make_shared<StringLogger>());
-  auto context = std::make_unique<AnalysisContext>(new ClassRegistry(), logger);
+  auto context = std::make_unique<AnalysisContext>(
+      std::make_shared<ClassRegistry>(), logger);
 
   /// Add object class to context
   std::vector<GenericAttributeNodePtr> attributes;

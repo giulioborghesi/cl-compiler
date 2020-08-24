@@ -19,9 +19,9 @@ template <typename SymbolTableT, typename MethodTableT> class Context {
 
 public:
   Context() = delete;
-  explicit Context(ClassRegistry *classRegistry);
+  explicit Context(std::shared_ptr<ClassRegistry> classRegistry);
 
-  Context(ClassRegistry *classRegistry,
+  Context(std::shared_ptr<ClassRegistry> classRegistry,
           std::shared_ptr<LoggerCollection> logger);
 
   ~Context() = default;
@@ -129,7 +129,7 @@ private:
   void initializeGenericTable(TableCollectionT<std::unique_ptr<T>> &tables);
 
   std::string currentClassName_;
-  std::unique_ptr<ClassRegistry> classRegistry_;
+  std::shared_ptr<ClassRegistry> classRegistry_;
   std::shared_ptr<LoggerCollection> logger_;
 
   TableCollectionT<std::unique_ptr<SymbolTableT>> symbolTables_;

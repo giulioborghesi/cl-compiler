@@ -12,10 +12,10 @@ class AnalysisContext : public Context<SymbolTable<std::string, ExprType>,
 
 public:
   AnalysisContext() = delete;
-  explicit AnalysisContext(ClassRegistry *classRegistry)
+  explicit AnalysisContext(std::shared_ptr<ClassRegistry> classRegistry)
       : Context(classRegistry) {}
 
-  AnalysisContext(ClassRegistry *classRegistry,
+  AnalysisContext(std::shared_ptr<ClassRegistry> classRegistry,
                   std::shared_ptr<LoggerCollection> logger)
       : Context(classRegistry, logger) {}
 };
