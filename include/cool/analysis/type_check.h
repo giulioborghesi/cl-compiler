@@ -24,6 +24,8 @@ public:
   Status visit(AnalysisContext *context,
                AssignmentExprNode *node) final override;
 
+  Status visit(AnalysisContext *context, AttributeNode *node) final override;
+
   Status visit(AnalysisContext *context,
                BinaryExprNode<ArithmeticOpID> *node) final override;
 
@@ -37,6 +39,8 @@ public:
   Status visit(AnalysisContext *context, CaseBindingNode *node) final override;
 
   Status visit(AnalysisContext *context, CaseExprNode *node) final override;
+
+  Status visit(AnalysisContext *context, ClassNode *node) final override;
 
   Status visit(AnalysisContext *context, DispatchExprNode *node) final override;
 
@@ -54,7 +58,11 @@ public:
   Status visit(AnalysisContext *context,
                LiteralExprNode<std::string> *node) final override;
 
+  Status visit(AnalysisContext *context, MethodNode *node) final override;
+
   Status visit(AnalysisContext *context, NewExprNode *node) final override;
+
+  Status visit(AnalysisContext *context, ProgramNode *node) final override;
 
   Status visit(AnalysisContext *context,
                StaticDispatchExprNode *node) final override;

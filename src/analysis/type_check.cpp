@@ -1,6 +1,7 @@
-#include <cool/analysis/type_check.h>
 #include <cool/analysis/analysis_context.h>
+#include <cool/analysis/type_check.h>
 #include <cool/core/logger_collection.h>
+#include <cool/ir/class.h>
 #include <cool/ir/expr.h>
 
 #include <iostream>
@@ -49,6 +50,35 @@ Status TypeCheckPass::visit(AnalysisContext *context,
 
   /// All good. Set node type and return
   node->setType(node->rhsExpr()->type());
+  return Status::Ok();
+}
+
+Status TypeCheckPass::visit(AnalysisContext *context, AttributeNode *node) {
+  /// Nothing to do if attribute has no initialization expression
+  if (!node->initExpr()) {
+    return Status::Ok();
+  }
+
+  /// Return early if an error occurred while evaluating the rhs
+  if (!node->initExpr()->visitNode(context, this).isOk()) {
+    return Status::Error();
+  }
+
+  /// Fetch symbol table and class registry
+  auto registry = context->classRegistry();
+  auto symbolTable = context->symbolTable();
+
+  /// Type of initialization expression must conform to attribute type
+  auto idType = symbolTable->get(node->id());
+  if (!registry->conformTo(node->initExpr()->type(), idType)) {
+    auto logger = context->logger();
+    LOG_ERROR_MESSAGE_WITH_LOCATION(logger, node,
+                                    "Type of init expression does not conform "
+                                    "to type of attribute %s in class %s",
+                                    node->id().c_str(),
+                                    context->currentClassName().c_str());
+    return Status::Error();
+  }
   return Status::Ok();
 }
 
@@ -212,6 +242,30 @@ Status TypeCheckPass::visit(AnalysisContext *context, CaseExprNode *node) {
   return Status::Ok();
 }
 
+Status TypeCheckPass::visit(AnalysisContext *context, ClassNode *node) {
+  /// Set current class name and fetch symbol table
+  context->setCurrentClassName(node->className());
+  auto *symbolTable = context->symbolTable();
+
+  /// Type-check each attribute
+  bool isOk = true;
+  for (auto attribute : node->attributes()) {
+    if (!attribute->visitNode(context, this).isOk()) {
+      isOk = false;
+    }
+  }
+
+  /// Type-check each method
+  for (auto method : node->methods()) {
+    if (!method->visitNode(context, this).isOk()) {
+      isOk = false;
+    }
+  }
+
+  /// Return the status
+  return isOk ? Status::Ok() : Status::Error();
+}
+
 Status TypeCheckPass::visit(AnalysisContext *context, DispatchExprNode *node) {
   /// Type-check expression if it exists
   if (node->hasExpr()) {
@@ -369,6 +423,44 @@ Status TypeCheckPass::visit(AnalysisContext *context,
   return Status::Ok();
 }
 
+Status TypeCheckPass::visit(AnalysisContext *context, MethodNode *node) {
+  /// Fetch class registry
+  auto registry = context->classRegistry();
+
+  /// Fetch symbol table and enter new scope
+  auto symbolTable = context->symbolTable();
+  symbolTable->enterScope();
+
+  /// Add method arguments to symbol table
+  for (auto argument : node->arguments()) {
+    const auto exprType = registry->toType(argument->typeName());
+    symbolTable->addElement(argument->id(), exprType);
+  }
+
+  /// Type-check method body
+  if (!node->body()->visitNode(context, this).isOk()) {
+    return Status::Error();
+  }
+
+  /// Body type must be a subtype of return type
+  const auto returnType =
+      node->returnTypeName() == "SELF_TYPE"
+          ? registry->toSelfType(context->currentClassName())
+          : registry->toType(node->returnTypeName());
+  if (!registry->conformTo(node->body()->type(), returnType)) {
+    auto logger = context->logger();
+    LOG_ERROR_MESSAGE_WITH_LOCATION(logger, node,
+                                    "Type of body expression does not conform "
+                                    "to return type of method %s in class %s",
+                                    node->id().c_str(),
+                                    context->currentClassName().c_str());
+    return Status::Error();
+  }
+
+  /// All good, return ok
+  return Status::Ok();
+}
+
 Status TypeCheckPass::visit(AnalysisContext *context, NewExprNode *node) {
   const auto *registry = context->classRegistry();
 
@@ -390,6 +482,17 @@ Status TypeCheckPass::visit(AnalysisContext *context, NewExprNode *node) {
   /// Assign type to expression and return
   node->setType(registry->toType(node->typeName()));
   return Status::Ok();
+}
+
+Status TypeCheckPass::visit(AnalysisContext *context, ProgramNode *node) {
+  /// Process all classes, regardless of whether errors are encountered or not
+  bool isOk = true;
+  for (auto classNode : node->classes()) {
+    if (!classNode->visitNode(context, this).isOk()) {
+      isOk = false;
+    }
+  }
+  return isOk ? Status::Ok() : Status::Error();
 }
 
 Status TypeCheckPass::visit(AnalysisContext *context,
