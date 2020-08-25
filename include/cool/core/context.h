@@ -138,6 +138,6 @@ private:
 
 } // namespace cool
 
-#endif
-
 #include <cool/core/context.inl>
+
+#endif

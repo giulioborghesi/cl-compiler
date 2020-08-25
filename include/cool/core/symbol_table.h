@@ -74,6 +74,6 @@ private:
 
 } // namespace cool
 
-#endif
-
 #include <cool/core/symbol_table.inl>
+
+#endif
