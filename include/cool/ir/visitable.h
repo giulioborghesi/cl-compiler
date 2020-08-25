@@ -5,7 +5,7 @@
 #include <cool/codegen/codegen_base.h>
 #include <cool/core/status.h>
 
-#include <iostream>
+#include <ostream>
 #include <utility>
 
 namespace cool {
@@ -20,7 +20,7 @@ public:
   }
 
   Status generateCode(CodegenContext *context, CodegenBasePass *pass,
-                      std::iostream *ios) final override {
+                      std::ostream *ios) final override {
     return pass->codegen(context, static_cast<Derived *>(this), ios);
   }
 

@@ -49,7 +49,7 @@ public:
   /// \param[out] ios output stream
   /// \return Status::Ok() on success, an error message otherwise
   virtual Status generateCode(CodegenContext *context, CodegenBasePass *pass,
-                              std::iostream *ios) = 0;
+                              std::ostream *ios) = 0;
 
 protected:
   Node(const uint32_t lloc, const uint32_t cloc) : lloc_(lloc), cloc_(cloc) {}
