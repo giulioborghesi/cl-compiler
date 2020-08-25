@@ -46,7 +46,7 @@ public:
   /// \return a new label with the given prefix
   std::string generateLabel(const std::string &prefix) {
     std::stringstream label;
-    label << prefix << "_" << labels_.count(prefix);
+    label << prefix << "_" << labels_[prefix];
     labels_[prefix] += 1;
     return label.str();
   }
@@ -59,10 +59,7 @@ public:
   /// \brief Decrement stack size by count elements
   ///
   /// \param[in] count size to subtract from stack size
-  void decrementStackSize(const int32_t count) {
-    assert(count >= stackSize_);
-    stackSize_ -= count;
-  }
+  void decrementStackSize(const int32_t count) { stackSize_ -= count; }
 
   /// \brief Reset the stack size to zero
   void resetStackSize() { stackSize_ = 0; }
