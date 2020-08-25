@@ -381,7 +381,7 @@ void LogToken(const YYLTYPE* loc, const int32_t tokenCode, cool::LoggerCollectio
     const std::string tokenText = sTokenToString.count(tokenCode) ? 
         sTokenToString[tokenCode] : std::string(1, (char)tokenCode);
     
-    /// Log error message
+    /// Log token
     logger->logMessage(cool::LogMessage::MakeDebugMessage("line: %d, col: %d: %s", 
         loc->first_line, loc->first_column, tokenText));
 }
