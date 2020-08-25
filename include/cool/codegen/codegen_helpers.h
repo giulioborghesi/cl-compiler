@@ -1,7 +1,7 @@
 #ifndef COOL_CODEGEN_CODEGEN_HELPERS_H
 #define COOL_CODEGEN_CODEGEN_HELPERS_H
 
-#include <iostream>
+#include <ostream>
 #include <string>
 
 namespace cool {
@@ -23,7 +23,7 @@ static constexpr int32_t WORD_SIZE = 4;
 /// \param[out] ios output stream
 void emit_addiu_instruction(const std::string &dstReg,
                             const std::string &srcReg, const int32_t value,
-                            std::iostream *ios);
+                            std::ostream *ios);
 
 /// Emit a MIPS instruction to branch when register contains a value equal
 /// to zero
@@ -32,7 +32,7 @@ void emit_addiu_instruction(const std::string &dstReg,
 /// \param[in] label jump label
 /// \param[out] ios output stream
 void emit_beqz_instruction(const std::string &reg, const std::string &label,
-                           std::iostream *ios);
+                           std::ostream *ios);
 
 /// Emit a MIPS instruction to branch when register contains a value greater
 /// than zero
@@ -41,7 +41,7 @@ void emit_beqz_instruction(const std::string &reg, const std::string &label,
 /// \param[in] label jump label
 /// \param[out] ios output stream
 void emit_bgtz_instruction(const std::string &reg, const std::string &label,
-                           std::iostream *ios);
+                           std::ostream *ios);
 
 /// Emit a MIPS instruction to branch when register contains a value less than
 /// or equal to zero
@@ -50,7 +50,7 @@ void emit_bgtz_instruction(const std::string &reg, const std::string &label,
 /// \param[in] label jump label
 /// \param[out] ios output stream
 void emit_blez_instruction(const std::string &reg, const std::string &label,
-                           std::iostream *ios);
+                           std::ostream *ios);
 
 /// Emit a MIPS instruction to branch when register contains a value less than
 /// zero
@@ -59,7 +59,7 @@ void emit_blez_instruction(const std::string &reg, const std::string &label,
 /// \param[in] label jump label
 /// \param[out] ios output stream
 void emit_bltz_instruction(const std::string &reg, const std::string &label,
-                           std::iostream *ios);
+                           std::ostream *ios);
 
 /// Emit a MIPS instruction to branch when the result of a comparison between
 /// two integer values stored in a register is true
@@ -73,7 +73,7 @@ void emit_compare_and_jump_instruction(const std::string &mnemonic,
                                        const std::string &lhsReg,
                                        const std::string &rhsReg,
                                        const std::string &label,
-                                       std::iostream *ios);
+                                       std::ostream *ios);
 
 /// Emit a MIPS jump instruction to jump to a label and store the return address
 /// in $ra
@@ -81,7 +81,7 @@ void emit_compare_and_jump_instruction(const std::string &mnemonic,
 /// \param[in] label jump label
 /// \param[out] ios output stream
 void emit_jump_and_link_instruction(const std::string &label,
-                                    std::iostream *ios);
+                                    std::ostream *ios);
 
 /// Emit a MIPS jump instruction to jump to the address stored in a register and
 /// store the return address in $ra
@@ -89,25 +89,25 @@ void emit_jump_and_link_instruction(const std::string &label,
 /// \param[in] dstReg destination register
 /// \param[out] ios output stream
 void emit_jump_and_link_register_instruction(const std::string &dstReg,
-                                             std::iostream *ios);
+                                             std::ostream *ios);
 
 /// Emit a MIPS jump instruction to jump to a label
 ///
 /// \param[in] label jump label
 /// \param[out] ios output stream
-void emit_jump_label_instruction(const std::string &label, std::iostream *ios);
+void emit_jump_label_instruction(const std::string &label, std::ostream *ios);
 
 /// Emit a MIPS jump instruction to jump to the address pointed by a register
 ///
 /// \param[in] reg address register
 /// \param[out] ios output stream
-void emit_jump_register_instruction(const std::string &reg, std::iostream *ios);
+void emit_jump_register_instruction(const std::string &reg, std::ostream *ios);
 
 /// Emit a MIPS label
 ///
 /// \param[in] label label to emit
 /// \param[out] ios output stream
-void emit_label(const std::string &label, std::iostream *ios);
+void emit_label(const std::string &label, std::ostream *ios);
 
 /// Emit a MIPS instruction to load an address into a register
 ///
@@ -115,7 +115,7 @@ void emit_label(const std::string &label, std::iostream *ios);
 /// \param[in] label address to load
 /// \param[out] ios output stream
 void emit_la_instruction(const std::string &dstReg, const std::string &label,
-                         std::iostream *ios);
+                         std::ostream *ios);
 
 /// Emit a MIPS instruction to load a byte into a register
 ///
@@ -124,7 +124,7 @@ void emit_la_instruction(const std::string &dstReg, const std::string &label,
 /// \param[in] offset memory offset
 /// \param[out] ios output stream
 void emit_lb_instruction(const std::string &dstReg, const std::string &baseReg,
-                         const int32_t offset, std::iostream *ios);
+                         const int32_t offset, std::ostream *ios);
 
 /// Emit a MIPS instruction to load an integer into a register
 ///
@@ -132,7 +132,7 @@ void emit_lb_instruction(const std::string &dstReg, const std::string &baseReg,
 /// \param[in] value integer value
 /// \param[out] ios output stream
 void emit_li_instruction(const std::string &dstReg, const int32_t value,
-                         std::iostream *ios);
+                         std::ostream *ios);
 
 /// Emit a MIPS instruction to load a word into a register from a specified
 /// memory location
@@ -142,7 +142,7 @@ void emit_li_instruction(const std::string &dstReg, const int32_t value,
 /// \param[in] offset memory offset
 /// \param[out] ios output stream
 void emit_lw_instruction(const std::string &dstReg, const std::string &baseReg,
-                         const int32_t offset, std::iostream *ios);
+                         const int32_t offset, std::ostream *ios);
 
 /// Emit a MIPS move instruction
 ///
@@ -150,7 +150,7 @@ void emit_lw_instruction(const std::string &dstReg, const std::string &baseReg,
 /// \param[in] srcReg source register
 /// \param[out] ios output stream
 void emit_move_instruction(const std::string &dstReg, const std::string &srcReg,
-                           std::iostream *ios);
+                           std::ostream *ios);
 
 /// Emit a MIPS instruction to shift the bits of a register to the left by bits
 /// positions and store the result into a specified register
@@ -160,7 +160,7 @@ void emit_move_instruction(const std::string &dstReg, const std::string &srcReg,
 /// \param[in] bits bits to shift
 /// \param[out] ios output stream
 void emit_sll_instruction(const std::string &dstReg, const std::string &srcReg,
-                          const size_t bits, std::iostream *ios);
+                          const size_t bits, std::ostream *ios);
 
 /// Emit a MIPS instruction to store a word from a register into a specified
 /// memory location
@@ -170,7 +170,7 @@ void emit_sll_instruction(const std::string &dstReg, const std::string &srcReg,
 /// \param[in] offset memory offset
 /// \param[out] ios output stream
 void emit_sw_instruction(const std::string &srcReg, const std::string &baseReg,
-                         const int32_t offset, std::iostream *ios);
+                         const int32_t offset, std::ostream *ios);
 
 /// Emit a MIPS three-register instruction
 ///
@@ -183,7 +183,7 @@ void emit_three_registers_instruction(const std::string &mnemonic,
                                       const std::string &dstReg,
                                       const std::string &reg1,
                                       const std::string &reg2,
-                                      std::iostream *ios);
+                                      std::ostream *ios);
 
 } // namespace cool
 
