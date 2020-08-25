@@ -3,4 +3,5 @@ add_library(
     STATIC 
     codegen.cpp
     codegen_helpers.cpp 
+    codegen_prepare.cpp
 )

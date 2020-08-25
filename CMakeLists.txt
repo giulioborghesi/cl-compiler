@@ -15,3 +15,6 @@ add_subdirectory(src)
     enable_testing()
     add_subdirectory(tests)
 #endif()
+
+add_executable(cool ./src/exec/cool.cpp)
+target_link_libraries(cool LINK_PUBLIC "lib_analysis;lib_frontend;lib_codegen;lib_core;lib_ir")
