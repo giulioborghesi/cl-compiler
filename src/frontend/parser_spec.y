@@ -103,7 +103,8 @@ extern int yylex(YYSTYPE *, YYLTYPE*, cool::LoggerCollection*, yyscan_t);
 %nterm <exprNodes> exprsc
 %nterm <exprNodes> exprsl
 %nterm <formalNode> formal
-%nterm <formalNodes> formals
+%nterm <formalNodes> formall
+%nterm <formalNodes> formalc
 %nterm <letBinding> letbinding
 %nterm <letBindings> letbindings 
 %nterm <programNode> program
@@ -227,7 +228,7 @@ feature: OBJECT_ID_TOKEN ':' CLASS_ID_TOKEN {
             $1, $3, $5, @1.first_line, @1.first_column
         );
     }
-| OBJECT_ID_TOKEN '(' formals ')' ':' CLASS_ID_TOKEN '{' expr '}' {
+| OBJECT_ID_TOKEN '(' formalc ')' ':' CLASS_ID_TOKEN '{' expr '}' {
         $$ = cool::MethodNode::MakeMethodNode(
             $1, $6, $3, $8, @1.first_line, @1.first_column
         );
@@ -235,10 +236,18 @@ feature: OBJECT_ID_TOKEN ':' CLASS_ID_TOKEN {
 ;
 
 /* Methods formal arguments */
-formals : formal {
+formalc : %empty { 
+        $$ = std::vector<cool::FormalNodePtr>(); 
+    }
+| formall {
+        $$ = std::move($1);
+    }
+;
+
+formall : formal {
         $$ = std::vector<cool::FormalNodePtr>{$1};
     }
-| formals ',' formal {
+| formall ',' formal {
         $$ = std::move($1); $$.push_back($3);
     }
 ;
@@ -255,6 +264,9 @@ exprs: expr ';' {
         $$ = std::vector<cool::ExprNodePtr>{$1}; 
     }
 | error ';' { 
+        yyget_extra(state)->lastErrorCode = cool::FrontEndErrorCode::PARSER_ERROR_INVALID_EXPRESSION;
+        LogError(cool::FrontEndErrorCode::PARSER_ERROR_INVALID_EXPRESSION,
+            @1.first_line, @1.first_column, logger);
         $$ = std::vector<cool::ExprNodePtr>(); 
     }
 | exprs expr ';' { 
@@ -269,7 +281,10 @@ exprs: expr ';' {
 ;
 
 /* Expressions list, comma separated */
-exprsc: '(' exprsl ')' {
+exprsc: '(' ')' {
+        $$ = std::vector<cool::ExprNodePtr>();
+    }
+| '(' exprsl ')' {
         $$ = std::move($2);
     }
 ;
@@ -423,7 +438,7 @@ casebindings: casebinding ';' {
 ;
 
 /* Case bindings */
-casebinding: OBJECT_ID_TOKEN ':' CLASS_ID_TOKEN "=>" expr ';' {
+casebinding: OBJECT_ID_TOKEN ':' CLASS_ID_TOKEN "=>" expr {
         $$ = cool::CaseBindingNode::MakeCaseBindingNode(
             $1, $3, $5, @1.first_line, @1.first_column
         );
