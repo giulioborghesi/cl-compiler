@@ -201,7 +201,7 @@ Status TypeCheckPass::visit(AnalysisContext *context, CaseExprNode *node) {
   }
 
   /// No duplicate case allowed
-  std::unordered_set<ExprType> usedTypes;
+  std::unordered_set<std::string> usedTypes;
   const auto &caseNodes = node->cases();
   for (auto caseNode : caseNodes) {
     auto statusCase = caseNode->visitNode(context, this);
@@ -209,14 +209,14 @@ Status TypeCheckPass::visit(AnalysisContext *context, CaseExprNode *node) {
       return statusCase;
     }
 
-    if (usedTypes.count(caseNode->expr()->type())) {
+    if (usedTypes.count(caseNode->typeName())) {
       auto *logger = context->logger();
       LOG_ERROR_MESSAGE_WITH_LOCATION(
           logger, caseNode, "Types of case expressions must be unique");
       return Status::Error();
     }
 
-    usedTypes.insert(caseNode->expr()->type());
+    usedTypes.insert(caseNode->typeName());
   }
 
   /// Compute the return type
@@ -413,6 +413,11 @@ Status TypeCheckPass::visit(AnalysisContext *context,
 }
 
 Status TypeCheckPass::visit(AnalysisContext *context, MethodNode *node) {
+  /// Nothing to do for built-in methods with no body
+  if (!node->body()) {
+    return Status::Ok();
+  }
+
   /// Fetch class registry
   auto registry = context->classRegistry();
 
@@ -436,7 +441,7 @@ Status TypeCheckPass::visit(AnalysisContext *context, MethodNode *node) {
       node->returnTypeName() == "SELF_TYPE"
           ? registry->toSelfType(context->currentClassName())
           : registry->toType(node->returnTypeName());
-  if (!registry->conformTo(node->body()->type(), returnType)) {
+  if (!registry->conformTo(returnType, node->body()->type())) {
     auto logger = context->logger();
     LOG_ERROR_MESSAGE_WITH_LOCATION(logger, node,
                                     "Type of body expression does not conform "
@@ -516,7 +521,6 @@ Status TypeCheckPass::visit(AnalysisContext *context,
   }
 
   /// Finalize type-check
-  const auto returnType = node->expr()->type();
   return visitDispatchExpr(context, node, dispatchType, callerType);
 }
 
