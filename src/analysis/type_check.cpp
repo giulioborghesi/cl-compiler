@@ -269,7 +269,7 @@ Status TypeCheckPass::visit(AnalysisContext *context, DispatchExprNode *node) {
     if (node->hasExpr()) {
       return node->expr()->type();
     }
-    return ExprType{.typeID = context->currentClassID(), .isSelf = true};
+    return ExprType{.typeID = classID, .isSelf = true};
   };
 
   /// Determine type of calling expression and complete type-check
@@ -441,7 +441,7 @@ Status TypeCheckPass::visit(AnalysisContext *context, MethodNode *node) {
       node->returnTypeName() == "SELF_TYPE"
           ? registry->toSelfType(context->currentClassName())
           : registry->toType(node->returnTypeName());
-  if (!registry->conformTo(returnType, node->body()->type())) {
+  if (!registry->conformTo(node->body()->type(), returnType)) {
     auto logger = context->logger();
     LOG_ERROR_MESSAGE_WITH_LOCATION(logger, node,
                                     "Type of body expression does not conform "

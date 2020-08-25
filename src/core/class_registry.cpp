@@ -40,6 +40,11 @@ uint32_t ClassRegistry::distanceToRoot(const IdentifierType &classID) const {
 
 ExprType ClassRegistry::leastCommonAncestor(const ExprType &descendantA,
                                             const ExprType &descendantB) const {
+  /// Least common ancestor of identical types is the type itself
+  if (descendantA == descendantB) {
+    return descendantA;
+  }
+
   auto aDistance = distanceToRoot(descendantA.typeID);
   auto bDistance = distanceToRoot(descendantB.typeID);
 
