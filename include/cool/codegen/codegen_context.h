@@ -51,6 +51,19 @@ public:
     return label.str();
   }
 
+  /// \brief Generate a label for a string literal
+  ///
+  /// \param[in] literal string literal
+  /// \return a unique label for the string literal
+  std::string generateStringLabel(const std::string &literal) {
+    std::stringstream label;
+    if (!strings_.count(literal)) {
+      strings_[literal] = strings_.size();
+    }
+    label << "String_" << strings_[literal];
+    return label.str();
+  }
+
   /// \brief Increment stack size by count elements
   ///
   /// \param[in] count size to add to stack size
@@ -72,6 +85,7 @@ public:
 private:
   int32_t stackSize_;
   std::unordered_map<std::string, size_t> labels_;
+  std::unordered_map<std::string, size_t> strings_;
 };
 
 } // namespace cool
