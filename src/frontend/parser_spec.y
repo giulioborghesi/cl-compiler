@@ -515,6 +515,9 @@ std::vector<cool::ClassNodePtr> InstallBuiltInClasses(std::vector<cool::ClassNod
         std::vector<cool::FormalNodePtr> args;
         std::vector<cool::GenericAttributeNodePtr> attrs;
 
+        /// Length argument
+        attrs.push_back(cool::AttributeNode::MakeAttributeNode("len", "Int", nullptr, 0, 0));
+
         /// Method with no arguments first
         attrs.push_back(cool::MethodNode::MakeMethodNode("length", "Int", args, nullptr, 0, 0));
 
