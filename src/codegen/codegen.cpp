@@ -4,24 +4,12 @@
 #include <cool/ir/class.h>
 #include <cool/ir/expr.h>
 
-#include <sstream>
-
 namespace cool {
 
 namespace {
 
 /// \brief Forward declarations
-void CreateObjectFromProto(CodegenContext *context,
-                           const std::string &protoLabel,
-                           const std::string &initLabel, std::ostream *ios);
-
-void PopStack(CodegenContext *context, const size_t count, std::ostream *ios);
-
-void PushStack(CodegenContext *context, const size_t count, std::ostream *ios);
-
 void GetStringLength(CodegenContext *context, std::ostream *ios);
-
-void PushAccumulatorToStack(CodegenContext *context, std::ostream *ios);
 
 /// \brief Helper function to compare two objects of type Int or Bool
 ///
@@ -66,7 +54,7 @@ void CompareObjects(CodegenContext *context, std::ostream *ios) {
   /// Store lhs object address in register $t0
   emit_lw_instruction("$t0", "$sp", WORD_SIZE, ios);
 
-  /// Create label
+  /// Create labels
   const std::string endLabel = context->generateLabel("End");
   const std::string sameObjectLabel = context->generateLabel("SameObject");
 
@@ -104,8 +92,8 @@ void CompareStringObjects(CodegenContext *context, std::ostream *ios) {
   GetStringLength(context, ios);
 
   /// Compare length and return false if not string
-  const std::string checkEndLabel;
-  const std::string sameLengthLabel;
+  const std::string checkEndLabel = context->generateLabel("End");
+  const std::string sameLengthLabel = context->generateLabel("SameLength");
 
   /// Compare string lengths
   emit_lw_instruction("$t0", "$sp", WORD_SIZE, ios);
@@ -118,8 +106,8 @@ void CompareStringObjects(CodegenContext *context, std::ostream *ios) {
   /// Lengths are the same. Compare each characters in the two strings
   emit_label(sameLengthLabel, ios);
 
-  const std::string loopStartLabel;
-  const std::string sameStringLabel;
+  const std::string loopStartLabel = context->generateLabel("Begin");
+  const std::string sameStringLabel = context->generateLabel("SameString");
 
   /// Store string start addresses in registers $t0 and $t1
   emit_lw_instruction("$t0", "$sp", 2 * WORD_SIZE, ios);
@@ -159,61 +147,6 @@ void CompareStringObjects(CodegenContext *context, std::ostream *ios) {
 
   /// Restore stack
   emit_addiu_instruction("$sp", "$sp", 2 * WORD_SIZE, ios);
-}
-
-/// \brief Helper function to copy an object and initialize it
-///
-/// \note The object to copy should be stored in register $a0
-///
-/// \param[in] context Codegen context
-/// \param[in] initLabel label to initialization code
-/// \param[out] ios output stream
-void CopyAndInitializeObject(CodegenContext *context,
-                             const std::string &initLabel, std::ostream *ios) {
-  /// Create a copy of the object and store it on the stack
-  emit_jump_and_link_instruction("Object.copy", ios);
-
-  /// Initialize object
-  emit_jump_and_link_instruction(initLabel, ios);
-}
-
-/// \brief Helper function to create an integer object storing a given int value
-///
-/// \param[in] context Codegen context
-/// \param[in] value value of Int object
-/// \param[out] ios output stream
-void CreateIntObject(CodegenContext *context, const int32_t value,
-                     std::ostream *ios) {
-  CreateObjectFromProto(context, "Int_protObj", "Int_init", ios);
-  emit_li_instruction("$t0", value, ios);
-
-  /// Update Int value and return
-  emit_sw_instruction("$t0", "$a0", OBJECT_CONTENT_OFFSET, ios);
-}
-
-/// Helper function to create a string object storing a literal string
-///
-/// \param[in] context Codegen context
-/// \param[in] literalProto string literal proto label
-/// \param[in] stringLength string length
-/// \param[out] ios output stream
-void CreateStringObject(CodegenContext *context,
-                        const std::string &literalProto,
-                        const size_t stringLength, std::ostream *ios) {
-  /// Copy literal prototype and store it on stack
-  CreateObjectFromProto(context, literalProto, "String_init", ios);
-  PushAccumulatorToStack(context, ios);
-
-  /// Create Int value for string length and store it into $t0
-  CreateIntObject(context, stringLength, ios);
-  emit_move_instruction("$t0", "$a0", ios);
-
-  /// Store string object in a0 and update string length
-  emit_lw_instruction("$a0", "$sp", WORD_SIZE, ios);
-  emit_sw_instruction("$t0", "$a0", STRING_LENGTH_OFFSET, ios);
-
-  /// Restore stack
-  emit_addiu_instruction("$sp", "$sp", WORD_SIZE, ios);
 }
 
 /// Helper function to create a string object for the name of an object class
@@ -258,24 +191,6 @@ void CreateStringObjectForClassName(CodegenContext *context,
   emit_addiu_instruction("$sp", "$sp", 3 * WORD_SIZE, ios);
 }
 
-/// Helper function to create a copy of an object given the labels for its
-/// prototype and its init function. The pointer to the newly created object is
-/// stored in register $a0
-///
-/// \param[in] context Codegen context
-/// \param[in] protoLabel prototype object label
-/// \param[in] initLabel object init label
-/// \param[out] ios output stream
-void CreateObjectFromProto(CodegenContext *context,
-                           const std::string &protoLabel,
-                           const std::string &initLabel, std::ostream *ios) {
-  /// Load address of prototype object into $a0
-  emit_la_instruction("$a0", protoLabel, ios);
-
-  /// Copy the object and initialize it
-  CopyAndInitializeObject(context, initLabel, ios);
-}
-
 /// \brief Helper function to create a copy of an object given its unique
 /// class identifyer. The pointer to the newly created object is stored in
 /// register $a0
@@ -303,24 +218,59 @@ void CreateObjectFromTypeID(CodegenContext *context, std::ostream *ios) {
   emit_jump_and_link_register_instruction("$t0", ios);
 }
 
-/// \brief Pop the stack size by a specified number of elements
+/// \brief Emit the code to initialize the attributes of a class
 ///
 /// \param[in] context Codegen context
-/// \param[in] count number of elements to pop from stack
+/// \param[in] pass Codegen pass
+/// \param[in] node Class node
 /// \param[out] ios output stream
-void PopStack(CodegenContext *context, const size_t count, std::ostream *ios) {
-  emit_addiu_instruction("$sp", "$sp", count * WORD_SIZE, ios);
-  context->decrementStackSize(count);
-}
+void GenerateAttributesInitializationCode(CodegenContext *context,
+                                          CodegenPass *pass, ClassNode *node,
+                                          std::ostream *ios) {
+  /// Lambda function to create a default object for the built-in classes
+  auto generateDefaultObject = [context, ios](const std::string &typeName) {
+    if (typeName == "Int") {
+      CreateIntObject(context, 0, ios);
+    } else if (typeName == "Bool") {
+      CreateObjectFromProto(context, "Bool_const0", "Bool_init", ios);
+    } else if (typeName == "String") {
+      CreateStringObject(context, "String_protObj", 0, ios);
+    }
+  };
 
-/// \brief Push the stack size by a specified number of elements
-///
-/// \param[in] context Codegen context
-/// \param[in] count number of elements to push to stack
-/// \param[out] ios output stream
-void PushStack(CodegenContext *context, const size_t count, std::ostream *ios) {
-  emit_addiu_instruction("$sp", "$sp", -count * WORD_SIZE, ios);
-  context->incrementStackSize(count);
+  /// Initialize String, Bool and Int objects to their default values
+  bool isDirty = false;
+  auto symbolTable = context->symbolTable();
+  for (auto attribute : node->attributes()) {
+    const std::string typeName = attribute->typeName();
+    if (typeName == "String" || typeName == "Int" || typeName == "Bool") {
+      /// Register $a0 must be updated before returning
+      isDirty = true;
+
+      /// Generate default object for attribute
+      generateDefaultObject(typeName);
+
+      /// Update attribute
+      const size_t attrPosition = symbolTable->get(attribute->id()).position;
+      const size_t offset = attrPosition * WORD_SIZE + OBJECT_CONTENT_OFFSET;
+      emit_lw_instruction("$t0", "$fp", 0, ios);
+      emit_sw_instruction("$a0", "$t0", offset, ios);
+    }
+  }
+
+  /// Generate code for attributes initialization
+  for (auto attribute : node->attributes()) {
+    if (attribute->initExpr()) {
+      /// Register $a0 must be updated before returning
+      isDirty = true;
+    }
+    attribute->generateCode(context, pass, ios);
+  }
+
+  /// Restore $a0 if required
+  if (isDirty) {
+    emit_move_instruction("$a0", "$t0", ios);
+  }
 }
 
 /// \brief Helper function that generate the code needed for method dispatch.
@@ -359,8 +309,7 @@ Status GenerateDispatchCode(CodegenContext *context, CodegenPass *pass,
   /// Fetch method address
   const auto methodInfo = context->methodTable(typeID)->get(node->methodName());
   const size_t methodPosition = methodInfo.position;
-  emit_li_instruction("$t1", WORD_SIZE * methodPosition, ios);
-  emit_addiu_instruction("$t0", "$t1", methodPosition, ios);
+  emit_addiu_instruction("$t0", "$t0", WORD_SIZE * methodPosition, ios);
 
   /// Transfer control to function and return
   emit_jump_and_link_instruction("$t0", ios);
@@ -403,18 +352,6 @@ std::string GetMnemonicFromOpType(const ComparisonOpID opID) {
 void GetStringLength(CodegenContext *context, std::ostream *ios) {
   emit_lw_instruction("$t0", "$a0", STRING_LENGTH_OFFSET, ios);
   emit_lw_instruction("$a0", "$t0", OBJECT_CONTENT_OFFSET, ios);
-}
-
-/// \brief Emit a sequence of MIPS instruction to push the accumulator to stack
-/// and update the stack pointer. Also increase the stack size counter in the
-/// codegen context
-///
-/// \param[in] context Codegen context
-/// \param[out] ios output stream
-void PushAccumulatorToStack(CodegenContext *context, std::ostream *ios) {
-  emit_sw_instruction("$a0", "$sp", 0, ios);
-  emit_addiu_instruction("$sp", "$sp", -4, ios);
-  context->incrementStackSize(1);
 }
 
 /// \brief Helper function that determine the case statement to take and store
@@ -466,7 +403,7 @@ void SelectCaseStatement(CodegenContext *context, CaseExprNode *node,
 
     /// Fetch ancestor class ID and jump to start of loop
     emit_sll_instruction("$t1", "$t1", 2, ios);
-    emit_la_instruction("$t5", "_Class_ancestor", ios);
+    emit_la_instruction("$t5", "Classes_ancestors", ios);
     emit_three_registers_instruction("addu", "$t1", "$t1", "$t5", ios);
     emit_lw_instruction("$t1", "$t1", 0, ios);
 
@@ -538,14 +475,13 @@ Status CodegenPass::codegen(CodegenContext *context, AttributeNode *node,
   /// If attribute has an initialization expression, use it
   if (node->initExpr()) {
     node->initExpr()->generateCode(context, this, ios);
-    emit_move_instruction("$t0", "$a0", ios);
 
     /// Update attribute
     auto symbolInfo = context->symbolTable()->get(node->id());
     const size_t attrPosition = symbolInfo.position;
     const size_t offset = attrPosition * WORD_SIZE + OBJECT_CONTENT_OFFSET;
-    emit_lw_instruction("$a0", "$fp", 0, ios);
-    emit_sw_instruction("$t0", "$a0", offset, ios);
+    emit_lw_instruction("$t0", "$fp", 0, ios);
+    emit_sw_instruction("$a0", "$t0", offset, ios);
   }
 
   /// Return
@@ -757,62 +693,24 @@ Status CodegenPass::codegen(CodegenContext *context, ClassNode *node,
   /// Emit class initialization label
   emit_label(node->className() + "_init", ios);
 
-  /// Store accumulator, return address and frame pointer on stack
-  emit_sw_instruction("$a0", "$sp", 0 * WORD_SIZE, ios);
-  emit_sw_instruction("$ra", "$sp", 1 * WORD_SIZE, ios);
-  emit_sw_instruction("$fp", "$sp", 2 * WORD_SIZE, ios);
+  if (symbolTable->count()) {
+    /// Create a new stack frame
+    PushStackFrame(context, ios);
 
-  /// Update stack and frame pointer
-  emit_move_instruction("$fp", "$sp", ios);
-  PushStack(context, 3, ios);
-
-  /// Initialize parent class if applicable
-  if (node->hasParentClass()) {
-    const std::string jumpLabel = node->parentClassName() + "_init";
-    emit_jump_and_link_instruction(jumpLabel, ios);
-  }
-
-  /// Lambda function to generate a default object for the built-in classes
-  auto generateDefaultObject = [context, ios](const std::string &typeName) {
-    if (typeName == "Int") {
-      CreateIntObject(context, 0, ios);
-    } else if (typeName == "Bool") {
-      CreateObjectFromProto(context, "Bool_const0", "Bool_init", ios);
-    } else if (typeName == "String") {
-      CreateStringObject(context, "String_protObj", 0, ios);
+    /// Initialize parent class if applicable
+    if (node->hasParentClass()) {
+      const std::string jumpLabel = node->parentClassName() + "_init";
+      emit_jump_and_link_instruction(jumpLabel, ios);
     }
-  };
 
-  /// Initialize String, Bool and Int objects to their default values
-  for (auto attribute : node->attributes()) {
-    const std::string typeName = attribute->typeName();
-    if (typeName == "String" || typeName == "Int" || typeName == "Bool") {
-      /// Generate default object for attribute
-      generateDefaultObject(typeName);
+    /// Generate attributes initialization code
+    GenerateAttributesInitializationCode(context, this, node, ios);
 
-      /// Update attribute
-      const size_t attrPosition = symbolTable->get(attribute->id()).position;
-      const size_t offset = attrPosition * WORD_SIZE + OBJECT_CONTENT_OFFSET;
-      emit_lw_instruction("$t0", "$fp", 0, ios);
-      emit_sw_instruction("$a0", "$t0", offset, ios);
-    }
+    /// Restore calling stack frame
+    PopStackFrame(context, ios);
   }
 
-  /// Store self object in $a0
-  emit_lw_instruction("$a0", "$fp", 0, ios);
-
-  /// Generate code for attributes initialization
-  for (auto attribute : node->attributes()) {
-    attribute->generateCode(context, this, ios);
-  }
-
-  /// Restore return address, frame pointer and self object
-  emit_lw_instruction("$a0", "$fp", 0 * WORD_SIZE, ios);
-  emit_lw_instruction("$ra", "$fp", 1 * WORD_SIZE, ios);
-  emit_lw_instruction("$fp", "$fp", 2 * WORD_SIZE, ios);
-
-  /// Finalize init by restoring stack and jump to return register
-  PopStack(context, 3, ios);
+  /// Return control to caller
   emit_jump_register_instruction("$ra", ios);
 
   /// Generate code for class methods and return
@@ -832,6 +730,7 @@ Status CodegenPass::codegen(CodegenContext *context, DispatchExprNode *node,
     emit_lw_instruction("$t1", "$a0", CLASS_ID_OFFSET, ios);
     emit_sll_instruction("$t1", "$t1", 2, ios);
     emit_three_registers_instruction("addu", "$t0", "$t0", "$t1", ios);
+    emit_lw_instruction("$t0", "$t0", 0, ios);
   };
 
   const size_t typeID =
@@ -894,11 +793,11 @@ Status CodegenPass::codegen(CodegenContext *context,
   return Status::Ok();
 }
 
-/// TODO: generate string proto
+/// DONE
 Status CodegenPass::codegen(CodegenContext *context,
                             LiteralExprNode<std::string> *node,
                             std::ostream *ios) {
-  const std::string stringProto;
+  const std::string stringProto = context->generateStringLabel(node->value());
   CreateStringObject(context, stringProto, node->value().length(), ios);
   return Status::Ok();
 }
@@ -998,12 +897,8 @@ Status CodegenPass::codegen(CodegenContext *context, MethodNode *node,
   /// Generate code for method body
   node->body()->generateCode(context, this, ios);
 
-  /// Restore return address and frame pointer
-  emit_lw_instruction("$ra", "$fp", 1 * WORD_SIZE, ios);
-  emit_lw_instruction("$fp", "$fp", 2 * WORD_SIZE, ios);
-
-  /// Restore stack and jump to return address
-  PopStack(context, 3 + nArgs, ios);
+  /// Restore caller's stack frame
+  PopStackFrame(context, ios);
   emit_jump_register_instruction("$ra", ios);
 
   /// Exit scope and return
@@ -1033,6 +928,7 @@ Status CodegenPass::codegen(CodegenContext *context, NewExprNode *node,
 /// DONE
 Status CodegenPass::codegen(CodegenContext *context, ProgramNode *node,
                             std::ostream *ios) {
+  emit_directive(".text", ios);
   for (auto classNode : node->classes()) {
     classNode->generateCode(context, this, ios);
   }
@@ -1047,7 +943,7 @@ Status CodegenPass::codegen(CodegenContext *context,
     auto classRegistry = context->classRegistry();
     const size_t classID = classRegistry->typeID(node->callerClass());
     emit_la_instruction("$t0", "_Class_method_table", ios);
-    emit_addiu_instruction("$t0", "$t0", classID * WORD_SIZE, ios);
+    emit_lw_instruction("$t0", "$t0", classID * WORD_SIZE, ios);
   };
 
   const size_t typeID = context->classRegistry()->typeID(node->callerClass());

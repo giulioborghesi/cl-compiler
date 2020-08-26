@@ -1,3 +1,4 @@
+#include <cool/codegen/codegen_context.h>
 #include <cool/codegen/codegen_helpers.h>
 
 #include <iomanip>
@@ -8,10 +9,12 @@ namespace cool {
 
 namespace {
 
+/// Instruction and register fields widths
 static constexpr size_t INST_WIDTH = 6;
 static constexpr size_t REGS_WIDTH = 6;
 
-static const std::string INDENT = "    ";
+/// Instruction indent
+static const std::string INDENT = "     ";
 
 void emit_bg_instruction(const std::string &mnemonic, const std::string &reg,
                          const std::string &label, std::ostream *ios) {
@@ -25,7 +28,89 @@ void emit_jump_instruction(const std::string &mnemonic, const std::string &arg,
          << std::endl;
 }
 
+template <typename T> void emit_word_data_impl(T value, std::ostream *ios) {
+  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << ".data" << value
+         << std::endl;
+}
+
 } // namespace
+
+void CopyAndInitializeObject(CodegenContext *context,
+                             const std::string &initLabel, std::ostream *ios) {
+  /// Create a copy of the object and store it on the stack
+  emit_jump_and_link_instruction("Object.copy", ios);
+
+  /// Initialize object
+  emit_jump_and_link_instruction(initLabel, ios);
+}
+
+void CreateIntObject(CodegenContext *context, const int32_t value,
+                     std::ostream *ios) {
+  CreateObjectFromProto(context, "Int_protObj", "Int_init", ios);
+  emit_li_instruction("$t0", value, ios);
+
+  /// Update Int value and return
+  emit_sw_instruction("$t0", "$a0", OBJECT_CONTENT_OFFSET, ios);
+}
+
+void CreateObjectFromProto(CodegenContext *context,
+                           const std::string &protoLabel,
+                           const std::string &initLabel, std::ostream *ios) {
+  /// Load address of prototype object into $a0
+  emit_la_instruction("$a0", protoLabel, ios);
+
+  /// Copy the object and initialize it
+  CopyAndInitializeObject(context, initLabel, ios);
+}
+
+void CreateStringObject(CodegenContext *context,
+                        const std::string &literalProto,
+                        const size_t stringLength, std::ostream *ios) {
+  /// Copy literal prototype and store it on stack
+  CreateObjectFromProto(context, literalProto, "String_init", ios);
+  PushAccumulatorToStack(context, ios);
+
+  /// Create Int value for string length and store it into $t0
+  CreateIntObject(context, stringLength, ios);
+  emit_move_instruction("$t0", "$a0", ios);
+
+  /// Store string object in a0 and update string length
+  emit_lw_instruction("$a0", "$sp", WORD_SIZE, ios);
+  emit_sw_instruction("$t0", "$a0", STRING_LENGTH_OFFSET, ios);
+
+  /// Restore stack
+  emit_addiu_instruction("$sp", "$sp", WORD_SIZE, ios);
+}
+
+void PopStackFrame(CodegenContext *context, std::ostream *ios) {
+  emit_lw_instruction("$ra", "$fp", 1 * WORD_SIZE, ios);
+  emit_lw_instruction("$fp", "$fp", 2 * WORD_SIZE, ios);
+  PopStack(context, 3, ios);
+}
+
+void PopStack(CodegenContext *context, const size_t count, std::ostream *ios) {
+  emit_addiu_instruction("$sp", "$sp", count * WORD_SIZE, ios);
+  context->decrementStackSize(count);
+}
+
+void PushAccumulatorToStack(CodegenContext *context, std::ostream *ios) {
+  emit_sw_instruction("$a0", "$sp", 0, ios);
+  emit_addiu_instruction("$sp", "$sp", -4, ios);
+  context->incrementStackSize(1);
+}
+
+void PushStack(CodegenContext *context, const size_t count, std::ostream *ios) {
+  emit_addiu_instruction("$sp", "$sp", -count * WORD_SIZE, ios);
+  context->incrementStackSize(count);
+}
+
+void PushStackFrame(CodegenContext *context, std::ostream *ios) {
+  emit_sw_instruction("$a0", "$fp", 0 * WORD_SIZE, ios);
+  emit_sw_instruction("$ra", "$fp", 1 * WORD_SIZE, ios);
+  emit_sw_instruction("$fp", "$fp", 2 * WORD_SIZE, ios);
+  emit_move_instruction("$fp", "$sp", ios);
+  PushStack(context, 3, ios);
+}
 
 void emit_addiu_instruction(const std::string &dstReg,
                             const std::string &srcReg, const int32_t value,
@@ -65,6 +150,19 @@ void emit_compare_and_jump_instruction(const std::string &mnemonic,
          << label << std::endl;
 }
 
+void emit_word_data(const int32_t value, std::ostream *ios) {
+  emit_word_data_impl(value, ios);
+}
+
+void emit_word_data(const std::string &value, std::ostream *ios) {
+  emit_word_data_impl(value, ios);
+}
+
+void emit_directive(const std::string &directive, std::ostream *ios) {
+  (*ios) << std::endl;
+  (*ios) << INDENT << directive << std::endl;
+}
+
 void emit_jump_label_instruction(const std::string &label, std::ostream *ios) {
   emit_jump_instruction("j", label, ios);
 }
@@ -84,6 +182,7 @@ void emit_jump_and_link_register_instruction(const std::string &dstReg,
 }
 
 void emit_label(const std::string &label, std::ostream *ios) {
+  (*ios) << std::endl;
   (*ios) << label << ":" << std::endl;
 }
 
