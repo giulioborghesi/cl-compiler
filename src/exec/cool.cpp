@@ -4,6 +4,7 @@
 #include <cool/analysis/type_check.h>
 #include <cool/codegen/codegen.h>
 #include <cool/codegen/codegen_context.h>
+#include <cool/codegen/codegen_data.h>
 #include <cool/codegen/codegen_prepare.h>
 #include <cool/core/class_registry.h>
 #include <cool/core/logger.h>
@@ -39,7 +40,8 @@ void DoCodegen(ProgramNodePtr node, std::shared_ptr<ClassRegistry> registry) {
 
   /// Initialize passes
   std::vector<std::shared_ptr<CodegenBasePass>> passes = {
-      std::make_shared<CodegenPreparePass>(), std::make_shared<CodegenPass>()};
+      std::make_shared<CodegenPreparePass>(), std::make_shared<CodegenPass>(),
+      std::make_shared<CodegenDataPass>()};
 
   /// Run passes
   for (auto pass : passes) {
