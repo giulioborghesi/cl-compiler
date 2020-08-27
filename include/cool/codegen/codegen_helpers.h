@@ -153,6 +153,12 @@ void emit_compare_and_jump_instruction(const std::string &mnemonic,
                                        const std::string &label,
                                        std::ostream *ios);
 
+/// Emit MIPS ASCII data
+///
+/// \param[in] literal string value
+/// \param[out] ios output stream
+void emit_ascii_data(const std::string &literal, std::ostream *ios);
+
 /// Emit a MIPS word data
 ///
 /// \param[in] value data value
@@ -247,6 +253,12 @@ void emit_lw_instruction(const std::string &dstReg, const std::string &baseReg,
 /// \param[out] ios output stream
 void emit_move_instruction(const std::string &dstReg, const std::string &srcReg,
                            std::ostream *ios);
+
+/// Emit a MIPS label for an object. Add GC tag before label
+///
+/// \param[in] label label to emit
+/// \param[out] ios output stream
+void emit_object_label(const std::string &label, std::ostream *ios);
 
 /// Emit a MIPS instruction to shift the bits of a register to the left by bits
 /// positions and store the result into a specified register

@@ -11,6 +11,7 @@ namespace {
 
 /// Instruction and register fields widths
 static constexpr size_t INST_WIDTH = 6;
+static constexpr size_t DIRS_WIDTH = 8;
 static constexpr size_t REGS_WIDTH = 6;
 
 /// Instruction indent
@@ -28,8 +29,10 @@ void emit_jump_instruction(const std::string &mnemonic, const std::string &arg,
          << std::endl;
 }
 
-template <typename T> void emit_word_data_impl(T value, std::ostream *ios) {
-  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << ".data" << value
+template <typename T>
+void emit_mips_data_impl(const std::string &dataType, T value,
+                         std::ostream *ios) {
+  (*ios) << INDENT << std::left << std::setw(DIRS_WIDTH) << dataType << value
          << std::endl;
 }
 
@@ -120,6 +123,10 @@ void emit_addiu_instruction(const std::string &dstReg,
          << value << std::endl;
 }
 
+void emit_ascii_data(const std::string &literal, std::ostream *ios) {
+  emit_mips_data_impl(".ASCII", literal, ios);
+}
+
 void emit_beqz_instruction(const std::string &reg, const std::string &label,
                            std::ostream *ios) {
   emit_bg_instruction("beqz", reg, label, ios);
@@ -151,11 +158,11 @@ void emit_compare_and_jump_instruction(const std::string &mnemonic,
 }
 
 void emit_word_data(const int32_t value, std::ostream *ios) {
-  emit_word_data_impl(value, ios);
+  emit_mips_data_impl(".WORD", value, ios);
 }
 
 void emit_word_data(const std::string &value, std::ostream *ios) {
-  emit_word_data_impl(value, ios);
+  emit_mips_data_impl(".WORD", value, ios);
 }
 
 void emit_directive(const std::string &directive, std::ostream *ios) {
@@ -216,6 +223,13 @@ void emit_move_instruction(const std::string &dstReg, const std::string &srcReg,
                            std::ostream *ios) {
   (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << "move"
          << std::setw(REGS_WIDTH) << dstReg << srcReg << std::endl;
+}
+
+void emit_object_label(const std::string &label, std::ostream *ios) {
+  (*ios) << std::endl;
+  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << ".WORD" << -1
+         << std::endl;
+  (*ios) << label << ":" << std::endl;
 }
 
 void emit_sll_instruction(const std::string &dstReg, const std::string &srcReg,
