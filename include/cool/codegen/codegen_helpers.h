@@ -177,6 +177,12 @@ void emit_word_data(const std::string &value, std::ostream *ios);
 /// \param[out] ios output stream
 void emit_directive(const std::string &directive, std::ostream *ios);
 
+/// Emit a global declaration for a label
+///
+/// \param[in] label global label
+/// \param[out] ios output stream
+void emit_global_declaration(const std::string &label, std::ostream *ios);
+
 /// Emit a MIPS jump instruction to jump to a label and store the return address
 /// in $ra
 ///

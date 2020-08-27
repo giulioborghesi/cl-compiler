@@ -81,7 +81,7 @@ public:
   ///
   /// \param[in] literal int literal
   /// \return True if a label for the int literal was already generated
-  bool hasIntLabel(const int32_t literal) { return ints_.count(literal); }
+  bool hasIntLabel(const int32_t literal) { return ints_.count(literal) > 0; }
 
   /// \brief Return true if a label for the string literal was already generated
   ///

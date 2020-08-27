@@ -30,8 +30,8 @@ void emit_jump_instruction(const std::string &mnemonic, const std::string &arg,
 }
 
 template <typename T>
-void emit_mips_data_impl(const std::string &dataType, T value,
-                         std::ostream *ios) {
+void emit_mips_data_line_impl(const std::string &dataType, T value,
+                              std::ostream *ios) {
   (*ios) << INDENT << std::left << std::setw(DIRS_WIDTH) << dataType << value
          << std::endl;
 }
@@ -124,7 +124,7 @@ void emit_addiu_instruction(const std::string &dstReg,
 }
 
 void emit_ascii_data(const std::string &literal, std::ostream *ios) {
-  emit_mips_data_impl(".ASCII", literal, ios);
+  emit_mips_data_line_impl(".ascii", literal, ios);
 }
 
 void emit_beqz_instruction(const std::string &reg, const std::string &label,
@@ -157,12 +157,16 @@ void emit_compare_and_jump_instruction(const std::string &mnemonic,
          << label << std::endl;
 }
 
+void emit_global_declaration(const std::string &label, std::ostream *ios) {
+  emit_mips_data_line_impl(".globl", label, ios);
+}
+
 void emit_word_data(const int32_t value, std::ostream *ios) {
-  emit_mips_data_impl(".WORD", value, ios);
+  emit_mips_data_line_impl(".word", value, ios);
 }
 
 void emit_word_data(const std::string &value, std::ostream *ios) {
-  emit_mips_data_impl(".WORD", value, ios);
+  emit_mips_data_line_impl(".word", value, ios);
 }
 
 void emit_directive(const std::string &directive, std::ostream *ios) {
@@ -227,7 +231,7 @@ void emit_move_instruction(const std::string &dstReg, const std::string &srcReg,
 
 void emit_object_label(const std::string &label, std::ostream *ios) {
   (*ios) << std::endl;
-  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << ".WORD" << -1
+  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << ".word" << -1
          << std::endl;
   (*ios) << label << ":" << std::endl;
 }
