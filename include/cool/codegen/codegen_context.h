@@ -5,6 +5,7 @@
 #include <cool/core/symbol_table.h>
 
 #include <sstream>
+#include <unordered_set>
 
 namespace cool {
 
@@ -51,6 +52,18 @@ public:
     return label.str();
   }
 
+  /// \brief Generate a label for a int literal
+  ///
+  /// \param[in] literal int literal
+  /// \return a unique label for the int literal
+  std::string generateIntLabel(const int32_t literal) {
+    std::stringstream label;
+    const char sign = literal >= 0 ? 'P' : 'M';
+    label << "Int" << sign << "_" << abs((int64_t)literal);
+    ints_.insert(literal);
+    return label.str();
+  }
+
   /// \brief Generate a label for a string literal
   ///
   /// \param[in] literal string literal
@@ -62,6 +75,20 @@ public:
     }
     label << "String_" << strings_[literal];
     return label.str();
+  }
+
+  /// \brief Return true if a label for the int literal was already generated
+  ///
+  /// \param[in] literal int literal
+  /// \return True if a label for the int literal was already generated
+  bool hasIntLabel(const int32_t literal) { return ints_.count(literal); }
+
+  /// \brief Return true if a label for the string literal was already generated
+  ///
+  /// \param[in] literal string literal
+  /// \return True if a label for the string literal was already generated
+  bool hasStringLabel(const std::string &literal) {
+    return strings_.count(literal);
   }
 
   /// \brief Increment stack size by count elements
@@ -84,6 +111,7 @@ public:
 
 private:
   int32_t stackSize_;
+  std::unordered_set<int32_t> ints_;
   std::unordered_map<std::string, size_t> labels_;
   std::unordered_map<std::string, size_t> strings_;
 };
