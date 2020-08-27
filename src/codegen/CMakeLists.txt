@@ -4,7 +4,6 @@ add_library(
     codegen.cpp
     codegen_base.cpp
     codegen_constant.cpp
-    codegen_data.cpp
     codegen_helpers.cpp 
     codegen_prepare.cpp
 )
