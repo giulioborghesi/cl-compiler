@@ -18,16 +18,51 @@ struct IdentifierCodegenInfo {
       : isAttribute(inpIsAttribute), position(inpPosition) {}
 };
 
-/// \brief Helper struct to store the information needed about a method in a
-/// codegen context
 struct MethodCodegenInfo {
-  const int32_t position = -1;
-  MethodCodegenInfo(const int32_t inpPosition) : position(inpPosition) {}
+  std::string className;
+  size_t position = 0;
+  MethodCodegenInfo(const std::string &className, const int32_t position)
+      : className(className), position(position) {}
+};
+
+class MethodTable {
+
+  using KeyT = std::string;
+  using ValueT = MethodCodegenInfo;
+  using StorageT = std::unordered_map<KeyT, ValueT>;
+
+public:
+  bool findKey(const KeyT &key) const { return storage_.count(key); }
+
+  const ValueT &get(const KeyT &key) const {
+    assert(storage_.count(key));
+    return storage_.find(key)->second;
+  }
+
+  void addElement(const KeyT &key, const ValueT &value) {
+    storage_.insert({key, value});
+  }
+
+  typename StorageT::iterator begin() { return storage_.begin(); }
+
+  typename StorageT::iterator end() { return storage_.end(); }
+
+  /// Set the parent symbol table. Used for handling inheritance
+  ///
+  /// \param[in] parentTable pointer to parent table
+  void setParentTable(MethodTable *parentTable) {
+    storage_ = parentTable->storage_;
+  }
+
+  size_t count() const { return storage_.size(); }
+
+private:
+  std::unordered_map<KeyT, ValueT> storage_;
 };
 
 class CodegenContext
     : public Context<SymbolTable<std::string, IdentifierCodegenInfo>,
-                     SymbolTable<std::string, MethodCodegenInfo>> {
+                     MethodTable> {
 
 public:
   CodegenContext() = delete;

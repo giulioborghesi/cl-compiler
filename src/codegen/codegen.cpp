@@ -307,8 +307,8 @@ Status GenerateDispatchCode(CodegenContext *context, CodegenPass *pass,
   fetchTableAddress();
 
   /// Fetch method address
-  const auto methodInfo = context->methodTable(typeID)->get(node->methodName());
-  const size_t methodPosition = methodInfo.position;
+  const auto methodPosition =
+      context->methodTable(typeID)->get(node->methodName()).position;
   emit_addiu_instruction("$t0", "$t0", WORD_SIZE * methodPosition, ios);
 
   /// Transfer control to function and return

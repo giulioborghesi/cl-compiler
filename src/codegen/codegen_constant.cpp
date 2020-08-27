@@ -39,7 +39,7 @@ Status GenerateIntegerLiteral(CodegenContext *context, const std::string &label,
   const size_t typeID = registry->typeID(intType);
   emit_word_data(typeID, ios);
   emit_word_data(4, ios);
-  emit_word_data(intType + "_nameTab", ios);
+  emit_word_data(intType + "_dispTab", ios);
   emit_word_data(literal, ios);
   return Status::Ok();
 }
@@ -72,7 +72,7 @@ Status GenerateStringLiteral(CodegenContext *context, const std::string &label,
   const size_t typeID = registry->typeID("String");
   emit_word_data(typeID, ios);
   emit_word_data(literal.length() / 4 + 4, ios);
-  emit_word_data("String_nameTab", ios);
+  emit_word_data("String_dispTab", ios);
   emit_word_data(intLabel, ios);
   emit_ascii_data(literal, ios);
   return Status::Ok();
@@ -82,7 +82,7 @@ Status GenerateStringLiteral(CodegenContext *context, const std::string &label,
 
 Status CodegenConstantPass::codegen(CodegenContext *context, ClassNode *node,
                                     std::ostream *ios) {
-  const std::string label = context->generateStringLabel(node->className());
+  const std::string label = node->className() + "_className";
   GenerateStringLiteral(context, label, node->className(), ios);
   return CodegenBasePass::codegen(context, node, ios);
 }
@@ -109,6 +109,16 @@ Status CodegenConstantPass::codegen(CodegenContext *context, ProgramNode *node,
   /// Emit global declarations for data labels
   for (const auto &label : GLOBAL_LABELS) {
     emit_global_declaration(label, ios);
+  }
+
+  /// Emit class tags for Int, Bool and String types
+  auto registry = context->classRegistry();
+  std::vector<std::string> tags{"Int", "Bool", "String"};
+  for (auto tag : tags) {
+    const size_t classID = registry->typeID(tag);
+    std::for_each(tag.begin(), tag.end(), [](char &c) { c = std::tolower(c); });
+    emit_label("_" + tag + "_tag", ios);
+    emit_word_data(classID, ios);
   }
 
   /// Generate prototype objects for Int, String and Bool objects
