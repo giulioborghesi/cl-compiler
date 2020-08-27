@@ -231,8 +231,7 @@ void emit_move_instruction(const std::string &dstReg, const std::string &srcReg,
 
 void emit_object_label(const std::string &label, std::ostream *ios) {
   (*ios) << std::endl;
-  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << ".word" << -1
-         << std::endl;
+  emit_mips_data_line_impl(".word", -1, ios);
   (*ios) << label << ":" << std::endl;
 }
 

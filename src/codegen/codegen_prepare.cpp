@@ -9,6 +9,13 @@ namespace cool {
 
 namespace {
 
+/// \brief Generate the code for a table in the data section where the i-th
+/// element points to the address of a String object for the name of Class with
+/// class ID equal to i
+///
+/// \param[in] context Codegen context
+/// \param[in] node program node
+/// \param[out] ios output stream
 void GenerateClassNameTable(CodegenContext *context, ProgramNode *node,
                             std::ostream *ios) {
   /// Sort classes by ID
@@ -23,6 +30,32 @@ void GenerateClassNameTable(CodegenContext *context, ProgramNode *node,
   for (auto it = idToName.begin(); it != idToName.end(); ++it) {
     const std::string label = it->second + "_className";
     emit_word_data(label, ios);
+  }
+}
+
+/// \brief Generate the code for a table in the data section where the i-th
+/// element is the class ID of the parent of the class with class ID equal to i
+///
+/// \param[in] context Codegen context
+/// \param[in] node program node
+/// \param[out] ios output stream
+void GenerateClassHierarchyTable(CodegenContext *context, ProgramNode *node,
+                                 std::ostream *ios) {
+  /// Sort classes by ID
+  auto registry = context->classRegistry();
+  std::map<int32_t, int32_t> classToParentID;
+  for (auto classNode : node->classes()) {
+    const int32_t parentID =
+        classNode->hasParentClass()
+            ? registry->typeID(classNode->parentClassName())
+            : -1;
+    classToParentID[registry->typeID(classNode->className())] = parentID;
+  }
+
+  /// Generate class hierarchy table
+  emit_label("class_parentTab", ios);
+  for (auto it = classToParentID.begin(); it != classToParentID.end(); ++it) {
+    emit_word_data(it->second, ios);
   }
 }
 
@@ -67,6 +100,9 @@ Status CodegenPreparePass::codegen(CodegenContext *context, ProgramNode *node,
                                    std::ostream *ios) {
   /// Generate class names table
   GenerateClassNameTable(context, node, ios);
+
+  /// Generate class hierarchy table
+  GenerateClassHierarchyTable(context, node, ios);
 
   /// Generate class symbol tables
   for (auto classNode : node->classes()) {
