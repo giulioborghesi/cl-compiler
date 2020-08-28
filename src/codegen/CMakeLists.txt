@@ -2,6 +2,7 @@ add_library(
     lib_codegen 
     STATIC 
     codegen_code.cpp
+    codegen_code_base.cpp
     codegen_base.cpp
     codegen_constants.cpp
     codegen_helpers.cpp 
