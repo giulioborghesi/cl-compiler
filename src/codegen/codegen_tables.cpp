@@ -9,6 +9,12 @@ namespace cool {
 
 namespace {
 
+/// Mapping from type name to label for default value
+const std::unordered_map<std::string, std::string> TYPE_TO_DEFAULT_VALUE{
+    {"String", "String_protObj"},
+    {"Int", "Int_protObj"},
+    {"Bool", "_bool_const0"}};
+
 /// \brief Generate the code for a table in the data section where the i-th
 /// element points to the address of a String object for the name of Class with
 /// class ID equal to i
@@ -30,6 +36,18 @@ void GenerateClassNameTable(CodegenContext *context, ProgramNode *node,
   for (auto it = idToName.begin(); it != idToName.end(); ++it) {
     const std::string label = it->second + "_className";
     emit_word_data(label, ios);
+  }
+}
+
+/// \brief Generate the default value for a class attribute
+///
+/// \param[in] node attribute node
+/// \param[out] ios output stream
+void GenerateDefaultAttributeValue(AttributeNode *node, std::ostream *ios) {
+  if (TYPE_TO_DEFAULT_VALUE.count(node->typeName())) {
+    emit_word_data(TYPE_TO_DEFAULT_VALUE.find(node->typeName())->second, ios);
+  } else {
+    emit_word_data(0, ios);
   }
 }
 
@@ -93,6 +111,35 @@ Status CodegenTablesPass::codegen(CodegenContext *context, ClassNode *node,
     emit_word_data(it->second, ios);
   }
 
+  /// Nothing to do for built-in classes
+  if (node->builtIn()) {
+    return Status::Ok();
+  }
+
+  /// Initialize ancestors vector
+  auto currentNode = node;
+  std::vector<ClassNode *> nodes{currentNode};
+
+  /// Fetch ancestors
+  size_t nAttributes = currentNode->attributes().size();
+  auto registry = context->classRegistry();
+  while (currentNode->hasParentClass()) {
+    currentNode = registry->classNode(currentNode->parentClassName()).get();
+    nAttributes += currentNode->attributes().size();
+    nodes.push_back(currentNode);
+  }
+  std::reverse(nodes.begin(), nodes.end());
+
+  /// Generate code for prototype object
+  emit_object_label(node->className() + "_protObj", ios);
+  emit_word_data(registry->typeID(node->className()), ios);
+  emit_word_data(nAttributes + 3, ios);
+  emit_word_data(node->className() + "_dispTab", ios);
+  for (auto node : nodes) {
+    for (auto attributeNode : node->attributes()) {
+      GenerateDefaultAttributeValue(attributeNode.get(), ios);
+    }
+  }
   return Status::Ok();
 }
 
@@ -104,7 +151,7 @@ Status CodegenTablesPass::codegen(CodegenContext *context, ProgramNode *node,
   /// Generate class hierarchy table
   GenerateClassHierarchyTable(context, node, ios);
 
-  /// Generate class symbol tables
+  /// Generate class symbol tables and prototype objects
   for (auto classNode : node->classes()) {
     classNode->generateCode(context, this, ios);
   }
