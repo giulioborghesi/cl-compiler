@@ -1,6 +1,6 @@
 #include <cool/codegen/codegen_context.h>
 #include <cool/codegen/codegen_helpers.h>
-#include <cool/codegen/codegen_prepare.h>
+#include <cool/codegen/codegen_tables.h>
 #include <cool/ir/class.h>
 
 #include <map>
@@ -61,8 +61,8 @@ void GenerateClassHierarchyTable(CodegenContext *context, ProgramNode *node,
 
 } // namespace
 
-Status CodegenPreparePass::codegen(CodegenContext *context, ClassNode *node,
-                                   std::ostream *ios) {
+Status CodegenTablesPass::codegen(CodegenContext *context, ClassNode *node,
+                                  std::ostream *ios) {
   /// Initialize symbol table and method table
   context->setCurrentClassName(node->className());
   context->initializeTables();
@@ -96,8 +96,8 @@ Status CodegenPreparePass::codegen(CodegenContext *context, ClassNode *node,
   return Status::Ok();
 }
 
-Status CodegenPreparePass::codegen(CodegenContext *context, ProgramNode *node,
-                                   std::ostream *ios) {
+Status CodegenTablesPass::codegen(CodegenContext *context, ProgramNode *node,
+                                  std::ostream *ios) {
   /// Generate class names table
   GenerateClassNameTable(context, node, ios);
 

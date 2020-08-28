@@ -1,5 +1,5 @@
-#ifndef COOL_CODEGEN_CODEGEN_PREPARE_H
-#define COOL_CODEGEN_CODEGEN_PREPARE_H
+#ifndef COOL_CODEGEN_CODEGEN_TABLES_H
+#define COOL_CODEGEN_CODEGEN_TABLES_H
 
 #include <cool/codegen/codegen_base.h>
 #include <cool/core/status.h>
@@ -11,10 +11,10 @@ namespace cool {
 /// Forward declaration
 class CodegenContext;
 
-class CodegenPreparePass : public CodegenBasePass {
+class CodegenTablesPass : public CodegenBasePass {
 
 public:
-  CodegenPreparePass() = default;
+  CodegenTablesPass() = default;
 
   /// Program, class and attributes nodes
   Status codegen(CodegenContext *context, ClassNode *node,

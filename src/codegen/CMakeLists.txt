@@ -1,9 +1,9 @@
 add_library(
     lib_codegen 
     STATIC 
-    codegen.cpp
+    codegen_code.cpp
     codegen_base.cpp
     codegen_constant.cpp
     codegen_helpers.cpp 
-    codegen_prepare.cpp
+    codegen_tables.cpp
 )

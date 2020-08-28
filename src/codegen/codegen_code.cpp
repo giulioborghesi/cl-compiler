@@ -1,4 +1,4 @@
-#include <cool/codegen/codegen.h>
+#include <cool/codegen/codegen_code.h>
 #include <cool/codegen/codegen_context.h>
 #include <cool/codegen/codegen_helpers.h>
 #include <cool/ir/class.h>
@@ -225,8 +225,8 @@ void CreateObjectFromTypeID(CodegenContext *context, std::ostream *ios) {
 /// \param[in] node Class node
 /// \param[out] ios output stream
 void GenerateAttributesInitializationCode(CodegenContext *context,
-                                          CodegenPass *pass, ClassNode *node,
-                                          std::ostream *ios) {
+                                          CodegenCodePass *pass,
+                                          ClassNode *node, std::ostream *ios) {
   /// Lambda function to create a default object for the built-in classes
   auto generateDefaultObject = [context, ios](const std::string &typeName) {
     if (typeName == "Int") {
@@ -287,7 +287,7 @@ void GenerateAttributesInitializationCode(CodegenContext *context,
 /// \param[in] typeID caller class ID
 /// dispatch-specific code \param[out] ios output stream
 template <typename NodeT, typename FuncT>
-Status GenerateDispatchCode(CodegenContext *context, CodegenPass *pass,
+Status GenerateDispatchCode(CodegenContext *context, CodegenCodePass *pass,
                             NodeT *node, FuncT fetchTableAddress,
                             const size_t typeID, std::ostream *ios) {
   /// Evaluate parameters
@@ -446,8 +446,8 @@ void TerminateExecutionIfVoid(CodegenContext *context, FuncT errorFunc,
 } // namespace
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, AssignmentExprNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context,
+                                AssignmentExprNode *node, std::ostream *ios) {
   /// Generate code for right hand side expression
   node->rhsExpr()->generateCode(context, this, ios);
 
@@ -467,8 +467,8 @@ Status CodegenPass::codegen(CodegenContext *context, AssignmentExprNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, AttributeNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context, AttributeNode *node,
+                                std::ostream *ios) {
   /// Fetch symbol table
   auto symbolTable = context->symbolTable();
 
@@ -489,9 +489,9 @@ Status CodegenPass::codegen(CodegenContext *context, AttributeNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context,
-                            BinaryExprNode<ArithmeticOpID> *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context,
+                                BinaryExprNode<ArithmeticOpID> *node,
+                                std::ostream *ios) {
   /// Evaluate left and right hand side expressions
   node->lhsExpr()->generateCode(context, this, ios);
   PushAccumulatorToStack(context, ios);
@@ -522,9 +522,9 @@ Status CodegenPass::codegen(CodegenContext *context,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context,
-                            BinaryExprNode<ComparisonOpID> *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context,
+                                BinaryExprNode<ComparisonOpID> *node,
+                                std::ostream *ios) {
   /// Evaluate lhs and rhs expressions
   node->lhsExpr()->generateCode(context, this, ios);
   PushAccumulatorToStack(context, ios);
@@ -587,8 +587,8 @@ Status CodegenPass::codegen(CodegenContext *context,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, BlockExprNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context, BlockExprNode *node,
+                                std::ostream *ios) {
   for (auto expr : node->exprs()) {
     expr->generateCode(context, this, ios);
   }
@@ -596,16 +596,16 @@ Status CodegenPass::codegen(CodegenContext *context, BlockExprNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, BooleanExprNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context, BooleanExprNode *node,
+                                std::ostream *ios) {
   const std::string protoLabel = node->value() ? "bool_const1" : "bool_const0";
   CreateObjectFromProto(context, protoLabel, "Bool_init", ios);
   return Status::Ok();
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, CaseBindingNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context, CaseBindingNode *node,
+                                std::ostream *ios) {
   /// Emit label
   const std::string bindingLabel =
       context->generateLabel("Binding_" + node->id());
@@ -628,8 +628,8 @@ Status CodegenPass::codegen(CodegenContext *context, CaseBindingNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, CaseExprNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context, CaseExprNode *node,
+                                std::ostream *ios) {
   /// Evaluate case expression
   node->expr()->generateCode(context, this, ios);
   PushAccumulatorToStack(context, ios);
@@ -676,8 +676,8 @@ Status CodegenPass::codegen(CodegenContext *context, CaseExprNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, ClassNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context, ClassNode *node,
+                                std::ostream *ios) {
   /// Initialize stack, symbol table and method table
   context->resetStackSize();
   context->setCurrentClassName(node->className());
@@ -722,8 +722,8 @@ Status CodegenPass::codegen(CodegenContext *context, ClassNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, DispatchExprNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context, DispatchExprNode *node,
+                                std::ostream *ios) {
   /// Function to fetch method table address
   auto fetchMethod = [ios]() {
     emit_la_instruction("$t0", "_Class_method_table", ios);
@@ -739,8 +739,8 @@ Status CodegenPass::codegen(CodegenContext *context, DispatchExprNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, IdExprNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context, IdExprNode *node,
+                                std::ostream *ios) {
   if (node->id() == "self") {
     emit_lw_instruction("$a0", "$fp", 0, ios);
   } else {
@@ -758,8 +758,8 @@ Status CodegenPass::codegen(CodegenContext *context, IdExprNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, IfExprNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context, IfExprNode *node,
+                                std::ostream *ios) {
   /// Create labels
   const std::string falseLabel = context->generateLabel("False");
   const std::string endLabel = context->generateLabel("End");
@@ -787,24 +787,25 @@ Status CodegenPass::codegen(CodegenContext *context, IfExprNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context,
-                            LiteralExprNode<int32_t> *node, std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context,
+                                LiteralExprNode<int32_t> *node,
+                                std::ostream *ios) {
   CreateIntObject(context, node->value(), ios);
   return Status::Ok();
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context,
-                            LiteralExprNode<std::string> *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context,
+                                LiteralExprNode<std::string> *node,
+                                std::ostream *ios) {
   const std::string stringProto = context->generateStringLabel(node->value());
   CreateStringObject(context, stringProto, node->value().length(), ios);
   return Status::Ok();
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, LetBindingNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context, LetBindingNode *node,
+                                std::ostream *ios) {
   /// Generate code for right hand side expression
   if (node->hasExpr()) {
     node->expr()->generateCode(context, this, ios);
@@ -824,8 +825,8 @@ Status CodegenPass::codegen(CodegenContext *context, LetBindingNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, LetExprNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context, LetExprNode *node,
+                                std::ostream *ios) {
   /// Fetch symbol table
   auto symbolTable = context->symbolTable();
 
@@ -860,8 +861,8 @@ Status CodegenPass::codegen(CodegenContext *context, LetExprNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, MethodNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context, MethodNode *node,
+                                std::ostream *ios) {
   /// Nothing to do for built-in methods
   if (!node->body()) {
     return Status::Ok();
@@ -907,8 +908,8 @@ Status CodegenPass::codegen(CodegenContext *context, MethodNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, NewExprNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context, NewExprNode *node,
+                                std::ostream *ios) {
   /// Get class name
   auto registry = context->classRegistry();
   const std::string className = registry->className(node->type().typeID);
@@ -926,8 +927,8 @@ Status CodegenPass::codegen(CodegenContext *context, NewExprNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, ProgramNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context, ProgramNode *node,
+                                std::ostream *ios) {
   emit_directive(".text", ios);
   for (auto classNode : node->classes()) {
     classNode->generateCode(context, this, ios);
@@ -936,8 +937,9 @@ Status CodegenPass::codegen(CodegenContext *context, ProgramNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context,
-                            StaticDispatchExprNode *node, std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context,
+                                StaticDispatchExprNode *node,
+                                std::ostream *ios) {
   /// Function to fetch method table address
   auto fetchTable = [context, node, ios]() {
     auto classRegistry = context->classRegistry();
@@ -951,8 +953,8 @@ Status CodegenPass::codegen(CodegenContext *context,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, UnaryExprNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context, UnaryExprNode *node,
+                                std::ostream *ios) {
   /// Generate code for the unary expression
   node->expr()->generateCode(context, this, ios);
 
@@ -1003,8 +1005,8 @@ Status CodegenPass::codegen(CodegenContext *context, UnaryExprNode *node,
 }
 
 /// DONE
-Status CodegenPass::codegen(CodegenContext *context, WhileExprNode *node,
-                            std::ostream *ios) {
+Status CodegenCodePass::codegen(CodegenContext *context, WhileExprNode *node,
+                                std::ostream *ios) {
   /// Create labels
   const std::string loopBeginLabel = context->generateLabel("Begin");
   const std::string loopEndLabel = context->generateLabel("End");
