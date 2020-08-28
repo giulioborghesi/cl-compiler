@@ -1,5 +1,5 @@
-#ifndef COOL_CODEGEN_CODEGEN_CONSTANT_H
-#define COOL_CODEGEN_CODEGEN_CONSTANT_H
+#ifndef COOL_CODEGEN_CODEGEN_CONSTANTS_H
+#define COOL_CODEGEN_CODEGEN_CONSTANTS_H
 
 #include <cool/codegen/codegen_base.h>
 #include <cool/ir/fwd.h>
@@ -9,11 +9,11 @@ namespace cool {
 /// Forward declaration
 class CodegenContext;
 
-class CodegenConstantPass : public CodegenBasePass {
+class CodegenConstantsPass : public CodegenBasePass {
 
 public:
-  CodegenConstantPass() = default;
-  ~CodegenConstantPass() final override = default;
+  CodegenConstantsPass() = default;
+  ~CodegenConstantsPass() final override = default;
 
   Status codegen(CodegenContext *context, ClassNode *node,
                  std::ostream *ios) final override;

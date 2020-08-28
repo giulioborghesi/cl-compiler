@@ -1,4 +1,4 @@
-#include <cool/codegen/codegen_constant.h>
+#include <cool/codegen/codegen_constants.h>
 #include <cool/codegen/codegen_context.h>
 #include <cool/codegen/codegen_helpers.h>
 #include <cool/ir/class.h>
@@ -81,29 +81,29 @@ Status GenerateStringLiteral(CodegenContext *context, const std::string &label,
 
 } // namespace
 
-Status CodegenConstantPass::codegen(CodegenContext *context, ClassNode *node,
-                                    std::ostream *ios) {
+Status CodegenConstantsPass::codegen(CodegenContext *context, ClassNode *node,
+                                     std::ostream *ios) {
   const std::string label = node->className() + "_className";
   GenerateStringLiteral(context, label, node->className(), ios);
   return CodegenBasePass::codegen(context, node, ios);
 }
 
-Status CodegenConstantPass::codegen(CodegenContext *context,
-                                    LiteralExprNode<int32_t> *node,
-                                    std::ostream *ios) {
+Status CodegenConstantsPass::codegen(CodegenContext *context,
+                                     LiteralExprNode<int32_t> *node,
+                                     std::ostream *ios) {
   const std::string label = context->generateIntLabel(node->value());
   return GenerateIntegerLiteral(context, label, INT_TYPE, node->value(), ios);
 }
 
-Status CodegenConstantPass::codegen(CodegenContext *context,
-                                    LiteralExprNode<std::string> *node,
-                                    std::ostream *ios) {
+Status CodegenConstantsPass::codegen(CodegenContext *context,
+                                     LiteralExprNode<std::string> *node,
+                                     std::ostream *ios) {
   const std::string label = context->generateStringLabel(node->value());
   return GenerateStringLiteral(context, label, node->value(), ios);
 }
 
-Status CodegenConstantPass::codegen(CodegenContext *context, ProgramNode *node,
-                                    std::ostream *ios) {
+Status CodegenConstantsPass::codegen(CodegenContext *context, ProgramNode *node,
+                                     std::ostream *ios) {
   /// Emit data directive
   emit_directive(".data", ios);
 
