@@ -16,8 +16,9 @@ const std::string INT_TYPE = "Int";
 
 /// Globally visible data labels
 std::vector<std::string> GLOBAL_LABELS = {
-    "Main_protObj", "Int_protObj", "String_protObj", "_int_tag",
-    "_bool_tag",    "_string_tag", "bool_const0",    "bool_const1"};
+    "Main_protObj",        "Int_protObj",      "String_protObj", "_int_tag",
+    "_bool_tag",           "_string_tag",      "bool_const0",    "bool_const1",
+    "_MemMgr_INITIALIZER", "_MemMgr_COLLECTOR"};
 
 /// \brief Helper function to generate an object for an integer literal.
 /// Supported integer literals in Cool are Bool and Int
@@ -110,6 +111,14 @@ Status CodegenConstantPass::codegen(CodegenContext *context, ProgramNode *node,
   for (const auto &label : GLOBAL_LABELS) {
     emit_global_declaration(label, ios);
   }
+
+  /// Emit GC initializer settings
+  emit_label("_MemMgr_INITIALIZER", ios);
+  emit_word_data("_NoGC_Init", ios);
+
+  /// Emit GC collector settings
+  emit_label("_MemMgr_COLLECTOR", ios);
+  emit_word_data("_NoGC_Collect", ios);
 
   /// Emit class tags for Int, Bool and String types
   auto registry = context->classRegistry();
