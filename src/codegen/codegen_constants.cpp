@@ -15,7 +15,7 @@ const std::string BOOL_TYPE = "Bool";
 const std::string INT_TYPE = "Int";
 
 /// Globally visible data labels
-std::vector<std::string> GLOBAL_LABELS = {
+const std::vector<std::string> GLOBAL_LABELS = {
     "Main_protObj",        "Int_protObj",      "String_protObj", "_int_tag",
     "_bool_tag",           "_string_tag",      "bool_const0",    "bool_const1",
     "_MemMgr_INITIALIZER", "_MemMgr_COLLECTOR"};
