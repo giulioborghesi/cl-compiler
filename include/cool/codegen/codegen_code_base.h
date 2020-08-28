@@ -20,9 +20,6 @@ public:
   virtual ~CodegenCodePass() override = default;
 
   /// Program, class and attributes nodes
-  Status codegen(CodegenContext *context, AttributeNode *node,
-                 std::ostream *ios) final override;
-
   Status codegen(CodegenContext *context, MethodNode *node,
                  std::ostream *ios) final override;
 

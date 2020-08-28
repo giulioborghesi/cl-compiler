@@ -11,6 +11,9 @@ public:
   CodegenObjectsInitPass() = default;
   ~CodegenObjectsInitPass() final override = default;
 
+  Status codegen(CodegenContext *context, AttributeNode *node,
+                 std::ostream *ios) final override;
+
   Status codegen(CodegenContext *context, ClassNode *node,
                  std::ostream *ios) final override;
 

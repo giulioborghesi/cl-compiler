@@ -2,6 +2,7 @@
 #include <cool/codegen/codegen_context.h>
 #include <cool/codegen/codegen_helpers.h>
 #include <cool/ir/class.h>
+#include <cool/ir/expr.h>
 
 namespace cool {
 
@@ -38,6 +39,18 @@ void StoreAttributeAndSetAccumulatorToSelf(const int32_t offset,
 }
 
 } // namespace
+
+Status CodegenObjectsInitPass::codegen(CodegenContext *context,
+                                       AttributeNode *node, std::ostream *ios) {
+  /// If attribute has an initialization expression, use it
+  if (node->initExpr()) {
+    auto symbolTable = context->symbolTable();
+    const int32_t offset = GetAttributeOffset(symbolTable, node->id());
+    node->initExpr()->generateCode(context, this, ios);
+    StoreAttributeAndSetAccumulatorToSelf(offset, ios);
+  }
+  return Status::Ok();
+}
 
 Status CodegenObjectsInitPass::codegen(CodegenContext *context, ClassNode *node,
                                        std::ostream *ios) {
@@ -82,11 +95,7 @@ Status CodegenObjectsInitPass::codegen(CodegenContext *context, ClassNode *node,
 
   /// Initialize attributes
   for (auto attribute : node->attributes()) {
-    if (attribute->initExpr()) {
-      const int32_t offset = GetAttributeOffset(symbolTable, attribute->id());
-      attribute->generateCode(context, this, ios);
-      StoreAttributeAndSetAccumulatorToSelf(offset, ios);
-    }
+    attribute->generateCode(context, this, ios);
   }
 
   /// Restore calling stack frame and return control to caller

@@ -412,28 +412,6 @@ Status CodegenCodePass::codegen(CodegenContext *context,
 }
 
 /// DONE
-Status CodegenCodePass::codegen(CodegenContext *context, AttributeNode *node,
-                                std::ostream *ios) {
-  /// Fetch symbol table
-  auto symbolTable = context->symbolTable();
-
-  /// If attribute has an initialization expression, use it
-  if (node->initExpr()) {
-    node->initExpr()->generateCode(context, this, ios);
-
-    /// Update attribute
-    auto symbolInfo = context->symbolTable()->get(node->id());
-    const size_t attrPosition = symbolInfo.position;
-    const size_t offset = attrPosition * WORD_SIZE + OBJECT_CONTENT_OFFSET;
-    emit_lw_instruction("$t0", "$fp", 0, ios);
-    emit_sw_instruction("$a0", "$t0", offset, ios);
-  }
-
-  /// Return
-  return Status::Ok();
-}
-
-/// DONE
 Status CodegenCodePass::codegen(CodegenContext *context,
                                 BinaryExprNode<ArithmeticOpID> *node,
                                 std::ostream *ios) {
