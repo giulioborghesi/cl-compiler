@@ -33,12 +33,12 @@ void CompareBoolAndIntObjects(CodegenContext *context, std::ostream *ios) {
 
   /// Compare values and generate code for false branch
   emit_compare_and_jump_instruction("beq", "$t0", "$a0", sameObjectLabel, ios);
-  CreateObjectFromProto(context, "bool_const0", "Bool_init", ios);
+  CreateObjectFromProto(context, "Bool_const0", "Bool_init", ios);
   emit_jump_label_instruction(endLabel, ios);
 
   /// Generate code for true branch
   emit_label(sameObjectLabel, ios);
-  CreateObjectFromProto(context, "bool_const1", "Bool_init", ios);
+  CreateObjectFromProto(context, "Bool_const1", "Bool_init", ios);
 
   /// Emit label
   emit_label(endLabel, ios);
@@ -61,12 +61,12 @@ void CompareObjects(CodegenContext *context, std::ostream *ios) {
 
   /// Compare values and generate code for false branch
   emit_compare_and_jump_instruction("beq", "$t0", "$a0", sameObjectLabel, ios);
-  CreateObjectFromProto(context, "bool_const0", "Bool_init", ios);
+  CreateObjectFromProto(context, "Bool_const0", "Bool_init", ios);
   emit_jump_label_instruction(endLabel, ios);
 
   /// Generate code for true branch
   emit_label(sameObjectLabel, ios);
-  CreateObjectFromProto(context, "bool_const1", "Bool_init", ios);
+  CreateObjectFromProto(context, "Bool_const1", "Bool_init", ios);
 
   /// Emit label
   emit_label(endLabel, ios);
@@ -461,7 +461,7 @@ Status CodegenCodePass::codegen(CodegenContext *context, BlockExprNode *node,
 /// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context, BooleanExprNode *node,
                                 std::ostream *ios) {
-  const std::string label = node->value() ? "bool_const1" : "bool_const0";
+  const std::string label = node->value() ? "Bool_const1" : "Bool_const0";
   emit_la_instruction("$a0", label, ios);
   emit_jump_and_link_instruction(OBJECT_COPY_METHOD, ios);
   return Status::Ok();
@@ -837,11 +837,11 @@ CodegenCodePass::binaryInequalityCodegen(CodegenContext *context,
   /// Compare values and branch as needed
   const std::string mnemonic = GetMnemonicFromOpType(node->opID());
   emit_compare_and_jump_instruction(mnemonic, "$t0", "$t1", trueLabel, ios);
-  CreateBooleanObject("bool_const0", ios);
+  CreateBooleanObject("Bool_const0", ios);
   emit_jump_label_instruction(endLabel, ios);
 
   emit_label(trueLabel, ios);
-  CreateBooleanObject("bool_const1", ios);
+  CreateBooleanObject("Bool_const1", ios);
 
   emit_label(endLabel, ios);
   PopStack(context, 1, ios);
@@ -884,11 +884,11 @@ Status CodegenCodePass::unaryEqualityCodegen(CodegenContext *context,
 
   /// Compare for equality with zero and branch as needed
   emit_beqz_instruction("$a0", trueLabel, ios);
-  CreateBooleanObject("bool_const0", ios);
+  CreateBooleanObject("Bool_const0", ios);
   emit_jump_label_instruction(endLabel, ios);
 
   emit_label(trueLabel, ios);
-  CreateBooleanObject("bool_const1", ios);
+  CreateBooleanObject("Bool_const1", ios);
 
   emit_label(endLabel, ios);
   return Status::Ok();

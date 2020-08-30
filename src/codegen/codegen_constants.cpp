@@ -17,7 +17,7 @@ const std::string INT_TYPE = "Int";
 /// Globally visible data labels
 const std::vector<std::string> GLOBAL_LABELS = {
     "Main_protObj",        "Int_protObj",       "String_protObj", "_int_tag",
-    "_bool_tag",           "_string_tag",       "bool_const0",    "bool_const1",
+    "_bool_tag",           "_string_tag",       "Bool_const0",    "Bool_const1",
     "_MemMgr_INITIALIZER", "_MemMgr_COLLECTOR", "_MemMgr_TEST",   "heap_start"};
 
 Status GenerateBuiltInPrototype(CodegenContext *context,
@@ -161,8 +161,8 @@ Status CodegenConstantsPass::codegen(CodegenContext *context, ProgramNode *node,
   GenerateIntegerLiteral(context, "Int_protObj", INT_TYPE, 0, ios);
   GenerateStringLiteral(context, "String_protObj", "", ios);
   GenerateIntegerLiteral(context, "Bool_protObj", BOOL_TYPE, 0, ios);
-  GenerateIntegerLiteral(context, "bool_const0", BOOL_TYPE, 0, ios);
-  GenerateIntegerLiteral(context, "bool_const1", BOOL_TYPE, 1, ios);
+  GenerateIntegerLiteral(context, "Bool_const0", BOOL_TYPE, 0, ios);
+  GenerateIntegerLiteral(context, "Bool_const1", BOOL_TYPE, 1, ios);
   return CodegenBasePass::codegen(context, node, ios);
 }
 

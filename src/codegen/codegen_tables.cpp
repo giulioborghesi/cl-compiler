@@ -13,7 +13,7 @@ namespace {
 const std::unordered_map<std::string, std::string> TYPE_TO_DEFAULT_VALUE{
     {"String", "String_protObj"},
     {"Int", "Int_protObj"},
-    {"Bool", "_bool_const0"}};
+    {"Bool", "Bool_const0"}};
 
 /// \brief Generate the code for a table in the data section where the i-th
 /// element points to the address of a String object for the name of Class with
