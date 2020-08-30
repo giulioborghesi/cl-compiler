@@ -251,8 +251,10 @@ Status GenerateDispatchCode(CodegenContext *context, CodegenCodePass *pass,
   /// Fetch method address
   fetchMethodAddress();
 
-  /// Transfer control to function and return
+  /// Transfer control to caller, increment stack position and return
+  const size_t nParams = node->params().size();
   emit_jump_and_link_register_instruction("$t0", ios);
+  context->incrementStackPosition(nParams);
   return Status::Ok();
 }
 
