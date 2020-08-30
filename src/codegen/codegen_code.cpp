@@ -99,7 +99,7 @@ Status CodegenObjectsInitPass::codegen(CodegenContext *context, ClassNode *node,
   }
 
   /// Restore calling stack frame and return control to caller
-  PopStackFrame(context, ios);
+  PopStackFrame(context, 0, ios);
   emit_jump_register_instruction("$ra", ios);
 
   /// Generate code for remaining methods

@@ -66,10 +66,11 @@ void CreateObjectFromProto(CodegenContext *context,
   CopyAndInitializeObject(context, initLabel, ios);
 }
 
-void PopStackFrame(CodegenContext *context, std::ostream *ios) {
+void PopStackFrame(CodegenContext *context, const size_t nArgs,
+                   std::ostream *ios) {
   emit_lw_instruction("$ra", "$fp", -1 * WORD_SIZE, ios);
   emit_lw_instruction("$fp", "$fp", -2 * WORD_SIZE, ios);
-  PopStack(context, 3, ios);
+  PopStack(context, 3 + nArgs, ios);
 }
 
 void PopStack(CodegenContext *context, const size_t count, std::ostream *ios) {

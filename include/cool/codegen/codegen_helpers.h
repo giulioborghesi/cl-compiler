@@ -68,8 +68,10 @@ void PopStack(CodegenContext *context, const size_t count, std::ostream *ios);
 /// \brief Restore the stack of the calling method
 ///
 /// \param[in] context Codegen context
+/// \param[in] nArgs number of method arguments
 /// \param[out] ios output stream
-void PopStackFrame(CodegenContext *context, std::ostream *ios);
+void PopStackFrame(CodegenContext *context, const size_t nArgs,
+                   std::ostream *ios);
 
 /// \brief Emit a sequence of MIPS instruction to push the accumulator to stack,
 /// update the stack pointer and the stack counter in codegen context

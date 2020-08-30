@@ -716,7 +716,7 @@ Status CodegenCodePass::codegen(CodegenContext *context, MethodNode *node,
   node->body()->generateCode(context, this, ios);
 
   /// Restore caller's stack frame
-  PopStackFrame(context, ios);
+  PopStackFrame(context, nArgs, ios);
   emit_jump_register_instruction("$ra", ios);
 
   /// Exit scope and return
