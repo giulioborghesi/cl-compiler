@@ -6,13 +6,21 @@
 
 namespace cool {
 
-static constexpr int32_t BOOL_CONTENT_OFFSET = 12;
-static constexpr int32_t CLASS_ID_OFFSET = 4;
-static constexpr int32_t OBJECT_CONTENT_OFFSET = 12;
-static constexpr int32_t OBJECT_SIZE_OFFSET = 8;
-static constexpr int32_t STRING_LENGTH_OFFSET = 12;
-static constexpr int32_t STRING_CONTENT_OFFSET = 12;
+/// Byte offset to object content
 static constexpr int32_t WORD_SIZE = 4;
+static constexpr int32_t CLASS_ID_OFFSET = 0;
+static constexpr int32_t DISPATCH_TABLE_OFFSET = 2 * WORD_SIZE;
+static constexpr int32_t OBJECT_CONTENT_OFFSET = 3 * WORD_SIZE;
+static constexpr int32_t OBJECT_SIZE_OFFSET = WORD_SIZE;
+static constexpr int32_t STRING_LENGTH_OFFSET = 3 * WORD_SIZE;
+static constexpr int32_t STRING_CONTENT_OFFSET = 4 * WORD_SIZE;
+
+/// Object copy method label
+static const std::string OBJECT_COPY_METHOD = "Object.copy";
+
+/// Tables labels
+const std::string CLASS_PROTO_TABLE = "Class_objTab";
+const std::string DISPATCH_TABLE_INDEX_TABLE = "class_dispTab";
 
 /// Forward declaration
 class CodegenContext;
@@ -27,17 +35,19 @@ class CodegenContext;
 void CopyAndInitializeObject(CodegenContext *context,
                              const std::string &initLabel, std::ostream *ios);
 
-/// \brief Create an integer object storing a given int value
+/// \brief Create a copy of a prototype object given its type name. The labels
+/// for the prototype object and its init function are assumed to be
+/// typeName_protObj and typename_init
 ///
 /// \param[in] context Codegen context
-/// \param[in] value value of Int object
+/// \param[in] typeName type name
 /// \param[out] ios output stream
-void CreateIntObject(CodegenContext *context, const int32_t value,
-                     std::ostream *ios);
+void CreateObjectFromProto(CodegenContext *context, const std::string &typeName,
+                           std::ostream *ios);
 
-/// \brief Create a copy of an object given the labels for its prototype object
-/// and its init function. The pointer to the newly created object is stored in
-/// register $a0
+/// \brief Create a copy of a prototype object given the labels for its
+/// prototype object and its init function. The pointer to the newly created
+/// object is stored in register $a0
 ///
 /// \param[in] context Codegen context
 /// \param[in] protoLabel prototype object label
@@ -46,16 +56,6 @@ void CreateIntObject(CodegenContext *context, const int32_t value,
 void CreateObjectFromProto(CodegenContext *context,
                            const std::string &protoLabel,
                            const std::string &initLabel, std::ostream *ios);
-
-/// \brief Create a string object storing a literal string
-///
-/// \param[in] context Codegen context
-/// \param[in] literalProto string literal proto label
-/// \param[in] stringLength string length
-/// \param[out] ios output stream
-void CreateStringObject(CodegenContext *context,
-                        const std::string &literalProto,
-                        const size_t stringLength, std::ostream *ios);
 
 /// \brief Decrement the stack pointer by count words and update stack counter
 /// in codegen context
@@ -159,6 +159,18 @@ void emit_compare_and_jump_instruction(const std::string &mnemonic,
 /// \param[out] ios output stream
 void emit_ascii_data(const std::string &literal, std::ostream *ios);
 
+// Emit MIPS align data
+///
+/// \param[in] value alignment value
+/// \param[out] ios output stream
+void emit_align_data(const int32_t value, std::ostream *ios);
+
+// Emit MIPS byte data
+///
+/// \param[in] value byte value
+/// \param[out] ios output stream
+void emit_byte_data(const int32_t value, std::ostream *ios);
+
 /// Emit a MIPS word data
 ///
 /// \param[in] value data value
@@ -183,16 +195,16 @@ void emit_directive(const std::string &directive, std::ostream *ios);
 /// \param[out] ios output stream
 void emit_global_declaration(const std::string &label, std::ostream *ios);
 
-/// Emit a MIPS jump instruction to jump to a label and store the return address
-/// in $ra
+/// Emit a MIPS jump instruction to jump to a label and store the return
+/// address in $ra
 ///
 /// \param[in] label jump label
 /// \param[out] ios output stream
 void emit_jump_and_link_instruction(const std::string &label,
                                     std::ostream *ios);
 
-/// Emit a MIPS jump instruction to jump to the address stored in a register and
-/// store the return address in $ra
+/// Emit a MIPS jump instruction to jump to the address stored in a register
+/// and store the return address in $ra
 ///
 /// \param[in] dstReg destination register
 /// \param[out] ios output stream
@@ -266,8 +278,8 @@ void emit_move_instruction(const std::string &dstReg, const std::string &srcReg,
 /// \param[out] ios output stream
 void emit_object_label(const std::string &label, std::ostream *ios);
 
-/// Emit a MIPS instruction to shift the bits of a register to the left by bits
-/// positions and store the result into a specified register
+/// Emit a MIPS instruction to shift the bits of a register to the left by
+/// bits positions and store the result into a specified register
 ///
 /// \param[in] dstReg destination register
 /// \param[in] srcReg source register

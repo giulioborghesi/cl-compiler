@@ -47,13 +47,13 @@ void CopyAndInitializeObject(CodegenContext *context,
   emit_jump_and_link_instruction(initLabel, ios);
 }
 
-void CreateIntObject(CodegenContext *context, const int32_t value,
-                     std::ostream *ios) {
-  CreateObjectFromProto(context, "Int_protObj", "Int_init", ios);
-  emit_li_instruction("$t0", value, ios);
+void CreateObjectFromProto(CodegenContext *context, const std::string &typeName,
+                           std::ostream *ios) {
+  /// Load address of prototype object into $a0
+  emit_la_instruction("$a0", typeName + "_protObj", ios);
 
-  /// Update Int value and return
-  emit_sw_instruction("$t0", "$a0", OBJECT_CONTENT_OFFSET, ios);
+  /// Copy the object and initialize it
+  CopyAndInitializeObject(context, typeName + "_init", ios);
 }
 
 void CreateObjectFromProto(CodegenContext *context,
@@ -66,51 +66,32 @@ void CreateObjectFromProto(CodegenContext *context,
   CopyAndInitializeObject(context, initLabel, ios);
 }
 
-void CreateStringObject(CodegenContext *context,
-                        const std::string &literalProto,
-                        const size_t stringLength, std::ostream *ios) {
-  /// Copy literal prototype and store it on stack
-  CreateObjectFromProto(context, literalProto, "String_init", ios);
-  PushAccumulatorToStack(context, ios);
-
-  /// Create Int value for string length and store it into $t0
-  CreateIntObject(context, stringLength, ios);
-  emit_move_instruction("$t0", "$a0", ios);
-
-  /// Store string object in a0 and update string length
-  emit_lw_instruction("$a0", "$sp", WORD_SIZE, ios);
-  emit_sw_instruction("$t0", "$a0", STRING_LENGTH_OFFSET, ios);
-
-  /// Restore stack
-  emit_addiu_instruction("$sp", "$sp", WORD_SIZE, ios);
-}
-
 void PopStackFrame(CodegenContext *context, std::ostream *ios) {
-  emit_lw_instruction("$ra", "$fp", 1 * WORD_SIZE, ios);
-  emit_lw_instruction("$fp", "$fp", 2 * WORD_SIZE, ios);
+  emit_lw_instruction("$ra", "$fp", -1 * WORD_SIZE, ios);
+  emit_lw_instruction("$fp", "$fp", -2 * WORD_SIZE, ios);
   PopStack(context, 3, ios);
 }
 
 void PopStack(CodegenContext *context, const size_t count, std::ostream *ios) {
   emit_addiu_instruction("$sp", "$sp", count * WORD_SIZE, ios);
-  context->decrementStackSize(count);
+  context->incrementStackPosition(count);
 }
 
 void PushAccumulatorToStack(CodegenContext *context, std::ostream *ios) {
   emit_sw_instruction("$a0", "$sp", 0, ios);
-  emit_addiu_instruction("$sp", "$sp", -4, ios);
-  context->incrementStackSize(1);
+  emit_addiu_instruction("$sp", "$sp", -WORD_SIZE, ios);
+  context->decrementStackPosition(1);
 }
 
 void PushStack(CodegenContext *context, const size_t count, std::ostream *ios) {
   emit_addiu_instruction("$sp", "$sp", -count * WORD_SIZE, ios);
-  context->incrementStackSize(count);
+  context->decrementStackPosition(count);
 }
 
 void PushStackFrame(CodegenContext *context, std::ostream *ios) {
-  emit_sw_instruction("$a0", "$fp", 0 * WORD_SIZE, ios);
-  emit_sw_instruction("$ra", "$fp", 1 * WORD_SIZE, ios);
-  emit_sw_instruction("$fp", "$fp", 2 * WORD_SIZE, ios);
+  emit_sw_instruction("$a0", "$sp", -0 * WORD_SIZE, ios);
+  emit_sw_instruction("$ra", "$sp", -1 * WORD_SIZE, ios);
+  emit_sw_instruction("$fp", "$sp", -2 * WORD_SIZE, ios);
   emit_move_instruction("$fp", "$sp", ios);
   PushStack(context, 3, ios);
 }
@@ -124,7 +105,15 @@ void emit_addiu_instruction(const std::string &dstReg,
 }
 
 void emit_ascii_data(const std::string &literal, std::ostream *ios) {
-  emit_mips_data_line_impl(".ascii", literal, ios);
+  emit_mips_data_line_impl(".ascii", "\"" + literal + "\"", ios);
+}
+
+void emit_align_data(const int32_t value, std::ostream *ios) {
+  emit_mips_data_line_impl(".align", value, ios);
+}
+
+void emit_byte_data(const int32_t value, std::ostream *ios) {
+  emit_mips_data_line_impl(".byte", 0, ios);
 }
 
 void emit_beqz_instruction(const std::string &reg, const std::string &label,

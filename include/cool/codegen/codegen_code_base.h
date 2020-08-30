@@ -48,7 +48,8 @@ public:
   Status codegen(CodegenContext *context, DispatchExprNode *node,
                  std::ostream *ios) final override;
 
-  Status codegen(CodegenContext *context, IdExprNode *node, std::ostream *ios);
+  Status codegen(CodegenContext *context, IdExprNode *node,
+                 std::ostream *ios) final override;
 
   Status codegen(CodegenContext *context, IfExprNode *node,
                  std::ostream *ios) final override;
@@ -76,6 +77,21 @@ public:
 
   Status codegen(CodegenContext *context, WhileExprNode *node,
                  std::ostream *ios) final override;
+
+private:
+  Status binaryEqualityCodegen(CodegenContext *context,
+                               BinaryExprNode<ComparisonOpID> *node,
+                               std::ostream *ios);
+
+  Status binaryInequalityCodegen(CodegenContext *context,
+                                 BinaryExprNode<ComparisonOpID> *node,
+                                 std::ostream *ios);
+
+  Status unaryEqualityCodegen(CodegenContext *context, UnaryExprNode *node,
+                              std::ostream *ios);
+
+  Status unaryComplementCodegen(CodegenContext *context, UnaryExprNode *node,
+                                std::ostream *ios);
 };
 
 } // namespace cool

@@ -55,13 +55,13 @@ Status CodegenObjectsInitPass::codegen(CodegenContext *context,
 Status CodegenObjectsInitPass::codegen(CodegenContext *context, ClassNode *node,
                                        std::ostream *ios) {
   /// Set current class name in context and fetch symbol table
-  context->resetStackSize();
+  context->resetStackPosition();
   context->setCurrentClassName(node->className());
   auto symbolTable = context->symbolTable();
 
   /// Generate init label. Nothing to do for built-in classes
   emit_label(node->className() + "_init", ios);
-  if (node->builtIn()) {
+  if (node->builtIn() && node->className() != "String") {
     emit_jump_and_link_instruction("$ra", ios);
     return Status::Ok();
   }
@@ -82,7 +82,7 @@ Status CodegenObjectsInitPass::codegen(CodegenContext *context, ClassNode *node,
     emit_jump_and_link_instruction(label, ios);
   }
 
-  /// Initialize built-in objects by copying them
+  /// Initialize attributes to default values
   for (auto attribute : node->attributes()) {
     const std::string &type = attribute->typeName();
     if (type == "Int" || type == "String" || type == "Bool") {
@@ -101,11 +101,20 @@ Status CodegenObjectsInitPass::codegen(CodegenContext *context, ClassNode *node,
   /// Restore calling stack frame and return control to caller
   PopStackFrame(context, ios);
   emit_jump_register_instruction("$ra", ios);
+
+  /// Generate code for remaining methods
+  for (auto methodNode : node->methods()) {
+    methodNode->generateCode(context, this, ios);
+  }
   return Status::Ok();
 }
 
 Status CodegenObjectsInitPass::codegen(CodegenContext *context,
                                        ProgramNode *node, std::ostream *ios) {
+  /// Emit heap start
+  emit_label("heap_start", ios);
+  emit_word_data(0, ios);
+
   /// Emit text directive
   emit_directive(".text", ios);
 

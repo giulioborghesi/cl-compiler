@@ -126,26 +126,26 @@ public:
     return strings_.count(literal);
   }
 
-  /// \brief Increment stack size by count elements
+  /// \brief Increment stack position by count elements
   ///
-  /// \param[in] count size to add to stack size
-  void incrementStackSize(const int32_t count) { stackSize_ += count; }
+  /// \param[in] count size to add to stack position
+  void incrementStackPosition(const int32_t count) { stackPosition_ += count; }
 
-  /// \brief Decrement stack size by count elements
+  /// \brief Decrement stack position by count elements
   ///
-  /// \param[in] count size to subtract from stack size
-  void decrementStackSize(const int32_t count) { stackSize_ -= count; }
+  /// \param[in] count size to subtract from stack position
+  void decrementStackPosition(const int32_t count) { stackPosition_ -= count; }
 
-  /// \brief Reset the stack size to zero
-  void resetStackSize() { stackSize_ = 0; }
+  /// \brief Reset the stack position to zero
+  void resetStackPosition() { stackPosition_ = 0; }
 
-  /// \brief Get the stack size
+  /// \brief Get the stack position
   ///
-  /// \return the stack size
-  int32_t stackSize() const { return stackSize_; }
+  /// \return the stack position
+  int32_t stackPosition() const { return -stackPosition_; }
 
 private:
-  int32_t stackSize_;
+  int32_t stackPosition_;
   std::unordered_set<int32_t> ints_;
   std::unordered_map<std::string, size_t> labels_;
   std::unordered_map<std::string, size_t> strings_;

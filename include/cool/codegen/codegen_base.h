@@ -71,7 +71,8 @@ public:
     return Status::Ok();
   }
 
-  Status codegen(CodegenContext *context, IdExprNode *node, std::ostream *ios) {
+  virtual Status codegen(CodegenContext *context, IdExprNode *node,
+                         std::ostream *ios) {
     return Status::Ok();
   }
 

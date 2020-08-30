@@ -39,6 +39,30 @@ void GenerateClassNameTable(CodegenContext *context, ProgramNode *node,
   }
 }
 
+/// \brief Generate the code for a table in the data section where the i-th
+/// element points to the address of the i-th class dispatch table
+///
+/// \param[in] context Codegen context
+/// \param[in] node program node
+/// \param[out] ios output stream
+void GenerateClassDispatchTableIndexTable(CodegenContext *context,
+                                          ProgramNode *node,
+                                          std::ostream *ios) {
+  /// Sort classes by ID
+  auto registry = context->classRegistry();
+  std::map<int32_t, std::string> idToName;
+  for (auto classNode : node->classes()) {
+    idToName[registry->typeID(classNode->className())] = classNode->className();
+  }
+
+  /// Generate class dispatch table index table
+  emit_label(DISPATCH_TABLE_INDEX_TABLE, ios);
+  for (auto it = idToName.begin(); it != idToName.end(); ++it) {
+    const std::string label = it->second + "_dispTab";
+    emit_word_data(label, ios);
+  }
+}
+
 /// \brief Generate the default value for a class attribute
 ///
 /// \param[in] node attribute node
@@ -150,6 +174,9 @@ Status CodegenTablesPass::codegen(CodegenContext *context, ProgramNode *node,
 
   /// Generate class hierarchy table
   GenerateClassHierarchyTable(context, node, ios);
+
+  /// Generate class dispatch table index table
+  GenerateClassDispatchTableIndexTable(context, node, ios);
 
   /// Generate class symbol tables and prototype objects
   for (auto classNode : node->classes()) {
