@@ -145,7 +145,7 @@ public:
   /// \brief Get the stack position
   ///
   /// \return the stack position
-  int32_t stackPosition() const { return -stackPosition_; }
+  int32_t stackPosition() const { return stackPosition_; }
 
 private:
   int32_t stackPosition_;
