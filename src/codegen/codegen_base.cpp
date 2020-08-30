@@ -5,6 +5,14 @@
 
 namespace cool {
 
+Status CodegenBasePass::codegen(CodegenContext *context, AttributeNode *node,
+                                std::ostream *ios) {
+  if (node->initExpr()) {
+    node->initExpr()->generateCode(context, this, ios);
+  }
+  return Status::Ok();
+}
+
 Status CodegenBasePass::codegen(CodegenContext *context, ClassNode *node,
                                 std::ostream *ios) {
   for (auto attributeNode : node->attributes()) {

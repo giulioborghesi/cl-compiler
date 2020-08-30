@@ -20,9 +20,7 @@ public:
 
   /// Program, class and attributes nodes
   virtual Status codegen(CodegenContext *context, AttributeNode *node,
-                         std::ostream *ios) {
-    return Status::Ok();
-  }
+                         std::ostream *ios);
 
   virtual Status codegen(CodegenContext *context, ClassNode *node,
                          std::ostream *ios);
