@@ -40,6 +40,9 @@ public:
   }
 
   void addElement(const KeyT &key, const ValueT &value) {
+    if (storage_.find(key) != storage_.end()) {
+      storage_.erase(key);
+    }
     storage_.insert({key, value});
   }
 
