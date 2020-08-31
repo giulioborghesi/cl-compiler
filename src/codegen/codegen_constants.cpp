@@ -20,6 +20,11 @@ const std::vector<std::string> GLOBAL_LABELS = {
     "_bool_tag",           "_string_tag",       "Bool_const0",    "Bool_const1",
     "_MemMgr_INITIALIZER", "_MemMgr_COLLECTOR", "_MemMgr_TEST",   "heap_start"};
 
+/// Mapping from character to characters sequence
+const std::unordered_map<char, std::string> CHAR_TO_CHAR_SEQUENCE{
+    {'\n', "\n"}, {'\\', "\\"}, {'\b', "\b"},
+    {'\t', "\t"}, {'\f', "\f"}, {'\0', "\0"}};
+
 Status GenerateBuiltInPrototype(CodegenContext *context,
                                 const std::string &type, std::ostream *ios) {
   /// Emit literal label
@@ -59,6 +64,22 @@ Status GenerateIntegerLiteral(CodegenContext *context, const std::string &label,
   return Status::Ok();
 }
 
+/// \brief Return the raw string literal of a given string
+///
+/// \param[in] literal input string
+/// \return the raw literal version of the input string
+std::string GenerateRawStringFromString(const std::string &literal) {
+  std::string rawLiteral;
+  for (auto c : literal) {
+    if (CHAR_TO_CHAR_SEQUENCE.count(c)) {
+      rawLiteral.append(CHAR_TO_CHAR_SEQUENCE.find(c)->second);
+    } else {
+      rawLiteral.push_back(c);
+    }
+  }
+  return rawLiteral;
+}
+
 /// \brief Helper function to generate an object for a String literal
 ///
 /// \param[in] context Codegen context
@@ -69,24 +90,27 @@ Status GenerateIntegerLiteral(CodegenContext *context, const std::string &label,
 Status GenerateStringLiteral(CodegenContext *context, const std::string &label,
                              const std::string &literal, std::ostream *ios) {
   /// Generate Int object for string length
-  const size_t originalLength = literal.length();
-  if (!context->hasIntLabel(originalLength)) {
-    const std::string intLabel = context->generateIntLabel(originalLength);
-    GenerateIntegerLiteral(context, intLabel, INT_TYPE, originalLength, ios);
+  const size_t length = literal.length();
+  if (!context->hasIntLabel(length)) {
+    const std::string intLabel = context->generateIntLabel(length);
+    GenerateIntegerLiteral(context, intLabel, INT_TYPE, length, ios);
   }
-  const std::string intLabel = context->generateIntLabel(originalLength);
+  const std::string intLabel = context->generateIntLabel(length);
 
   /// Emit string literal label
   emit_object_label(label, ios);
+
+  /// Generate the raw literal string from the parsed one
+  const std::string rawLiteral = GenerateRawStringFromString(literal);
 
   /// Emit class ID, object size, dispatch pointer and string data
   auto registry = context->classRegistry();
   const size_t typeID = registry->typeID("String");
   emit_word_data(typeID, ios);
-  emit_word_data(5 + literal.length() / 4, ios);
+  emit_word_data(5 + length / 4, ios);
   emit_word_data("String_dispTab", ios);
   emit_word_data(intLabel, ios);
-  emit_ascii_data(literal, ios);
+  emit_ascii_data(rawLiteral, ios);
   emit_byte_data(0, ios);
   emit_align_data(2, ios);
   return Status::Ok();

@@ -271,11 +271,11 @@ t(?i:rue)               {
 <STRING>"\\\n"          { 
                             yyextra->currentLine++;
                             yyextra->currentColumn = 1;
-                            yyextra->stringText.append("\\\\n"); 
+                            yyextra->stringText.push_back('\n'); 
                         }
 <STRING>"\\n"           {  
                             yyextra->currentColumn += 2;
-                            yyextra->stringText.append("\\n"); 
+                            yyextra->stringText.push_back('\n'); 
                         }
 <STRING>"\n"            { 
                             LogError(cool::FrontEndErrorCode::LEXER_ERROR_STRING_CONTAINS_NEWLINE_CHARACTER, yyextra, logger);
@@ -292,19 +292,19 @@ t(?i:rue)               {
                         }
 <STRING>"\\0"           { 
                             yyextra->currentColumn += 2;
-                            yyextra->stringText.append("\\0"); 
+                            yyextra->stringText.push_back('\0'); 
                         }
 <STRING>"\\b"           { 
                             yyextra->currentColumn += 2;
-                            yyextra->stringText.append("\\b"); 
+                            yyextra->stringText.push_back('\b'); 
                         }
 <STRING>"\\t"           { 
                             yyextra->currentColumn += 2;
-                            yyextra->stringText.append("\\t"); 
+                            yyextra->stringText.push_back('\t'); 
                         }
 <STRING>"\\f"           {
                             yyextra->currentColumn += 2; 
-                            yyextra->stringText.append("\\f"); 
+                            yyextra->stringText.push_back('\f'); 
                         }
 <STRING>"\\"[^btf]      { 
                             yyextra->currentColumn += 2;
