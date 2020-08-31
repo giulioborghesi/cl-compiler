@@ -19,8 +19,14 @@ static constexpr int32_t STRING_CONTENT_OFFSET = 4 * WORD_SIZE;
 static const std::string OBJECT_COPY_METHOD = "Object.copy";
 
 /// Tables labels
-const std::string CLASS_PROTO_TABLE = "Class_objTab";
-const std::string DISPATCH_TABLE_INDEX_TABLE = "class_dispTab";
+static const std::string CLASS_NAME_TABLE = "class_nameTab";
+static const std::string CLASS_PARENT_TABLE = "class_parentTab";
+static const std::string CLASS_PROTO_TABLE = "class_objTab";
+static const std::string DISPATCH_TABLE_INDEX_TABLE = "class_dispTab";
+
+/// Registers and other labels
+static const std::string BOOL_FALSE = "Bool_const0";
+static const std::string BOOL_TRUE = "Bool_const1";
 
 /// Forward declaration
 class CodegenContext;

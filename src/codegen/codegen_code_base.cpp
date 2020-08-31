@@ -33,12 +33,12 @@ void CompareBoolAndIntObjects(CodegenContext *context, std::ostream *ios) {
 
   /// Compare values and generate code for false branch
   emit_compare_and_jump_instruction("beq", "$t0", "$a0", sameObjectLabel, ios);
-  CreateObjectFromProto(context, "Bool_const0", "Bool_init", ios);
+  CreateBooleanObject(BOOL_FALSE, ios);
   emit_jump_label_instruction(endLabel, ios);
 
   /// Generate code for true branch
   emit_label(sameObjectLabel, ios);
-  CreateObjectFromProto(context, "Bool_const1", "Bool_init", ios);
+  CreateBooleanObject(BOOL_TRUE, ios);
 
   /// Emit label
   emit_label(endLabel, ios);
@@ -156,7 +156,6 @@ void CompareStringObjects(CodegenContext *context, std::ostream *ios) {
 /// \param[out] ios output stream
 void CreateBooleanObject(const std::string &label, std::ostream *ios) {
   emit_la_instruction("$a0", label, ios);
-  emit_jump_and_link_instruction(OBJECT_COPY_METHOD, ios);
 }
 
 /// \brief Helper function to create a default object of type typeName
@@ -428,7 +427,7 @@ Status CodegenCodePass::codegen(CodegenContext *context,
 
   /// Sum values and store result in register $a0
   const std::string mnemonic = GetMnemonicFromOpType(node->opID());
-  emit_three_registers_instruction(mnemonic, "$a0", "$a0", "$t0", ios);
+  emit_three_registers_instruction(mnemonic, "$a0", "$t0", "$a0", ios);
   PushAccumulatorToStack(context, ios);
 
   /// Create a new integer object and update its value
@@ -886,11 +885,11 @@ Status CodegenCodePass::unaryEqualityCodegen(CodegenContext *context,
 
   /// Compare for equality with zero and branch as needed
   emit_beqz_instruction("$a0", trueLabel, ios);
-  CreateBooleanObject("Bool_const0", ios);
+  CreateBooleanObject(BOOL_FALSE, ios);
   emit_jump_label_instruction(endLabel, ios);
 
   emit_label(trueLabel, ios);
-  CreateBooleanObject("Bool_const1", ios);
+  CreateBooleanObject(BOOL_TRUE, ios);
 
   emit_label(endLabel, ios);
   return Status::Ok();

@@ -82,17 +82,6 @@ Status CodegenObjectsInitPass::codegen(CodegenContext *context, ClassNode *node,
     emit_jump_and_link_instruction(label, ios);
   }
 
-  /// Initialize attributes to default values
-  for (auto attribute : node->attributes()) {
-    const std::string &type = attribute->typeName();
-    if (type == "Int" || type == "String" || type == "Bool") {
-      const int32_t offset = GetAttributeOffset(symbolTable, attribute->id());
-      emit_lw_instruction("$a0", "$a0", offset, ios);
-      emit_jump_and_link_instruction("Object.copy", ios);
-      StoreAttributeAndSetAccumulatorToSelf(offset, ios);
-    }
-  }
-
   /// Initialize attributes
   for (auto attribute : node->attributes()) {
     attribute->generateCode(context, this, ios);

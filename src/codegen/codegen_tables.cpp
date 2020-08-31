@@ -11,9 +11,7 @@ namespace {
 
 /// Mapping from type name to label for default value
 const std::unordered_map<std::string, std::string> TYPE_TO_DEFAULT_VALUE{
-    {"String", "String_protObj"},
-    {"Int", "Int_protObj"},
-    {"Bool", "Bool_const0"}};
+    {"String", "String_protObj"}, {"Int", "Int_protObj"}, {"Bool", BOOL_FALSE}};
 
 /// \brief Generate the code for a table in the data section where the i-th
 /// element points to the address of a String object for the name of Class with
@@ -32,7 +30,7 @@ void GenerateClassNameTable(CodegenContext *context, ProgramNode *node,
   }
 
   /// Generate class name table
-  emit_label("class_nameTab", ios);
+  emit_label(CLASS_NAME_TABLE, ios);
   for (auto it = idToName.begin(); it != idToName.end(); ++it) {
     const std::string label = it->second + "_className";
     emit_word_data(label, ios);
@@ -95,7 +93,7 @@ void GenerateClassHierarchyTable(CodegenContext *context, ProgramNode *node,
   }
 
   /// Generate class hierarchy table
-  emit_label("class_parentTab", ios);
+  emit_label(CLASS_PARENT_TABLE, ios);
   for (auto it = classToParentID.begin(); it != classToParentID.end(); ++it) {
     emit_word_data(it->second, ios);
   }
