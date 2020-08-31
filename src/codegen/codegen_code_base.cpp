@@ -10,6 +10,7 @@ namespace {
 
 /// \brief Forward declarations
 void GetStringLength(CodegenContext *context, std::ostream *ios);
+void CreateBooleanObject(const std::string &label, std::ostream *ios);
 void CreateObjectForTypeID(CodegenContext *context, std::ostream *ios);
 
 /// \brief Helper function to compare two objects of type Int or Bool
@@ -136,18 +137,18 @@ void CompareStringObjects(CodegenContext *context, std::ostream *ios) {
   emit_compare_and_jump_instruction("beq", "$t3", "$t4", loopStartLabel, ios);
 
   /// Characters differ. Create a Bool False object
-  CreateObjectFromProto(context, "Bool_const0", "Bool_init", ios);
+  CreateBooleanObject(BOOL_FALSE, ios);
   emit_jump_label_instruction(checkEndLabel, ios);
 
   /// Strings are the same. Create a Bool True object
   emit_label(sameStringLabel, ios);
-  CreateObjectFromProto(context, "Bool_const1", "Bool_init", ios);
+  CreateBooleanObject(BOOL_TRUE, ios);
 
   /// Emit label for end of check
   emit_label(checkEndLabel, ios);
 
   /// Restore stack
-  emit_addiu_instruction("$sp", "$sp", 2 * WORD_SIZE, ios);
+  PopStack(context, 2, ios);
 }
 
 /// \brief Helper function to create a boolean object
