@@ -131,6 +131,11 @@ public:
     return this->className(exprType.typeID);
   }
 
+  /// Return the number of classes
+  ///
+  /// \return the number of classes
+  size_t size() const { return classRegistry_.size(); }
+
 private:
   /// \brief Find the ID of a class, if it exists, or create a new one
   ///

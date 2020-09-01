@@ -20,9 +20,11 @@ static const std::string OBJECT_COPY_METHOD = "Object.copy";
 
 /// Tables labels
 static const std::string CLASS_NAME_TABLE = "class_nameTab";
-static const std::string CLASS_PARENT_TABLE = "class_parentTab";
 static const std::string CLASS_PROTO_TABLE = "class_objTab";
 static const std::string DISPATCH_TABLE_INDEX_TABLE = "class_dispTab";
+
+/// Per-class table suffix
+static const std::string CLASS_PARENT_TABLE_SUFFIX = "_parentTab";
 
 /// Registers and other labels
 static const std::string BOOL_FALSE = "Bool_const0";
@@ -285,7 +287,8 @@ void emit_move_instruction(const std::string &dstReg, const std::string &srcReg,
 /// \param[in] dstReg destination register
 /// \param[in] srcReg source register
 /// \param[out] ios output stream
-void emit_neg_instruction(const std::string &dstReg, const std::string& srcReg, std::ostream *ios);
+void emit_neg_instruction(const std::string &dstReg, const std::string &srcReg,
+                          std::ostream *ios);
 
 /// Emit a MIPS label for an object. Add GC tag before label
 ///

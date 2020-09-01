@@ -77,25 +77,29 @@ void GenerateDefaultAttributeValue(AttributeNode *node, std::ostream *ios) {
 /// element is the class ID of the parent of the class with class ID equal to i
 ///
 /// \param[in] context Codegen context
-/// \param[in] node program node
+/// \param[in] node class node
 /// \param[out] ios output stream
-void GenerateClassHierarchyTable(CodegenContext *context, ProgramNode *node,
+void GenerateClassHierarchyTable(CodegenContext *context, ClassNode *node,
                                  std::ostream *ios) {
-  /// Sort classes by ID
+  /// Fetch class registry and store class name
   auto registry = context->classRegistry();
-  std::map<int32_t, int32_t> classToParentID;
-  for (auto classNode : node->classes()) {
-    const int32_t parentID =
-        classNode->hasParentClass()
-            ? registry->typeID(classNode->parentClassName())
-            : -1;
-    classToParentID[registry->typeID(classNode->className())] = parentID;
+  const auto className = node->className();
+
+  /// Compute class hierarchy
+  size_t distance = 0;
+  std::vector<size_t> hierarchy(registry->size(), -1);
+  while (node) {
+    const size_t typeID = registry->typeID(node->className());
+    hierarchy[typeID] = distance++;
+    node = node->hasParentClass()
+               ? registry->classNode(node->parentClassName()).get()
+               : nullptr;
   }
 
   /// Generate class hierarchy table
-  emit_label(CLASS_PARENT_TABLE, ios);
-  for (auto it = classToParentID.begin(); it != classToParentID.end(); ++it) {
-    emit_word_data(it->second, ios);
+  emit_label(className + CLASS_PARENT_TABLE_SUFFIX, ios);
+  for (auto value : hierarchy) {
+    emit_word_data(value, ios);
   }
 }
 
@@ -106,6 +110,9 @@ Status CodegenTablesPass::codegen(CodegenContext *context, ClassNode *node,
   /// Initialize symbol table and method table
   context->setCurrentClassName(node->className());
   context->initializeTables();
+
+  /// Generate the class hierarchy table
+  GenerateClassHierarchyTable(context, node, ios);
 
   /// Compute the position of each method in the dispatch table
   auto methodTable = context->methodTable();
@@ -169,9 +176,6 @@ Status CodegenTablesPass::codegen(CodegenContext *context, ProgramNode *node,
                                   std::ostream *ios) {
   /// Generate class names table
   GenerateClassNameTable(context, node, ios);
-
-  /// Generate class hierarchy table
-  GenerateClassHierarchyTable(context, node, ios);
 
   /// Generate class dispatch table index table
   GenerateClassDispatchTableIndexTable(context, node, ios);
