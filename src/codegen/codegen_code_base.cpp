@@ -8,6 +8,13 @@ namespace cool {
 
 namespace {
 
+/// Mapping from arithmetic opid to mnemonic
+const std::unordered_map<ArithmeticOpID, std::string>
+    ARITHMETIC_OP_TO_MNEMONIC = {{ArithmeticOpID::Plus, "add"},
+                                 {ArithmeticOpID::Minus, "sub"},
+                                 {ArithmeticOpID::Mult, "mul"},
+                                 {ArithmeticOpID::Div, "div"}};
+
 /// \brief Forward declarations
 void GetStringLength(CodegenContext *context, std::ostream *ios);
 void CreateBooleanObject(const std::string &label, std::ostream *ios);
@@ -25,30 +32,30 @@ void CompareBoolAndIntObjects(CodegenContext *context, std::ostream *ios) {
   emit_lw_instruction("$t0", "$sp", WORD_SIZE, ios);
   emit_lw_instruction("$t0", "$t0", OBJECT_CONTENT_OFFSET, ios);
 
-  /// Store rhs value in $a0
-  emit_lw_instruction("$a0", "$a0", OBJECT_CONTENT_OFFSET, ios);
+  /// Store rhs value in $t1
+  emit_lw_instruction("$t1", "$a0", OBJECT_CONTENT_OFFSET, ios);
 
   /// Create labels
-  const std::string endLabel = context->generateLabel("End");
-  const std::string sameObjectLabel = context->generateLabel("SameObject");
+  const auto compEndLabel = context->generateLabel("IntCompEnd");
+  const auto sameIntLabel = context->generateLabel("IntCompSameInt");
 
   /// Compare values and generate code for false branch
-  emit_compare_and_jump_instruction("beq", "$t0", "$a0", sameObjectLabel, ios);
+  emit_compare_and_jump_instruction("beq", "$t0", "$t1", sameIntLabel, ios);
   CreateBooleanObject(BOOL_FALSE, ios);
-  emit_jump_label_instruction(endLabel, ios);
+  emit_jump_label_instruction(compEndLabel, ios);
 
   /// Generate code for true branch
-  emit_label(sameObjectLabel, ios);
+  emit_label(sameIntLabel, ios);
   CreateBooleanObject(BOOL_TRUE, ios);
 
   /// Emit label
-  emit_label(endLabel, ios);
+  emit_label(compEndLabel, ios);
 }
 
-/// \brief Helper function to compare two objects
+/// \brief Compare two objects of type not equal to String, Int or Bool
 ///
-/// \note The objects to compare should be stored in register $a0 and
-/// on top of the stack
+/// \note The objects to compare should be stored in register $a0 and on the
+/// stack. The objects are equal iff they point to the same object
 ///
 /// \param[in] context Codegen context
 /// \param[out] ios output stream
@@ -57,29 +64,30 @@ void CompareObjects(CodegenContext *context, std::ostream *ios) {
   emit_lw_instruction("$t0", "$sp", WORD_SIZE, ios);
 
   /// Create labels
-  const std::string endLabel = context->generateLabel("End");
-  const std::string sameObjectLabel = context->generateLabel("SameObject");
+  const auto compEndLabel = context->generateLabel("ObjectCompEnd");
+  const auto sameObjectLabel = context->generateLabel("ObjectCompSameObject");
 
   /// Compare values and generate code for false branch
   emit_compare_and_jump_instruction("beq", "$t0", "$a0", sameObjectLabel, ios);
-  CreateObjectFromProto(context, "Bool_const0", "Bool_init", ios);
-  emit_jump_label_instruction(endLabel, ios);
+  CreateBooleanObject(BOOL_FALSE, ios);
+  emit_jump_label_instruction(compEndLabel, ios);
 
   /// Generate code for true branch
   emit_label(sameObjectLabel, ios);
-  CreateObjectFromProto(context, "Bool_const1", "Bool_init", ios);
+  CreateBooleanObject(BOOL_TRUE, ios);
 
   /// Emit label
-  emit_label(endLabel, ios);
+  emit_label(compEndLabel, ios);
 }
 
-/// \brief Helper function to compare two String objects
+/// \brief Compare two String objects
 ///
 /// \note The objects to compare should be stored in register $a0 and
-/// on top of the stack
+/// on top of the stack.
 ///
 /// \param[in] context Codegen context
 /// \param[out] ios output stream
+/// \DONE
 void CompareStringObjects(CodegenContext *context, std::ostream *ios) {
   /// Store arguments in register $a0 on the stack
   PushAccumulatorToStack(context, ios);
@@ -94,22 +102,22 @@ void CompareStringObjects(CodegenContext *context, std::ostream *ios) {
   GetStringLength(context, ios);
 
   /// Compare length and return false if not string
-  const std::string checkEndLabel = context->generateLabel("End");
-  const std::string sameLengthLabel = context->generateLabel("SameLength");
+  const auto compEndLabel = context->generateLabel("StringCompEnd");
+  const auto sameLengthLabel = context->generateLabel("StringCompSameLength");
 
   /// Compare string lengths
   emit_lw_instruction("$t0", "$sp", WORD_SIZE, ios);
   emit_compare_and_jump_instruction("beq", "$a0", "$t0", sameLengthLabel, ios);
 
   /// Generate code for strings of different length
-  CreateObjectFromProto(context, "Bool_const0", "Bool_init", ios);
-  emit_jump_label_instruction(checkEndLabel, ios);
+  CreateBooleanObject(BOOL_FALSE, ios);
+  emit_jump_label_instruction(compEndLabel, ios);
 
   /// Lengths are the same. Compare each characters in the two strings
   emit_label(sameLengthLabel, ios);
 
-  const std::string loopStartLabel = context->generateLabel("Begin");
-  const std::string sameStringLabel = context->generateLabel("SameString");
+  const auto charCompLabel = context->generateLabel("StringCompCharComp");
+  const auto sameStringLabel = context->generateLabel("StringCompSameString");
 
   /// Store string start addresses in registers $t0 and $t1
   emit_lw_instruction("$t0", "$sp", 2 * WORD_SIZE, ios);
@@ -117,12 +125,12 @@ void CompareStringObjects(CodegenContext *context, std::ostream *ios) {
   emit_lw_instruction("$t1", "$sp", 3 * WORD_SIZE, ios);
   emit_addiu_instruction("$t1", "$t1", STRING_CONTENT_OFFSET, ios);
 
-  /// Evaluate end address of first string and store it in register $t2
+  /// Evaluate end address of second string and store it in register $t2
   emit_lw_instruction("$t2", "$sp", WORD_SIZE, ios);
   emit_three_registers_instruction("addu", "$t2", "$t1", "$t2", ios);
 
   /// Compare the strings character by character
-  emit_label(loopStartLabel, ios);
+  emit_label(charCompLabel, ios);
   emit_compare_and_jump_instruction("beq", "$t1", "$t2", sameStringLabel, ios);
 
   /// Load characters to compare in registers $t3 and $t4
@@ -134,18 +142,18 @@ void CompareStringObjects(CodegenContext *context, std::ostream *ios) {
   emit_addiu_instruction("$t1", "$t1", 1, ios);
 
   /// Go to next characters if the current ones are the same
-  emit_compare_and_jump_instruction("beq", "$t3", "$t4", loopStartLabel, ios);
+  emit_compare_and_jump_instruction("beq", "$t3", "$t4", charCompLabel, ios);
 
   /// Characters differ. Create a Bool False object
   CreateBooleanObject(BOOL_FALSE, ios);
-  emit_jump_label_instruction(checkEndLabel, ios);
+  emit_jump_label_instruction(compEndLabel, ios);
 
   /// Strings are the same. Create a Bool True object
   emit_label(sameStringLabel, ios);
   CreateBooleanObject(BOOL_TRUE, ios);
 
   /// Emit label for end of check
-  emit_label(checkEndLabel, ios);
+  emit_label(compEndLabel, ios);
 
   /// Restore stack
   PopStack(context, 2, ios);
@@ -213,7 +221,6 @@ void CreateObjectForTypeID(CodegenContext *context, std::ostream *ios) {
 /// \param[out] ios output stream
 void CreateStringObject(CodegenContext *context, const std::string &stringProto,
                         std::ostream *ios) {
-
   CreateObjectFromProto(context, stringProto, "String_init", ios);
 }
 
@@ -264,17 +271,8 @@ Status GenerateDispatchCode(CodegenContext *context, CodegenCodePass *pass,
 /// \param[in] opID arithmetic operator ID
 /// \return the mnemonic corresponding to the given arithmetic operator ID
 std::string GetMnemonicFromOpType(const ArithmeticOpID opID) {
-  switch (opID) {
-  case ArithmeticOpID::Plus:
-    return "add";
-  case ArithmeticOpID::Minus:
-    return "sub";
-  case ArithmeticOpID::Mult:
-    return "mul";
-  case ArithmeticOpID::Div:
-    return "div";
-  }
-  assert(0);
+  assert(ARITHMETIC_OP_TO_MNEMONIC.count(opID));
+  return ARITHMETIC_OP_TO_MNEMONIC.find(opID)->second;
 }
 
 /// \brief Helper function to get the mnemonic corresponding to a given
@@ -291,6 +289,7 @@ std::string GetMnemonicFromOpType(const ComparisonOpID opID) {
 ///
 /// \param[in] context Codegen context
 /// \param[out] ios output stream
+/// DONE!!
 void GetStringLength(CodegenContext *context, std::ostream *ios) {
   emit_lw_instruction("$t0", "$a0", STRING_LENGTH_OFFSET, ios);
   emit_lw_instruction("$a0", "$t0", OBJECT_CONTENT_OFFSET, ios);
@@ -858,7 +857,7 @@ Status CodegenCodePass::unaryComplementCodegen(CodegenContext *context,
 
   /// Store complement of int value on the stack
   emit_lw_instruction("$a0", "$a0", OBJECT_CONTENT_OFFSET, ios);
-  emit_three_registers_instruction("sub", "$a0", "$zero", "$a0", ios);
+  emit_neg_instruction("$a0", "$a0", ios);
   PushAccumulatorToStack(context, ios);
 
   /// Create a new integer object and update its value

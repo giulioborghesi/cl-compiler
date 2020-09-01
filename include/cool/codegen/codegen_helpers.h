@@ -280,6 +280,13 @@ void emit_lw_instruction(const std::string &dstReg, const std::string &baseReg,
 void emit_move_instruction(const std::string &dstReg, const std::string &srcReg,
                            std::ostream *ios);
 
+/// Emit a MIPS negation instruction
+///
+/// \param[in] dstReg destination register
+/// \param[in] srcReg source register
+/// \param[out] ios output stream
+void emit_neg_instruction(const std::string &dstReg, const std::string& srcReg, std::ostream *ios);
+
 /// Emit a MIPS label for an object. Add GC tag before label
 ///
 /// \param[in] label label to emit

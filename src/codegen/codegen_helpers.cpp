@@ -219,6 +219,12 @@ void emit_move_instruction(const std::string &dstReg, const std::string &srcReg,
          << std::setw(REGS_WIDTH) << dstReg << srcReg << std::endl;
 }
 
+void emit_neg_instruction(const std::string &dstReg, const std::string &srcReg,
+                          std::ostream *ios) {
+  (*ios) << INDENT << std::left << std::setw(INST_WIDTH) << "neg"
+         << std::setw(REGS_WIDTH) << dstReg << srcReg << std::endl;
+}
+
 void emit_object_label(const std::string &label, std::ostream *ios) {
   (*ios) << std::endl;
   emit_mips_data_line_impl(".word", -1, ios);
