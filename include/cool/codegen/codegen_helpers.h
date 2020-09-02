@@ -21,6 +21,7 @@ static const std::string OBJECT_COPY_METHOD = "Object.copy";
 /// Tables labels
 static const std::string CLASS_NAME_TABLE = "class_nameTab";
 static const std::string CLASS_PROTO_TABLE = "class_objTab";
+static const std::string CLASS_PARENT_TABLE_INDEX = "class_parentTab";
 static const std::string DISPATCH_TABLE_INDEX_TABLE = "class_dispTab";
 
 /// Per-class table suffix
@@ -120,6 +121,15 @@ void emit_addiu_instruction(const std::string &dstReg,
 /// \param[in] label jump label
 /// \param[out] ios output stream
 void emit_beqz_instruction(const std::string &reg, const std::string &label,
+                           std::ostream *ios);
+
+/// Emit a MIPS instruction to branch when register contains a value greater
+/// than or equal to zero
+///
+/// \param[in] reg register to compare
+/// \param[in] label jump label
+/// \param[out] ios output stream
+void emit_bgez_instruction(const std::string &reg, const std::string &label,
                            std::ostream *ios);
 
 /// Emit a MIPS instruction to branch when register contains a value greater

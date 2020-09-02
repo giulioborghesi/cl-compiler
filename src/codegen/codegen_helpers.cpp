@@ -122,6 +122,11 @@ void emit_beqz_instruction(const std::string &reg, const std::string &label,
   emit_bg_instruction("beqz", reg, label, ios);
 }
 
+void emit_bgez_instruction(const std::string &reg, const std::string &label,
+                           std::ostream *ios) {
+  emit_bg_instruction("bgez", reg, label, ios);
+}
+
 void emit_bgtz_instruction(const std::string &reg, const std::string &label,
                            std::ostream *ios) {
   emit_bg_instruction("bgtz", reg, label, ios);
