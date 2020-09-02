@@ -29,4 +29,4 @@ If you are interested in more sophisticated build options, please visit https://
 
 ## Future versions
 
-In the immediate future, we plan to include a `Dockerfile` in this repository to allow users to build the compiler and work with it from within a container. We also plan to include the MIPS simulator `spim` inside the image. Long term, we want to include a code optimization pass to the compiler so to generate more performant assembly code.
+In the immediate future, we plan to include a `Dockerfile` in this repository to allow users to build the compiler and work with it from within a container. We also plan to include the MIPS simulator `spim` inside the image. Long term, we want to include a code optimization phase to the compiler so to generate more performant assembly code.
