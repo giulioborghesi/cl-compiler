@@ -38,10 +38,23 @@ public:
   /// \return Status::Ok() if the classes tree has no cycle, an error otherwise
   Status sortClasses();
 
+  /// Set the program filename
+  ///
+  /// \param[in] programFileName program file name
+  void setFileName(const std::string &programFileName) {
+    programFileName_ = programFileName;
+  }
+
+  /// Return the program filename
+  ///
+  /// \return the program file name
+  std::string fileName() const { return programFileName_; }
+
 private:
   ProgramNode(std::vector<ClassNodePtr> classes);
 
   std::vector<ClassNodePtr> classes_;
+  std::string programFileName_;
 };
 
 /// Class for a node representing a COOL class
