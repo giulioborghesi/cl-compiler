@@ -103,6 +103,24 @@ void GenerateClassHierarchyTable(CodegenContext *context, ClassNode *node,
   }
 }
 
+void GenerateClassHierarchyTableIndexTable(CodegenContext *context,
+                                           ProgramNode *node,
+                                           std::ostream *ios) {
+  /// Sort classes by ID
+  auto registry = context->classRegistry();
+  std::map<int32_t, std::string> idToName;
+  for (auto classNode : node->classes()) {
+    idToName[registry->typeID(classNode->className())] = classNode->className();
+  }
+
+  /// Generate class hierarchy table index table
+  emit_label(CLASS_PARENT_TABLE_INDEX, ios);
+  for (auto it = idToName.begin(); it != idToName.end(); ++it) {
+    const std::string label = it->second + CLASS_PARENT_TABLE_SUFFIX;
+    emit_word_data(label, ios);
+  }
+}
+
 } // namespace
 
 Status CodegenTablesPass::codegen(CodegenContext *context, ClassNode *node,
@@ -179,6 +197,9 @@ Status CodegenTablesPass::codegen(CodegenContext *context, ProgramNode *node,
 
   /// Generate class dispatch table index table
   GenerateClassDispatchTableIndexTable(context, node, ios);
+
+  /// Generate class hierarchy table index table
+  GenerateClassHierarchyTableIndexTable(context, node, ios);
 
   /// Generate class symbol tables and prototype objects
   for (auto classNode : node->classes()) {
