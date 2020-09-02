@@ -2,13 +2,14 @@
 #include <cool/analysis/classes_definition.h>
 #include <cool/analysis/classes_implementation.h>
 #include <cool/analysis/type_check.h>
-#include <cool/codegen/codegen.h>
+#include <cool/codegen/codegen_code.h>
+#include <cool/codegen/codegen_constants.h>
 #include <cool/codegen/codegen_context.h>
-#include <cool/codegen/codegen_data.h>
-#include <cool/codegen/codegen_prepare.h>
+#include <cool/codegen/codegen_tables.h>
 #include <cool/core/class_registry.h>
 #include <cool/core/logger.h>
 #include <cool/frontend/parser.h>
+#include <cool/ir/class.h>
 
 #include <experimental/filesystem>
 #include <iostream>
@@ -40,8 +41,9 @@ void DoCodegen(ProgramNodePtr node, std::shared_ptr<ClassRegistry> registry) {
 
   /// Initialize passes
   std::vector<std::shared_ptr<CodegenBasePass>> passes = {
-      std::make_shared<CodegenPreparePass>(), std::make_shared<CodegenPass>(),
-      std::make_shared<CodegenDataPass>()};
+      std::make_shared<CodegenConstantsPass>(),
+      std::make_shared<CodegenTablesPass>(),
+      std::make_shared<CodegenObjectsInitPass>()};
 
   /// Run passes
   for (auto pass : passes) {
@@ -109,7 +111,8 @@ int main(int argc, char *argv[]) {
     return PARSER_ERROR;
   }
 
-  /// Create the class registry
+  /// Set the program file name and create the class registry
+  programNode->setFileName(fileName);
   auto registry = std::make_shared<ClassRegistry>();
 
   /// Perform semantic analysis
