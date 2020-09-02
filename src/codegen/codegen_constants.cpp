@@ -22,8 +22,8 @@ const std::vector<std::string> GLOBAL_LABELS = {
 
 /// Mapping from character to characters sequence
 const std::unordered_map<char, std::string> CHAR_TO_CHAR_SEQUENCE{
-    {'\n', "\n"}, {'\\', "\\"}, {'\b', "\b"},
-    {'\t', "\t"}, {'\f', "\f"}, {'\0', "\0"}};
+    {'\n', "\\n"}, {'\\', "\\"},  {'\b', "\\b"}, {'\t', "\\t"},
+    {'\f', "\\f"}, {'\0', "\\0"}, {'\"', "\\\""}};
 
 Status GenerateBuiltInPrototype(CodegenContext *context,
                                 const std::string &type, std::ostream *ios) {
@@ -184,6 +184,7 @@ Status CodegenConstantsPass::codegen(CodegenContext *context, ProgramNode *node,
   /// Generate prototype objects for Int, String and Bool objects
   GenerateIntegerLiteral(context, "Int_protObj", INT_TYPE, 0, ios);
   GenerateStringLiteral(context, "String_protObj", "", ios);
+  GenerateStringLiteral(context, "Program_fileName", node->fileName(), ios);
   GenerateIntegerLiteral(context, "Bool_protObj", BOOL_TYPE, 0, ios);
   GenerateIntegerLiteral(context, "Bool_const0", BOOL_TYPE, 0, ios);
   GenerateIntegerLiteral(context, "Bool_const1", BOOL_TYPE, 1, ios);

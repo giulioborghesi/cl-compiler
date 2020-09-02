@@ -87,7 +87,6 @@ void CompareObjects(CodegenContext *context, std::ostream *ios) {
 ///
 /// \param[in] context Codegen context
 /// \param[out] ios output stream
-/// \DONE
 void CompareStringObjects(CodegenContext *context, std::ostream *ios) {
   /// Store arguments in register $a0 on the stack
   PushAccumulatorToStack(context, ios);
@@ -172,7 +171,6 @@ void CreateBooleanObject(const std::string &label, std::ostream *ios) {
 /// \param[in] context Codegen context
 /// \param[in] typeName object type
 /// \param[out] ios output stream
-/// DONE!!
 void CreateDefaultObject(CodegenContext *context, const std::string &typeName,
                          std::ostream *ios) {
   /// Create new object. Self object computes methods addresses from class ID
@@ -194,7 +192,6 @@ void CreateDefaultObject(CodegenContext *context, const std::string &typeName,
 ///
 /// \param[in] context Codegen context
 /// \param[out] ios output stream
-/// DONE!!
 void CreateObjectForTypeID(CodegenContext *context, std::ostream *ios) {
   /// Store prototype offset in saved register $s0
   emit_sll_instruction("$s0", "$a0", 3, ios);
@@ -214,14 +211,14 @@ void CreateObjectForTypeID(CodegenContext *context, std::ostream *ios) {
   emit_jump_and_link_register_instruction("$t0", ios);
 }
 
-/// \brief Create a string object for a string literal
+/// \brief Fetch the string object stored at the given label
 ///
 /// \param[in] context Codegen context
-/// \param[in] stringProto string literal label
+/// \param[in] label string literal label
 /// \param[out] ios output stream
-void CreateStringObject(CodegenContext *context, const std::string &stringProto,
-                        std::ostream *ios) {
-  CreateObjectFromProto(context, stringProto, "String_init", ios);
+void GetStringObject(CodegenContext *context, const std::string &label,
+                     std::ostream *ios) {
+  emit_la_instruction("$a0", label, ios);
 }
 
 /// \brief Helper function that generate the code needed for method dispatch.
@@ -237,7 +234,6 @@ void CreateStringObject(CodegenContext *context, const std::string &stringProto,
 /// \param[in] node dispatch expression node
 /// \param[in] fetchMethodAddress function to fetch the method address
 /// \param[out] ios output stream
-/// DONE!!
 template <typename NodeT, typename FuncT>
 Status GenerateDispatchCode(CodegenContext *context, CodegenCodePass *pass,
                             NodeT *node, FuncT fetchMethodAddress,
@@ -255,7 +251,17 @@ Status GenerateDispatchCode(CodegenContext *context, CodegenCodePass *pass,
     emit_lw_instruction("$a0", "$fp", 0, ios);
   }
 
+  /// Check dispatch object is not void
+  const auto notVoidLabel = context->generateLabel("DispatchNotVoid");
+  emit_bgtz_instruction("$a0", notVoidLabel, ios);
+
+  /// Dispatch on void object, start abort procedure
+  emit_li_instruction("$t1", node->lineLoc(), ios);
+  GetStringObject(context, "Program_fileName", ios);
+  emit_jump_label_instruction("_dispatch_abort", ios);
+
   /// Fetch method address
+  emit_label(notVoidLabel, ios);
   fetchMethodAddress();
 
   /// Transfer control to caller, increment stack position and return
@@ -289,7 +295,6 @@ std::string GetMnemonicFromOpType(const ComparisonOpID opID) {
 ///
 /// \param[in] context Codegen context
 /// \param[out] ios output stream
-/// DONE!!
 void GetStringLength(CodegenContext *context, std::ostream *ios) {
   emit_lw_instruction("$t0", "$a0", STRING_LENGTH_OFFSET, ios);
   emit_lw_instruction("$a0", "$t0", OBJECT_CONTENT_OFFSET, ios);
@@ -306,61 +311,52 @@ void SelectCaseStatement(CodegenContext *context, CaseExprNode *node,
   /// Fetch class registry
   auto registry = context->classRegistry();
 
-  /// Copy object address into $t0
-  emit_move_instruction("$t0", "$a0", ios);
+  /// Compute offset in parent class index table
+  emit_lw_instruction("$t0", "$a0", CLASS_ID_OFFSET, ios);
+  emit_sll_instruction("$t0", "$t0", 2, ios);
 
-  /// Initialize global counter to INT_MAX and accumulator to void
-  emit_move_instruction("$a0", "$zero", ios);
-  emit_li_instruction("$t4", INT_MAX, ios);
+  /// Store parent class table address into $t1
+  emit_la_instruction("$t1", CLASS_PARENT_TABLE_INDEX, ios);
+  emit_three_registers_instruction("addu", "$t1", "$t0", "$t1", ios);
+  emit_lw_instruction("$t1", "$t1", 0, ios);
 
-  /// Loop over the cases in the case expression node
+  /// Initialize $a0 and $t2 to 0. $t2 stores distance to closest parent
+  emit_li_instruction("$a0", 0, ios);
+  emit_li_instruction("$t2", -1, ios);
+
+  /// Loop over bindings
   for (auto caseBinding : node->cases()) {
-    /// Create labels
-    const std::string endLabel = context->generateLabel("End");
-    const std::string updateLabel = context->generateLabel("UpdateCase");
 
-    /// Store current class identifier in register $t1
-    emit_lw_instruction("$t1", "$t0", CLASS_ID_OFFSET, ios);
+    /// Generate label for case binding
+    const auto bindingLabel =
+        context->generateLabel("Binding_" + caseBinding->typeName());
+    caseBinding->setBindingLabel(bindingLabel);
 
-    /// Store case class identifier in register $t2
-    const size_t classID = registry->typeID(caseBinding->typeName());
-    emit_li_instruction("$t2", classID, ios);
+    /// Store parent distance into $t3
+    const int32_t position = registry->typeID(caseBinding->typeName());
+    emit_lw_instruction("$t3", "$t1", position * WORD_SIZE, ios);
 
-    /// Initialize local counter
-    emit_li_instruction("$t3", 0, ios);
+    /// Nothing to do if case class is not a parent of object class
+    const auto caseEndLabel = context->generateLabel("CaseBindingEnd");
+    emit_bltz_instruction("$t3", caseEndLabel, ios);
 
-    /// Loop until a match is found
-    const std::string startLoop = context->generateLabel("Begin");
-    emit_label(startLoop, ios);
+    /// Case class is parent of object class
+    const auto caseUpdateLabel = context->generateLabel("CaseBindingUpdate");
+    emit_bgez_instruction("$t2", caseUpdateLabel, ios);
 
-    /// Go to next case statement if -1 has been reached
-    emit_bltz_instruction("$t1", endLabel, ios);
+    /// Register $t2 not touched yet -- update $a0 and $t2 and move to next case
+    emit_move_instruction("$t2", "$t3", ios);
+    emit_la_instruction("$a0", caseBinding->bindingLabel(), ios);
+    emit_jump_label_instruction(caseEndLabel, ios);
 
-    /// If current class is valid, check whether it is the closest found so far
-    emit_compare_and_jump_instruction("beq", "$t1", "$t2", updateLabel, ios);
-
-    /// Update local counter
-    emit_addiu_instruction("$t3", "$t3", 1, ios);
-
-    /// Fetch ancestor class ID and jump to start of loop
-    emit_sll_instruction("$t1", "$t1", 2, ios);
-    emit_la_instruction("$t5", "Classes_ancestors", ios);
-    emit_three_registers_instruction("addu", "$t1", "$t1", "$t5", ios);
-    emit_lw_instruction("$t1", "$t1", 0, ios);
-
-    /// Repeat check on ancestor class
-    emit_jump_label_instruction(startLoop, ios);
-
-    /// Ancesto found. Check whether found ancestor is the closest
-    emit_label(updateLabel, ios);
-    emit_compare_and_jump_instruction("bgt", "$t3", "$t4", endLabel, ios);
-
-    /// Ancestor found is the closest, update result and global counter
-    emit_move_instruction("$t4", "$t3", ios);
+    /// Register $t2 was updated -- check whether $a0 and $t2 should be updated
+    emit_label(caseUpdateLabel, ios);
+    emit_compare_and_jump_instruction("blt", "$t2", "$t3", caseEndLabel, ios);
+    emit_move_instruction("$t2", "$t3", ios);
     emit_la_instruction("$a0", caseBinding->bindingLabel(), ios);
 
-    /// End of loop label
-    emit_label(endLabel, ios);
+    /// End of case binding label
+    emit_label(caseEndLabel, ios);
   }
 }
 
@@ -386,7 +382,6 @@ void TerminateExecutionIfVoid(CodegenContext *context, FuncT errorFunc,
 
 } // namespace
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context,
                                 AssignmentExprNode *node, std::ostream *ios) {
   /// Generate code for right hand side expression
@@ -409,7 +404,6 @@ Status CodegenCodePass::codegen(CodegenContext *context,
   return Status::Ok();
 }
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context,
                                 BinaryExprNode<ArithmeticOpID> *node,
                                 std::ostream *ios) {
@@ -440,7 +434,6 @@ Status CodegenCodePass::codegen(CodegenContext *context,
   return Status::Ok();
 }
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context,
                                 BinaryExprNode<ComparisonOpID> *node,
                                 std::ostream *ios) {
@@ -450,7 +443,6 @@ Status CodegenCodePass::codegen(CodegenContext *context,
   return binaryInequalityCodegen(context, node, ios);
 }
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context, BlockExprNode *node,
                                 std::ostream *ios) {
   for (auto expr : node->exprs()) {
@@ -459,7 +451,6 @@ Status CodegenCodePass::codegen(CodegenContext *context, BlockExprNode *node,
   return Status::Ok();
 }
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context, BooleanExprNode *node,
                                 std::ostream *ios) {
   const std::string label = node->value() ? "Bool_const1" : "Bool_const0";
@@ -468,31 +459,27 @@ Status CodegenCodePass::codegen(CodegenContext *context, BooleanExprNode *node,
   return Status::Ok();
 }
 
-/// DONE
 Status CodegenCodePass::codegen(CodegenContext *context, CaseBindingNode *node,
                                 std::ostream *ios) {
   /// Emit label
-  const std::string bindingLabel =
-      context->generateLabel("Binding_" + node->id());
-  emit_label(bindingLabel, ios);
+  emit_label(node->bindingLabel(), ios);
 
   /// Enter a new symbol table scope
   auto symbolTable = context->symbolTable();
   symbolTable->enterScope();
 
-  /// Update symbol table. Value is stored one position below top of stack
-  const size_t position = context->stackPosition() - 1; /// CHECK THIS!!!
+  /// Update symbol table. ID value is stored two positions below top of stack
+  const int32_t position = context->stackPosition() + 2;
   symbolTable->addElement(node->id(), IdentifierCodegenInfo(false, position));
 
   /// Emit code for case binding
   node->expr()->generateCode(context, this, ios);
 
-  /// Restore the symbol table scope and return
+  /// Exit from the symbol table scope and return
   symbolTable->exitScope();
   return Status::Ok();
 }
 
-/// DONE
 Status CodegenCodePass::codegen(CodegenContext *context, CaseExprNode *node,
                                 std::ostream *ios) {
   /// Evaluate case expression
@@ -501,8 +488,7 @@ Status CodegenCodePass::codegen(CodegenContext *context, CaseExprNode *node,
 
   /// Interrupt execution if case expression is void
   auto voidExprError = [context, node, ios]() {
-    const size_t fileNameLength = 0; /// TODO: compute from context
-    // CreateStringObject(context, "_Program_filename", fileNameLength, ios);
+    GetStringObject(context, "Program_fileName", ios);
     emit_li_instruction("$t1", node->lineLoc(), ios);
     emit_jump_label_instruction("_case_abort2", ios);
   };
@@ -514,8 +500,12 @@ Status CodegenCodePass::codegen(CodegenContext *context, CaseExprNode *node,
 
   /// Interrupt execution if case not found
   auto noCaseError = [context, node, ios]() {
-    emit_lw_instruction("$a0", "$sp", 2 * WORD_SIZE, ios);
-    //    CreateStringObjecte(context, ios);
+    emit_lw_instruction("$t0", "$sp", 2 * WORD_SIZE, ios);
+    emit_lw_instruction("$t0", "$t0", CLASS_ID_OFFSET, ios);
+    emit_sll_instruction("$t0", "$t0", 2, ios);
+    emit_la_instruction("$t1", CLASS_NAME_TABLE, ios);
+    emit_three_registers_instruction("addu", "$t0", "$t0", "$t1", ios);
+    emit_lw_instruction("$a0", "$t0", 0, ios);
     emit_jump_label_instruction("_case_abort", ios);
   };
   TerminateExecutionIfVoid(context, noCaseError, ios);
@@ -528,19 +518,20 @@ Status CodegenCodePass::codegen(CodegenContext *context, CaseExprNode *node,
   emit_jump_register_instruction("$t0", ios);
 
   /// Generate code for each case statement
-  const std::string endLabel = context->generateLabel("End");
+  const std::string endLabel = context->generateLabel("CaseEnd");
   for (auto binding : node->cases()) {
     binding->generateCode(context, this, ios);
     emit_jump_label_instruction(endLabel, ios);
   }
 
-  /// Emit end label, restore stack and return
+  /// Emit end label
   emit_label(endLabel, ios);
   PopStack(context, 2, ios);
+
+  /// Restore stack and return
   return Status::Ok();
 }
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context, DispatchExprNode *node,
                                 std::ostream *ios) {
   auto fetchMethodAddress = [context, node, ios, this]() {
@@ -562,7 +553,6 @@ Status CodegenCodePass::codegen(CodegenContext *context, DispatchExprNode *node,
   return GenerateDispatchCode(context, this, node, fetchMethodAddress, ios);
 }
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context, IdExprNode *node,
                                 std::ostream *ios) {
   /// Handle self object separately
@@ -586,7 +576,6 @@ Status CodegenCodePass::codegen(CodegenContext *context, IdExprNode *node,
   return Status::Ok();
 }
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context, IfExprNode *node,
                                 std::ostream *ios) {
   /// Create labels
@@ -615,7 +604,6 @@ Status CodegenCodePass::codegen(CodegenContext *context, IfExprNode *node,
   return Status::Ok();
 }
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context,
                                 LiteralExprNode<int32_t> *node,
                                 std::ostream *ios) {
@@ -624,7 +612,6 @@ Status CodegenCodePass::codegen(CodegenContext *context,
   return Status::Ok();
 }
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context,
                                 LiteralExprNode<std::string> *node,
                                 std::ostream *ios) {
@@ -633,7 +620,6 @@ Status CodegenCodePass::codegen(CodegenContext *context,
   return Status::Ok();
 }
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context, LetBindingNode *node,
                                 std::ostream *ios) {
   /// Fetch symbol table
@@ -659,7 +645,6 @@ Status CodegenCodePass::codegen(CodegenContext *context, LetBindingNode *node,
   return Status::Ok();
 }
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context, LetExprNode *node,
                                 std::ostream *ios) {
   /// Fetch symbol table
@@ -685,7 +670,6 @@ Status CodegenCodePass::codegen(CodegenContext *context, LetExprNode *node,
   return Status::Ok();
 }
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context, MethodNode *node,
                                 std::ostream *ios) {
   /// Nothing to do for built-in methods
@@ -725,7 +709,6 @@ Status CodegenCodePass::codegen(CodegenContext *context, MethodNode *node,
   return Status::Ok();
 }
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context, NewExprNode *node,
                                 std::ostream *ios) {
   const std::string typeName = node->typeName();
@@ -733,7 +716,6 @@ Status CodegenCodePass::codegen(CodegenContext *context, NewExprNode *node,
   return Status::Ok();
 }
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context,
                                 StaticDispatchExprNode *node,
                                 std::ostream *ios) {
@@ -751,7 +733,6 @@ Status CodegenCodePass::codegen(CodegenContext *context,
   return GenerateDispatchCode(context, this, node, fetchMethodAddress, ios);
 }
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context, UnaryExprNode *node,
                                 std::ostream *ios) {
   if (node->opID() == UnaryOpID::Complement) {
@@ -760,7 +741,6 @@ Status CodegenCodePass::codegen(CodegenContext *context, UnaryExprNode *node,
   return unaryEqualityCodegen(context, node, ios);
 }
 
-/// DONE!!
 Status CodegenCodePass::codegen(CodegenContext *context, WhileExprNode *node,
                                 std::ostream *ios) {
   /// Create labels
